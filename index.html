@@ -424,6 +424,7 @@ details summary{cursor:pointer}
 </div>
 <div id="sheet" hidden></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
+
 <script>
 /* ---------- Reference data ---------- */
 const MUSCLES = ['Chest','Shoulders','Triceps','Biceps','Forearms','Lats','Upper Back','Traps','Lower Back','Abs','Obliques','Glutes','Quads','Hamstrings','Calves','Adductors','Abductors','Neck','Full Body','Cardio'];
@@ -1417,6 +1418,19 @@ function musclesCard(ex){
     ${(ex.secondary||[]).length?`<div><span class="key s"></span><b>Secondary</b><p>${esc(ex.secondary.join(', '))}</p></div>`:''}
    </div></div></div>`;
 }
+
+/* Hands follow the bar on back- and front-loaded lifts (back squat, front squat, goblet, good morning, yoke) */
+const _animSpecBase = animSpecFor;
+animSpecFor = function(ex){
+  const s=_animSpecBase(ex);
+  if(ex.anim && ex.anim.frames && ex.anim.frames.length) return s;
+  const L=s.load;
+  if(L==='back'||L==='front'){
+    const arm = L==='back' ? {ua:-38,fa:150,ua2:-38,fa2:150} : {ua:28,fa:168,ua2:28,fa2:168};
+    s.frames=(s.frames||[]).map(f=>({...f,...arm}));
+  }
+  return s;
+};
 /* ---------- Utilities ---------- */
 const $ = (s,el=document)=>el.querySelector(s);
 const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
@@ -2789,6 +2803,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
   render();
   Store.init().then(()=>{ render(); if(st.active) wake(true); });
 })();
+
 </script>
 <script>if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }</script>
 </body>
