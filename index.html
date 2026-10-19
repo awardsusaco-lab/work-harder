@@ -247,6 +247,9 @@ textarea{resize:vertical;line-height:1.4}
 .rrow.head{font-size:11px;letter-spacing:.07em;color:var(--muted);font-weight:700}
 .rrow .slab{width:26px;height:26px;font-size:13px}
 .card-h select{width:auto;min-height:34px;padding:4px 8px;font-size:14px}
+/* import card */
+.importcard{box-shadow:inset 3px 0 0 var(--accent)}
+.importcard p{margin:0}
 /* coaching cues */
 .cue{margin:0;display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.35;color:var(--fg);background:var(--surface2);border-radius:8px;padding:8px 10px}
 .cue .ic{color:var(--accent);margin-top:1px}
@@ -1768,6 +1771,9 @@ function altsCard(ex){
    <ul class="exlist">${alts.map(a=>`<li><button class="exrow" data-a="openEx" data-id="${esc(a.e.id)}">${thumb(a.e)}<span class="exrow-t"><b>${esc(a.e.name)}</b><span class="muted small">${esc(a.l?a.l+' tier list':(a.e.primary||[]).join(', '))}</span></span><span class="tier t${a.t}">${a.t}</span></button></li>`).join('')}</ul></div>`;
 }
 
+function importCard(what){
+  return `<div class="card importcard"><h3>${what}</h3><p class="muted small">This phone keeps its own copy of your data. Load the backup file once and your routines, history and PRs show up here.</p><label class="btn primary wide filebtn">${ic('share')} Import backup file<input type="file" data-f="importFile"></label><p class="muted small">Save <b>work-harder-backup-2026-10-18.json</b> to Files or iCloud Drive first, then pick it here.</p></div>`;
+}
 /* ---------- Tabs ---------- */
 const TABS={
 home(){
@@ -1782,6 +1788,7 @@ home(){
      <div class="wkbar"><i style="width:${Math.min(100,thisWeek.length/goal*100)}%"></i></div>
      <div class="wkdays">${days}</div>
    </div>`;
+  if(!ws.length&&Store.mode!=='cloud') body+=importCard('Bring your workout history over');
   if(!ws.length){
     body+=`<div class="empty"><div class="empty-fig">${figSVG(BUILTIN.deadlift,{anim:'deadlift'})}</div><h2>Your first workout starts here</h2><p>Log sets, beat your numbers, and watch the pounds add up. Pick a routine or start empty.</p>
       <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-v="workout">Browse routines</button></div></div>`;
@@ -1799,6 +1806,7 @@ workout(){
     ${st.active? `<button class="btn primary wide" data-a="resume">${ic('play')} Resume workout in progress</button>` : `<button class="btn primary wide" data-a="startEmpty">${ic('plus')} Start empty workout</button>`}
     <div class="sec-row"><h2 class="sec">Routines</h2></div>
     <div class="row2"><button class="btn" data-a="newRoutine">${ic('list')} New routine</button><button class="btn" data-a="aiRoutine">${ic('spark')} Build with Claude</button></div>
+    ${!rs.length&&Store.mode!=='cloud'?importCard('Bring your routines over'):''}
     <h3 class="sub">My routines (${rs.length})</h3>
     ${rs.length? rs.map(r=>routineCard(r,false)).join('') : `<p class="muted small">No routines yet. Make one, have Claude build one, or save a starter below.</p>`}
     <h3 class="sub">Starter routines</h3>
@@ -2055,7 +2063,7 @@ settings(){
    <h2 class="sec">Your data</h2>
    <p class="muted small">${Store.mode==='cloud'?'Synced to your Claude account, so the same workouts show on your phone and your computer.':window.WH_STANDALONE?'Saved on this phone. Export a backup every few weeks and keep it somewhere safe, like iCloud Drive.':'Saved on this device only. Open Work Harder from the Claude app while signed in to sync across devices.'}</p>
    <div class="row2"><button class="btn" data-a="exportJSON">Export backup</button><button class="btn" data-a="exportCSV">Export CSV</button></div>
-   <label class="btn wide filebtn">Import backup or Hevy CSV<input type="file" accept=".json,.csv,application/json,text/csv" data-f="importFile"></label>
+   <label class="btn wide filebtn">Import backup or Hevy CSV<input type="file" data-f="importFile"></label>
    <p class="muted small">From Hevy: Profile → Settings → Export & Import Data → Export Workouts, then import that CSV here.</p>
   </section>`};
 }
@@ -2493,7 +2501,8 @@ async function importText(name,text){
     if(!d||!d.app||d.app!=='work-harder'){ toast('That file isn\'t a Work Harder backup.'); return; }
     for(const k of ['custom','routines','workouts']) for(const [id,v] of Object.entries(d[k]||{})){ if(!st[k][id]){ Store.put(k,id,v); added++; } }
     if(d.body&&Array.isArray(d.body.entries)){ const have=new Set(st.body.entries.map(e=>e.t)); for(const e of d.body.entries) if(!have.has(e.t)) st.body.entries.push(e); Store.saveBody(); }
-    toast(`Imported ${added} item${added===1?'':'s'}`); render(); return;
+    const nr=Object.keys(d.routines||{}).length, nw=Object.keys(d.workouts||{}).length;
+    toast(added?`Loaded ${nr} routines and ${nw} workouts`:'That backup is already loaded'); ui.stack=[]; ui.tab='workout'; render(); return;
   }
   const rows=parseCSV(text); if(rows.length<2){ toast('That CSV is empty.'); return; }
   const h=rows[0].map(x=>x.trim().toLowerCase()); const ix=k=>h.indexOf(k);
