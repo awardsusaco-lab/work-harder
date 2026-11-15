@@ -247,6 +247,14 @@ textarea{resize:vertical;line-height:1.4}
 .rrow.head{font-size:11px;letter-spacing:.07em;color:var(--muted);font-weight:700}
 .rrow .slab{width:26px;height:26px;font-size:13px}
 .card-h select{width:auto;min-height:34px;padding:4px 8px;font-size:14px}
+/* how-to */
+.howbtn{flex:none;display:inline-flex;align-items:center;gap:4px;border:0;border-radius:999px;padding:6px 12px;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);font-weight:700;font-size:13px}
+.keyframes{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+.keyframes figure{margin:0;background:var(--surface2);border-radius:10px;padding:4px;display:flex;flex-direction:column;align-items:center}
+.keyframes .fig{width:100%;height:auto;aspect-ratio:240/210}
+.keyframes figcaption{font-size:12px;font-weight:700;color:var(--muted);padding-bottom:4px}
+.sh-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sh-card .stage .fig{max-width:300px}
 /* import card */
 .importcard{box-shadow:inset 3px 0 0 var(--accent)}
 .importcard p{margin:0}
@@ -1771,6 +1779,12 @@ function altsCard(ex){
    <ul class="exlist">${alts.map(a=>`<li><button class="exrow" data-a="openEx" data-id="${esc(a.e.id)}">${thumb(a.e)}<span class="exrow-t"><b>${esc(a.e.name)}</b><span class="muted small">${esc(a.l?a.l+' tier list':(a.e.primary||[]).join(', '))}</span></span><span class="tier t${a.t}">${a.t}</span></button></li>`).join('')}</ul></div>`;
 }
 
+function keyFrames(ex){
+  const n=prepAnim(animSpecFor(ex)).solved.length; const k=Math.min(n,4);
+  const labels = n===2? ['Start','Finish'] : Array.from({length:k},(_,i)=>'Step '+(i+1));
+  return `<div class="keyframes">${labels.map((l,i)=>`<figure>${figSVG(ex,{frame:i})}<figcaption>${l}</figcaption></figure>`).join('')}</div>`;
+}
+function howBtn(id,cue){ return `<button class="howbtn" data-a="howTo" data-id="${esc(id)}"${cue?` data-cue="${esc(cue)}"`:''}>${ic('play','sm')} How to</button>`; }
 function importCard(what){
   return `<div class="card importcard"><h3>${what}</h3><p class="muted small">This phone keeps its own copy of your data. Load the backup file once and your routines, history and PRs show up here.</p><label class="btn primary wide filebtn">${ic('share')} Import backup file<input type="file" data-f="importFile"></label><p class="muted small">Save <b>work-harder-backup-2026-10-18.json</b> to Files or iCloud Drive first, then pick it here.</p></div>`;
 }
@@ -1949,7 +1963,7 @@ rview(p){
     <div class="sec-row"><h2 class="sec">Exercises</h2>${tpl?`<button class="btn ghost sm" data-a="saveTpl" data-id="${esc(r.id)}">Save to my routines</button>`:`<button class="btn ghost sm" data-a="editRoutine" data-id="${esc(r.id)}">${ic('edit','sm')} Edit routine</button>`}</div>
     ${(r.exercises||[]).map((e,i)=>{ const X=getEx(e.exId); const cols=colsFor(X); const rest=e.rest==null?st.settings.rest:e.rest;
       return `<div class="card rex ${e.ss?'ss':''}">
-        <button class="exhead" data-a="openEx" data-id="${esc(X.id)}">${thumb(X)}<b class="acc">${esc(X.name)}</b>${nipBadge(X)}</button>
+        <div class="exc-h"><button class="exhead" data-a="howTo" data-id="${esc(X.id)}" data-cue="${esc(e.note||'')}">${thumb(X)}<b class="acc">${esc(X.name)}</b>${nipBadge(X)}</button>${howBtn(X.id,e.note||'')}</div>
         ${e.ss?`<span class="ssbadge">Superset ${esc(e.ss)}</span>`:''}
         <div class="muted small rline">${ic('clock','sm')} Rest timer: ${fmtRest(rest)}</div>
         ${e.note?`<p class="cue">${ic('list','sm')}<span>${esc(e.note)}</span></p>`:''}
@@ -1985,7 +1999,7 @@ exd(p){
   const h=(stats().byEx[ex.id]||[]);
   let inner='';
   if(tab==='how'){
-    inner=`${ex.steps&&ex.steps.length?`<ol class="steps">${ex.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>`:`<p class="muted">No steps yet. Tap Edit to add them, or have Claude write them.</p>`}
+    inner=`<div class="card"><h3>Key positions</h3>${keyFrames(ex)}</div>${ex.steps&&ex.steps.length?`<ol class="steps">${ex.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>`:`<p class="muted">No steps yet. Tap Edit to add them, or have Claude write them.</p>`}
      ${ex.tips&&ex.tips.length?`<div class="card tips"><h3>Tips</h3><ul>${ex.tips.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`:''}`;
   } else if(tab==='hist'){
     inner = h.length? h.map(({w,e})=>`<div class="card"><button class="exhead" data-a="openW" data-id="${esc(w.id)}"><b>${esc(w.name)}</b><span class="muted small">${esc(fmtDate(w.start))}</span></button>
@@ -2127,7 +2141,8 @@ function exCard(obj,e,i,mode){
   }).join('');
   return `<div class="card exc ${e.ss?'ss':''}">
     <div class="exc-h">
-      <button class="exhead" data-a="openEx" data-id="${esc(ex.id)}">${thumb(ex)}<b class="acc">${esc(ex.name)}</b></button>
+      <button class="exhead" data-a="howTo" data-id="${esc(ex.id)}" data-cue="${esc(e.cue||e.note||'')}">${thumb(ex)}<b class="acc">${esc(ex.name)}</b></button>
+      ${howBtn(ex.id,e.cue||e.note||'')}
       <button class="iconbtn" data-a="exMenu" data-e="${i}" aria-label="Exercise options">${ic('more')}</button>
     </div>
     ${e.ss?`<button class="ssbadge" data-a="exMenu" data-e="${i}">Superset ${esc(e.ss)}</button>`:''}
@@ -2313,10 +2328,21 @@ function renderSheet(){
      <textarea id="airq" rows="3" placeholder="e.g. 50-minute upper body day, barbell and dumbbells, focus on shoulders">${esc(s.text||'')}</textarea>
      <button class="btn primary wide" data-a="airGo" ${s.busy?'disabled':''}>${s.busy?'Building…':'Build routine'}</button>
      ${s.error?`<p class="note warn">${esc(s.error)}</p>`:''}`;
+  } else if(s.kind==='howto'){
+    const ex=getEx(s.id);
+    inner=`<div class="sh-head"><h3 class="sh-title">${esc(ex.name)}</h3><button class="iconbtn" data-a="sheetClose" aria-label="Close">${ic('x')}</button></div>
+     <div class="stage">${figSVG(ex,{anim:ex.id,cls:'big'})}</div>
+     ${keyFrames(ex)}
+     ${s.cue?`<p class="cue">${ic('list','sm')}<span>${esc(s.cue)}</span></p>`:''}
+     ${ex.steps&&ex.steps.length?`<ol class="steps">${ex.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:'<p class="muted">No steps for this one yet.</p>'}
+     ${ex.tips&&ex.tips.length?`<div class="card tips"><h3>Tips</h3><ul>${ex.tips.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+     ${musclesCard(ex)}
+     <button class="btn wide" data-a="howFull" data-id="${esc(ex.id)}">See history and records</button>`;
   } else if(s.kind==='text'){
     inner=`<h3 class="sh-title">${esc(s.title)}</h3><p class="muted small">${esc(s.note||'')}</p><textarea id="sht" rows="10" readonly>${esc(s.text)}</textarea><button class="btn primary wide" data-a="copy" data-src="sht">${ic('copy')} Copy</button>`;
   }
   el.innerHTML=`<div class="sh-back" data-a="sheetClose"></div><div class="sh-card gut" role="dialog" aria-modal="true"><div class="sh-grab"></div>${inner}</div>`;
+  $$('#sheet svg[data-anim]').forEach(svg=>{ svg.__ex=getEx(svg.dataset.anim); });
   Animator.attach(document.body);
 }
 function menu(title,items){ openSheet({kind:'menu',title,items}); }
@@ -2570,6 +2596,8 @@ const A={
 
   /* exercises */
   openEx:(d)=>push({name:'exd',id:d.id,tab:d.tab||'how'}),
+  howTo:(d)=>openSheet({kind:'howto',id:d.id,cue:d.cue||''}),
+  howFull:(d)=>{ closeSheet(); push({name:'exd',id:d.id,tab:'how'}); },
   exTab:(d)=>{ cur().tab=d.v; render(); },
   exMetric:(d)=>{ cur().metric=d.v; render(); },
   stageTap:()=>{},
