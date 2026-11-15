@@ -247,6 +247,13 @@ textarea{resize:vertical;line-height:1.4}
 .rrow.head{font-size:11px;letter-spacing:.07em;color:var(--muted);font-weight:700}
 .rrow .slab{width:26px;height:26px;font-size:13px}
 .card-h select{width:auto;min-height:34px;padding:4px 8px;font-size:14px}
+/* routines tab */
+.folder{display:flex;flex-direction:column;gap:10px}
+.folder-h{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:6px 0;text-align:left;font-size:18px;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.folder-h b{font-weight:800}
+.folder-h .muted{margin-left:auto;font-family:var(--f-body);text-transform:none;letter-spacing:0}
+.upnext{box-shadow:inset 3px 0 0 var(--accent)}
+.upnext h3{font-size:18px}
 /* how-to */
 .howbtn{flex:none;display:inline-flex;align-items:center;gap:4px;border:0;border-radius:999px;padding:6px 12px;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);font-weight:700;font-size:13px}
 .keyframes{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
@@ -292,7 +299,7 @@ textarea.note-in{resize:none;field-sizing:content;min-height:30px!important}
 @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 60%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
 
 /* nav */
-#nav{flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line)}
+#nav{flex:none;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line)}
 #nav button{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;color:var(--muted);padding:8px 0 6px;font-size:11px;font-weight:600;letter-spacing:.02em}
 #nav button[aria-current="page"]{color:var(--accent)}
 
@@ -429,6 +436,7 @@ details summary{cursor:pointer}
   <nav id="nav" aria-label="Sections">
     <button data-tab="home"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/></svg>Home</button>
     <button data-tab="workout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Workout</button>
+    <button data-tab="routines"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Routines</button>
     <button data-tab="exercises"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>Exercises</button>
     <button data-tab="profile"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Profile</button>
   </nav>
@@ -1785,6 +1793,12 @@ function keyFrames(ex){
   return `<div class="keyframes">${labels.map((l,i)=>`<figure>${figSVG(ex,{frame:i})}<figcaption>${l}</figcaption></figure>`).join('')}</div>`;
 }
 function howBtn(id,cue){ return `<button class="howbtn" data-a="howTo" data-id="${esc(id)}"${cue?` data-cue="${esc(cue)}"`:''}>${ic('play','sm')} How to</button>`; }
+function folderNames(){ const seen=[]; for(const r of routinesSorted()) if(r.folder&&!seen.includes(r.folder)) seen.push(r.folder); return seen; }
+function nextInFolder(f){
+  const list=routinesSorted().filter(r=>r.folder===f); if(!list.length) return null;
+  const ids=new Set(list.map(r=>r.id)); const last=workoutsSorted().find(w=>ids.has(w.routineId));
+  if(!last) return list[0]; const i=list.findIndex(r=>r.id===last.routineId); return list[(i+1)%list.length];
+}
 function importCard(what){
   return `<div class="card importcard"><h3>${what}</h3><p class="muted small">This phone keeps its own copy of your data. Load the backup file once and your routines, history and PRs show up here.</p><label class="btn primary wide filebtn">${ic('share')} Import backup file<input type="file" data-f="importFile"></label><p class="muted small">Save <b>work-harder-backup-2026-10-18.json</b> to Files or iCloud Drive first, then pick it here.</p></div>`;
 }
@@ -1814,19 +1828,32 @@ home(){
   return {hdr:hdr('Work Harder',{big:true,right:`<span id="syncdot" class="syncdot"></span>`}),body};
 },
 workout(){
-  const rs=routinesSorted();
+  const nexts=folderNames().map(f=>({f,r:nextInFolder(f)})).filter(x=>x.r);
   let body=`<section class="gut stack">
     <h2 class="sec">Quick start</h2>
     ${st.active? `<button class="btn primary wide" data-a="resume">${ic('play')} Resume workout in progress</button>` : `<button class="btn primary wide" data-a="startEmpty">${ic('plus')} Start empty workout</button>`}
-    <div class="sec-row"><h2 class="sec">Routines</h2></div>
-    <div class="row2"><button class="btn" data-a="newRoutine">${ic('list')} New routine</button><button class="btn" data-a="aiRoutine">${ic('spark')} Build with Claude</button></div>
+    ${nexts.map(({f,r})=>`<div class="card upnext"><div class="eyebrow">Up next · ${esc(f)}</div>
+      <button class="linkhead" data-a="openR" data-id="${esc(r.id)}"><h3>${esc(r.name)}</h3><p class="muted small clamp2">${esc((r.exercises||[]).map(e=>getEx(e.exId).name).join(', '))}</p></button>
+      <button class="btn primary wide" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} Start ${esc(r.name.split(' — ')[0])}</button></div>`).join('')}
+    <button class="btn wide" data-tab="routines">${ic('list')} All routines</button>
+  </section>`;
+  return {hdr:hdr('Workout'),body};
+},
+routines(){
+  const rs=routinesSorted(); const folders=folderNames(); const loose=rs.filter(r=>!r.folder);
+  const open=ui.folderOpen||(ui.folderOpen={});
+  let body=`<section class="gut stack">
+    <div class="row2"><button class="btn" data-a="newRoutine">${ic('plus')} New routine</button><button class="btn" data-a="aiRoutine">${ic('spark')} Build with Claude</button></div>
     ${!rs.length&&Store.mode!=='cloud'?importCard('Bring your routines over'):''}
-    <h3 class="sub">My routines (${rs.length})</h3>
-    ${rs.length? rs.map(r=>routineCard(r,false)).join('') : `<p class="muted small">No routines yet. Make one, have Claude build one, or save a starter below.</p>`}
+    ${folders.map(f=>{ const list=rs.filter(r=>r.folder===f); const isOpen=open[f]!==false;
+      return `<div class="folder"><button class="folder-h" data-a="toggleFolder" data-v="${esc(f)}" aria-expanded="${isOpen}">${ic(isOpen?'down':'right','sm')}<b>${esc(f)}</b><span class="muted small">${list.length} routine${list.length===1?'':'s'}</span></button>
+        ${isOpen?list.map(r=>routineCard(r,false)).join(''):''}</div>`; }).join('')}
+    ${loose.length?`<h3 class="sub">${folders.length?'Other routines':'My routines'} (${loose.length})</h3>${loose.map(r=>routineCard(r,false)).join('')}`:''}
+    ${!rs.length?`<p class="muted small">No routines yet. Make one, have Claude build one, or save a starter below.</p>`:''}
     <h3 class="sub">Starter routines</h3>
     ${TEMPLATES.map(r=>routineCard(r,true)).join('')}
   </section>`;
-  return {hdr:hdr('Workout'),body};
+  return {hdr:hdr('Routines'),body};
 },
 exercises(){
   return {hdr:hdr('Exercises',{right:`<button class="iconbtn" data-a="aiSuggest" aria-label="Ask Claude for exercises">${ic('spark')}</button><button class="iconbtn" data-a="newEx" aria-label="Create exercise">${ic('plus')}</button>`}), body:exerciseBrowser(false)};
@@ -2099,7 +2126,7 @@ function loggerPage(obj,mode){
     head=hdr(cur().isNew?'New routine':'Edit routine',{left:backBtn,right:`<button class="btn primary sm" data-a="routineSave">Save</button>`});
   }
   let top='';
-  if(mode==='routine') top=`<input id="rname" class="title-in" data-f="rname" value="${esc(obj.name)}" placeholder="Routine title"><textarea id="rnotes" data-f="rnotes" rows="2" placeholder="Notes (optional)">${esc(obj.notes||'')}</textarea>`;
+  if(mode==='routine') top=`<input id="rname" class="title-in" data-f="rname" value="${esc(obj.name)}" placeholder="Routine title"><div class="field"><label for="rfolder">Folder</label><input id="rfolder" data-f="rfolder" list="folderlist" value="${esc(obj.folder||'')}" placeholder="None (e.g. Hunting)"><datalist id="folderlist">${folderNames().map(f=>`<option value="${esc(f)}">`).join('')}</datalist></div><textarea id="rnotes" data-f="rnotes" rows="2" placeholder="Notes (optional)">${esc(obj.notes||'')}</textarea>`;
   if(mode==='edit') top=`<input id="ename" class="title-in" data-f="ename" value="${esc(obj.name)}"><textarea id="enotes" data-f="enotes" rows="2" placeholder="Description">${esc(obj.notes||'')}</textarea>`;
   const cards=obj.exercises.map((e,i)=>exCard(obj,e,i,mode)).join('');
   const empty = obj.exercises.length? '' : `<div class="empty small-empty"><div class="empty-fig">${figSVG(BUILTIN.bench_bb,{anim:'bench_bb'})}</div><h2>${mode==='routine'?'Add exercises to this routine':'Get started'}</h2><p>Add an exercise to start logging.</p></div>`;
@@ -2525,10 +2552,10 @@ async function importText(name,text){
   if(/\.json$/i.test(name)||/^\s*\{/.test(text)){
     let d; try{ d=JSON.parse(text);}catch(e){ toast('That file isn\'t a valid backup.'); return; }
     if(!d||!d.app||d.app!=='work-harder'){ toast('That file isn\'t a Work Harder backup.'); return; }
-    for(const k of ['custom','routines','workouts']) for(const [id,v] of Object.entries(d[k]||{})){ if(!st[k][id]){ Store.put(k,id,v); added++; } }
+    for(const k of ['custom','routines','workouts']) for(const [id,v] of Object.entries(d[k]||{})){ const cur=st[k][id]; if(!cur || (k!=='workouts' && (v.updated||0)>(cur.updated||0))){ Store.put(k,id,v); added++; } }
     if(d.body&&Array.isArray(d.body.entries)){ const have=new Set(st.body.entries.map(e=>e.t)); for(const e of d.body.entries) if(!have.has(e.t)) st.body.entries.push(e); Store.saveBody(); }
     const nr=Object.keys(d.routines||{}).length, nw=Object.keys(d.workouts||{}).length;
-    toast(added?`Loaded ${nr} routines and ${nw} workouts`:'That backup is already loaded'); ui.stack=[]; ui.tab='workout'; render(); return;
+    toast(added?`Loaded ${nr} routines and ${nw} workouts`:'That backup is already loaded'); ui.stack=[]; ui.tab='routines'; render(); return;
   }
   const rows=parseCSV(text); if(rows.length<2){ toast('That CSV is empty.'); return; }
   const h=rows[0].map(x=>x.trim().toLowerCase()); const ix=k=>h.indexOf(k);
@@ -2579,6 +2606,7 @@ const A={
       {label:'Delete routine',icon:'trash',danger:true,fn:()=>confirmSheet('Delete this routine?',`"${r.name}" will be removed. Past workouts stay in your history.`,'Delete',()=>{ Store.del('routines',r.id); ui.stack=ui.stack.filter(x=>!(x.name==='rview'&&x.id===r.id)); render(); })}
     ]);
   },
+  toggleFolder:(d)=>{ const o=ui.folderOpen||(ui.folderOpen={}); o[d.v]=o[d.v]===false; render(); },
   openR:(d)=>push({name:'rview',id:d.id,tpl:!!d.tpl}),
   rMetric:(d)=>{ cur().metric=d.v; const m=$('#main'),y=m.scrollTop; render(); $('#main').scrollTop=y; },
   editRoutine:(d)=>{ const r=st.routines[d.id]; if(r) push({name:'redit',obj:convertObjUnit(clone(r),st.settings.unit)}); },
@@ -2716,7 +2744,7 @@ const A={
   },
   doneClose:()=>{ ui.stack=[]; ui.tab='home'; render(); },
   editSave:()=>{ const p=cur(); const o=clone(p.obj); normalizeSets(o,true); o.saved=true; if(!o.name) o.name='Workout'; o.prs=computePRs(o); Store.put('workouts',o.id,o); ui.stack.pop(); toast('Workout updated'); render(); },
-  routineSave:()=>{ const p=cur(); const o=clone(p.obj); o.name=(o.name||'').trim()||'Untitled routine'; normalizeSets(o,false); for(const e of o.exercises) for(const s of e.sets) delete s.done; o.updated=Date.now(); if(o.order==null) o.order=routinesSorted().length; Store.put('routines',o.id,o); ui.stack.pop(); toast('Routine saved'); render(); },
+  routineSave:()=>{ const p=cur(); const o=clone(p.obj); o.name=(o.name||'').trim()||'Untitled routine'; normalizeSets(o,false); for(const e of o.exercises) for(const s of e.sets) delete s.done; o.updated=Date.now(); if(o.order==null) o.order=routinesSorted().length; if(!o.folder) delete o.folder; Store.put('routines',o.id,o); ui.stack.pop(); toast('Routine saved'); render(); },
   routineDelete:()=>{ const p=cur(); confirmSheet('Delete this routine?','Past workouts stay in your history.','Delete',()=>{ Store.del('routines',p.obj.id); ui.stack.pop(); ui.stack=ui.stack.filter(x=>!(x.name==='rview'&&x.id===p.obj.id)); render(); }); },
 
   /* rest */
@@ -2807,7 +2835,7 @@ function onField(ev,commit){
       else s[c]=v;
       changed(false); return; }
     case 'exnote': curObj().exercises[+el.dataset.e].note=v; changed(false); return;
-    case 'rname': p.obj.name=v; return; case 'rnotes': p.obj.notes=v; return;
+    case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
     case 'wname': st.active.name=v; Store.saveActive(); return; case 'wnotes': st.active.notes=v; Store.saveActive(); return;
     case 'exname': p.draft.name=v; return;
