@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0E1114">
+<meta name="theme-color" content="#0E1114" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F4F6" media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -247,6 +248,12 @@ textarea{resize:vertical;line-height:1.4}
 .rrow.head{font-size:11px;letter-spacing:.07em;color:var(--muted);font-weight:700}
 .rrow .slab{width:26px;height:26px;font-size:13px}
 .card-h select{width:auto;min-height:34px;padding:4px 8px;font-size:14px}
+/* compact top-of-workout cards */
+.cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
+.checkin{padding-block:10px}
+.plan summary{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.plan summary b{display:flex;align-items:center;gap:6px}
+.plan[open] summary .muted{display:none}
 /* comeback */
 .cbcard{box-shadow:inset 3px 0 0 var(--good);gap:6px} .cbcard p{margin:0} .cbcard b{display:flex;align-items:center;gap:6px}
 .coachchip.k-cb{background:color-mix(in srgb,var(--good) 12%,transparent)} .coachchip.k-cb .ic{color:var(--good)}
@@ -448,6 +455,40 @@ details summary{cursor:pointer}
 
 @media (min-width:640px){ .heat-lbl{display:none} #main{padding-block:20px 40px} }
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+
+/* ---------- phone polish ---------- */
+html,body{overflow:hidden;overscroll-behavior:none}
+@supports (height:100dvh){ #app{height:100%} }
+/* bars reach the screen edges: the header under the status bar, the bottom bar under the home indicator */
+#hdr{padding-top:env(safe-area-inset-top,0px);margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+#nav{padding-bottom:env(safe-area-inset-bottom,0px);margin-bottom:calc(-1 * env(safe-area-inset-bottom,0px))}
+#app:has(#nav[hidden]) #restbar:not([hidden]){padding-bottom:env(safe-area-inset-bottom,0px);margin-bottom:calc(-1 * env(safe-area-inset-bottom,0px))}
+#app:has(#nav[hidden]) #main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+#nav button{min-height:52px;padding-top:7px}
+/* no zoom-on-focus, no double-tap zoom, no text selection on controls */
+.cell{font-size:16px!important}
+button,a,input,select,label,summary{touch-action:manipulation}
+button,.chip,.slab,#nav,.exhead,.folder-h{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* press feedback that feels native */
+.btn,.chk,.chip,.iconbtn,.howbtn,.slab,#nav button,.exrow,.feed,.menu-i{transition:transform .12s ease,background-color .15s ease,filter .15s ease}
+.btn:active,.chk:active,.chip:active,.iconbtn:active,.howbtn:active,.slab:active{transform:scale(.95)}
+#nav button:active{transform:scale(.92)}
+.feed:active,.exrow:active,.menu-i:active{transform:scale(.985)}
+.chk.on{animation:tick .25s ease-out}
+@keyframes tick{0%{transform:scale(.8)}60%{transform:scale(1.08)}100%{transform:none}}
+/* page transitions */
+#main.nav-push>*{animation:navIn .22s ease-out}
+#main.nav-pop>*{animation:navBack .22s ease-out}
+#main.nav-tab>*{animation:fadeIn .18s ease-out}
+@keyframes navIn{from{opacity:.4;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes navBack{from{opacity:.4;transform:translateX(-24px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:.5}to{opacity:1}}
+/* touch screens: no stuck hover colors after a tap */
+@media (hover:none){
+  .btn:hover{filter:none} .iconbtn:hover{background:transparent} .feed:hover{background:var(--surface)}
+  .exrow:not(.sel):hover{background:transparent} .rtable:hover{background:transparent}
+}
+@media (prefers-reduced-motion: reduce){ #main>*{animation:none!important} }
 </style>
 
 <div id="app">
@@ -1972,9 +2013,9 @@ const ic=(n,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true">
 
 /* ---------- Shell ---------- */
 function cur(){ return ui.stack[ui.stack.length-1]||null; }
-function push(page){ saveScroll(); ui.stack.push(page); render(); $('#main').scrollTop=0; }
-function pop(){ ui.stack.pop(); render(); restoreScroll(); }
-function setTab(t){ saveScroll(); ui.tab=t; ui.stack=[]; render(); restoreScroll(); }
+function push(page){ saveScroll(); ui.stack.push(page); ui.navDir='push'; render(); $('#main').scrollTop=0; }
+function pop(){ ui.stack.pop(); ui.navDir='pop'; render(); restoreScroll(); }
+function setTab(t){ saveScroll(); if(t!==ui.tab||ui.stack.length) ui.navDir='tab'; ui.tab=t; ui.stack=[]; render(); restoreScroll(); }
 function pageKey(){ const p=cur(); return p? p.name+':'+(p.id||'') : 'tab:'+ui.tab; }
 function saveScroll(){ const m=$('#main'); if(m) ui.scroll[pageKey()]=m.scrollTop; }
 function restoreScroll(){ const m=$('#main'); if(m) m.scrollTop=ui.scroll[pageKey()]||0; }
@@ -2001,6 +2042,7 @@ function render(){
   renderRest();
   postRender();
   setSync();
+  if(ui.navDir){ const m=$('#main'); m.classList.remove('nav-push','nav-pop','nav-tab'); void m.offsetWidth; m.classList.add('nav-'+ui.navDir); ui.navDir=null; }
 }
 function postRender(){
   $$('svg[data-anim]').forEach(svg=>{
@@ -2428,15 +2470,15 @@ function loggerPage(obj,mode){
     const c=obj.comeback;
     top+= obj.comebackOff
       ? `<div class="card cbcard"><b>Comeback mode is off</b><p class="muted small">Back to normal targets. Tap to ease in again.</p><button class="btn sm" data-a="comebackToggle">Turn comeback mode on</button></div>`
-      : `<div class="card cbcard"><b>${ic('spark','sm')} Comeback mode · session ${c.stage+1} of ${CB_SESSIONS}</b><p class="small">${c.stage===0?`${c.gapDays} days since your last workout, so the coach starts you at ${Math.round(cbStartFactor(c.gapDays)*100)}% of your old weights with one fewer set.`:`Each lift climbs from how your last session went: Easy +10%, Medium +5%, Hard holds.`} Rate each lift so it knows how much you can handle. Full targets return after ${CB_SESSIONS} sessions or sooner if you're ready.</p><button class="btn ghost sm" data-a="comebackToggle">I'm ready, turn it off</button></div>`;
+      : `<div class="card cbcard"><b>${ic('spark','sm')} Comeback mode · session ${c.stage+1} of ${CB_SESSIONS}</b><p class="small">${c.stage===0?`${c.gapDays} days off: weights start at ${Math.round(cbStartFactor(c.gapDays)*100)}% with one fewer set.`:`Lifts climb from your ratings: Easy +10%, Medium +5%, Hard holds.`} Rate each lift as you go.</p><button class="btn ghost sm cboff" data-a="comebackToggle">I'm ready, turn it off</button></div>`;
   }
   if(mode==='active'&&obj.routineId){
     const opt=(k,v,l)=>`<button class="chip ${obj[k]===v?'on':''}" data-a="checkin" data-k="${k}" data-v="${v}" aria-pressed="${obj[k]===v}">${l}</button>`;
-    top+=`<div class="card checkin"><b>Quick check-in</b><p class="muted small">The coach sets today's targets from your last sessions and this.</p>
+    top+=`<div class="card checkin">
       <div class="ci-row"><span>Feeling</span><div class="chips">${opt('feel','fresh','Fresh')}${opt('feel','normal','Normal')}${opt('feel','rundown','Run down')}</div></div>
       <div class="ci-row"><span>Knees</span><div class="chips">${opt('knees','good','Good')}${opt('knees','achy','Achy')}</div></div></div>`;
   }
-  if(mode==='active'&&obj.plan) top+=`<details class="plan card" open><summary><b>Today's game plan</b></summary><p>${esc(obj.plan)}</p></details>`;
+  if(mode==='active'&&obj.plan) top+=`<details class="plan card"><summary><b>${ic('list','sm')} Today's game plan</b><span class="muted small">tap to open</span></summary><p>${esc(obj.plan)}</p></details>`;
   const body=`<section class="gut stack">${top}${empty}${cards}
     <button class="btn primary wide" data-a="addEx">${ic('plus')} Add exercise</button>
     ${mode==='active'?`<button class="btn danger-t wide" data-a="discard">Discard workout</button>`:''}
@@ -2461,7 +2503,7 @@ function exCard(obj,e,i,mode){
       if(s['p'+c]!=null && s['p'+c]!=='') ph = c==='t'? fmtTime(s['p'+c]) : s['p'+c];
       else if(ps){ if(c==='w'&&ps.w!=null&&ps.w!=='') ph=wDisp(ps.w,prev.unit); else if(c==='t'&&ps.t) ph=fmtTime(ps.t); else if(c==='d'&&ps.d) ph=ps.d; else if(c==='r'&&ps.r!=null) ph=ps.r; }
       const im = c==='r'? 'numeric':'decimal';
-      return `<input class="cell" data-f="set" data-e="${i}" data-s="${si}" data-c="${c}" inputmode="${im}" autocomplete="off" value="${esc(val)}" placeholder="${esc(ph||'–')}" aria-label="${colLabel(c,ex)} set ${si+1}">`;
+      return `<input class="cell" data-f="set" data-e="${i}" data-s="${si}" data-c="${c}" inputmode="${im}" enterkeyhint="next" autocomplete="off" value="${esc(val)}" placeholder="${esc(ph||'–')}" aria-label="${colLabel(c,ex)} set ${si+1}">`;
     }).join('');
     let pr='';
     if(best && s.done){ const ww=toLb(num(s.w)||0,obj.unit), r=num(s.r)||0; if(['wr','wreps'].includes(ex.type) && best.e1rm>0 && e1rm(ww,r)>best.e1rm+0.01) pr=`<span class="prflag" title="New personal record">${ic('trophy','sm')}</span>`; }
