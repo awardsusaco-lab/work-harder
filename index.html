@@ -563,6 +563,29 @@ textarea{resize:vertical;line-height:1.4}
 .auth-art{margin:-16px -16px 4px;border-radius:var(--r) var(--r) 0 0;overflow:hidden}
 .pe-photo{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0}
 .pad{padding:12px 14px}
+.shlist{list-style:none;margin:0;padding:4px 0}
+.shlist li+li{border-top:1px solid var(--line)}
+.shrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:none;border:0;color:inherit;text-align:left;font:inherit;cursor:pointer}
+.shrow .minw{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.shrow b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--acc-soft,rgba(255,255,255,.08));color:var(--acc);flex:none}
+.shcount{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;color:var(--acc)}
+.shex .cue{margin:4px 0 0}
+.shsets{margin:8px 0 0;padding-left:22px;display:grid;gap:3px;font-variant-numeric:tabular-nums}
+.post{display:grid;gap:8px}
+.post-h{display:flex;align-items:center;gap:10px}.post-h .minw{flex:1;display:flex;flex-direction:column;min-width:0}
+.post-pts{font-weight:700;color:var(--acc);font-size:14px}
+.post-t{margin:0;font-size:17px}
+.post-a{display:flex;align-items:center;gap:6px;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+.pbtn{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:none;color:inherit;font:inherit;font-weight:600;cursor:pointer}
+.pbtn.on{color:#ff4d6d;border-color:#ff4d6d55;background:#ff4d6d14}.pbtn.on .ic path{fill:currentColor}
+.likers{margin-left:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmts{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px}
+.cmts li{line-height:1.35;overflow-wrap:anywhere}
+.cdel{background:none;border:0;color:var(--muted);padding:2px;vertical-align:middle;cursor:pointer}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);font:inherit;cursor:pointer}
+.cbox{display:flex;gap:8px}.cbox input{flex:1;min-width:0}
+.nudge{display:grid;gap:6px;justify-items:start}.nudge p{margin:0}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3280,6 +3303,10 @@ trophyArt=function(kind,stage,{scene=true}={}){
 
 /* ---------- Badges: a patch collection that fills in as you train ---------- */
 Object.assign(I,{
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4M17.5 14.8c2.2.6 3.6 2.4 4 5.2"/>',
+  chev:'<path d="m9 5 7 7-7 7"/>',
+  heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
+  chat:'<path d="M4.5 5.5h15v10h-9l-4.5 3.5v-3.5h-1.5z"/>',
   mountain:'<path d="M2.5 19.5 9 8.5l4 6.5 2.5-3.5 6 8z"/><path d="M7.4 11.2 9 12.6l1.6-1.4"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
   moon:'<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
@@ -3803,9 +3830,7 @@ home(){
     body+=`<div class="empty"><div class="empty-fig">${figSVG(BUILTIN.deadlift,{anim:'deadlift'})}</div><h2>Your first workout starts here</h2><p>Log sets, beat your numbers, and watch the pounds add up. Pick a routine or start empty.</p>
       <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-tab="routines">Browse routines</button></div></div>`;
   } else {
-    const N=ui.feedN||3;
-    body+=`<h2 class="sec">${ic('history')} Recent workouts</h2>`+ws.slice(0,N).map(feedCard).join('');
-    if(ws.length>N) body+=`<button class="btn ghost wide" data-a="moreFeed">${ic('down','sm')} Show more</button>`;
+    body+=homeFeed(ws);
   }
   body+='</section>';
   return {hdr:hdr('Work Harder',{big:true,right:`${Store.mode==='cloud'?'<span id="syncdot" class="syncdot"></span>':''}<button class="iconbtn" data-a="settings" aria-label="Settings">${ic('gear')}</button>`}),body};
@@ -4703,6 +4728,7 @@ const A={
     const r=st.routines[d.id]; if(!r) return;
     menu(r.name,[
       {label:'Edit routine',icon:'edit',fn:()=>push({name:'redit',obj:convertObjUnit(clone(r),st.settings.unit)})},
+      {label:'Share with friends',icon:'share',fn:()=>Social.share('routine',r.id)},
       {label:'Duplicate',icon:'copy',fn:()=>{ const c={...clone(r),id:uid(),name:r.name+' (copy)',updated:Date.now()}; Store.put('routines',c.id,c); render(); toast('Duplicated'); }},
       {label:'Delete routine',icon:'trash',danger:true,fn:()=>confirmSheet('Delete this routine?',`"${r.name}" will be removed. Past workouts stay in your history.`,'Delete',()=>{ Store.del('routines',r.id); ui.stack=ui.stack.filter(x=>!(x.name==='rview'&&x.id===r.id)); render(); })}
     ]);
@@ -4716,6 +4742,7 @@ const A={
   wMenu:(d)=>{ const w=st.workouts[d.id]; if(!w) return; menu(w.name,[
     {label:'Edit workout',icon:'edit',fn:()=>{ const o=convertObjUnit(clone(w),st.settings.unit); o.exercises.forEach(e=>e.sets.forEach(s=>s.done=true)); push({name:'wedit',obj:o}); }},
     {label:'Save as routine',icon:'list',fn:()=>A.wToRoutine(d)},
+    {label:'Share with friends',icon:'users',fn:()=>Social.share('workout',w.id)},
     {label:'Share to Strava',icon:'share',fn:()=>A.strava(d)},
     {label:'Delete workout',icon:'trash',danger:true,fn:()=>confirmSheet('Delete this workout?','This can\'t be undone.','Delete',()=>{ Store.del('workouts',w.id); ui.stack=[]; render(); })}
   ]); },
@@ -4966,6 +4993,7 @@ document.addEventListener('click',ev=>{
 document.addEventListener('keydown',ev=>{
   if(ev.key==='Escape'&&ui.sheet){ closeSheet(); return; }
   if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches('article[data-a]')){ ev.preventDefault(); ev.target.click(); }
+  if(ev.key==='Enter'&&ev.target.matches('.cbox input')){ ev.preventDefault(); const b=ev.target.parentElement.querySelector('[data-a=sendCmt]'); if(b) b.click(); }
   if(ev.key==='Enter'&&ev.target.matches('input.cell')){ ev.preventDefault(); const all=$$('input.cell'); const i=all.indexOf(ev.target); if(all[i+1]) all[i+1].focus(); else ev.target.blur(); }
 });
 
@@ -5020,7 +5048,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 const FB_CONFIG = {apiKey:"AIzaSyA2BpRjGn2hHSLx1zf59dhY76u-JkAvNSI",authDomain:"work-harder-c4d8e.firebaseapp.com",projectId:"work-harder-c4d8e",storageBucket:"work-harder-c4d8e.firebasestorage.app",messagingSenderId:"689581422145",appId:"1:689581422145:web:1785febaf8ab74140b38c0"}; // public web config (not a secret)
 const FBV='10.12.2';
 const Social={
-  ready:false, user:null, profile:null, friends:[], loading:false, err:'', api:null,
+  ready:false, user:null, profile:null, friends:[], myShared:[], posts:[], reacts:{}, myFeed:[], loading:false, err:'', api:null,
   configured(){ return !!(window.WH_MOCK_FB || (FB_CONFIG && window.WH_STANDALONE)); },
   async init(){
     if(this.api||!this.configured()) return;
@@ -5039,12 +5067,20 @@ const Social={
         getProfile:async uid=>{ const s=await fs.getDoc(D('users',uid)); return s.exists()?s.data():null; },
         setProfile:(uid,data)=>fs.setDoc(D('users',uid),data,{merge:true}),
         putFeed:(uid,id,item)=>fs.setDoc(D('users',uid,'feed',id),item),
-        listFeed:async (uid,n=20)=>{ const q=fs.query(C('users',uid,'feed'),fs.orderBy('start','desc'),fs.limit(n)); const s=await fs.getDocs(q); return s.docs.map(d=>d.data()); },
+        listFeed:async (uid,n=20)=>{ const q=fs.query(C('users',uid,'feed'),fs.orderBy('start','desc'),fs.limit(n)); const s=await fs.getDocs(q); return s.docs.map(d=>({...d.data(),id:d.id})); },
         claimCode:(code,uid)=>fs.setDoc(D('codes',code),{uid}),
         lookupCode:async code=>{ const s=await fs.getDoc(D('codes',code)); return s.exists()?s.data().uid:null; },
         link:async (me,them)=>{ const b=fs.writeBatch(db); b.set(D('users',me,'friends',them),{since:Date.now()}); b.set(D('users',them,'friends',me),{since:Date.now()}); await b.commit(); },
         unlink:async (me,them)=>{ const b=fs.writeBatch(db); b.delete(D('users',me,'friends',them)); b.delete(D('users',them,'friends',me)); await b.commit(); },
         listFriends:async me=>{ const s=await fs.getDocs(C('users',me,'friends')); return s.docs.map(d=>d.id); },
+        putShared:(uid,id,item)=>fs.setDoc(D('users',uid,'shared',id),item),
+        listShared:async (uid,n=20)=>{ const q=fs.query(C('users',uid,'shared'),fs.orderBy('createdAt','desc'),fs.limit(n)); const s=await fs.getDocs(q); return s.docs.map(d=>({...d.data(),id:d.id})); },
+        delShared:(uid,id)=>fs.deleteDoc(D('users',uid,'shared',id)),
+        listReacts:async (owner,fid)=>{ const [l,c]=await Promise.all([fs.getDocs(C('users',owner,'feed',fid,'likes')),fs.getDocs(fs.query(C('users',owner,'feed',fid,'comments'),fs.orderBy('at','asc'),fs.limit(50)))]); return {likes:l.docs.map(d=>d.id),comments:c.docs.map(d=>({...d.data(),id:d.id}))}; },
+        like:(owner,fid,me)=>fs.setDoc(D('users',owner,'feed',fid,'likes',me),{at:Date.now()}),
+        unlike:(owner,fid,me)=>fs.deleteDoc(D('users',owner,'feed',fid,'likes',me)),
+        addComment:async (owner,fid,c)=>{ const r=await fs.addDoc(C('users',owner,'feed',fid,'comments'),c); return r.id; },
+        delComment:(owner,fid,cid)=>fs.deleteDoc(D('users',owner,'feed',fid,'comments',cid)),
       };
     }
     this.api.onAuth(async u=>{ this.user=u; this.ready=true; if(u){ await this.loadMe(); this.syncAll(); this.loadFriends(); } else { this.profile=null; this.friends=[]; } softRender(true); });
@@ -5074,11 +5110,50 @@ const Social={
     const before=trophyPoints(w.start-1).pts, after=trophyPoints(w.start).pts;
     return {name:w.name||'Workout',start:w.start,min:Math.round(((w.end||w.start)-w.start)/60000),lb:Math.round(workoutVolumeLb(w)),ex:(w.exercises||[]).length,pts:Math.max(0,after-before),stage:trophyStage(after)};
   },
+  sharePayload(kind,id){
+    let o,unit;
+    if(kind==='routine'){ const r=st.routines[id]; if(!r) return null; unit=r.unit||st.settings.unit;
+      o={name:r.name,notes:r.notes||'',exercises:(r.exercises||[]).map(e=>({exId:e.exId,rest:e.rest??null,note:e.note||'',ss:e.ss||null,sets:(e.sets||[]).map(s=>({type:s.type||'n',w:s.w??'',r:s.r??'',t:s.t??'',d:s.d??''}))}))}; }
+    else { const w=st.workouts[id]; if(!w) return null; unit=w.unit||st.settings.unit;
+      o={name:w.name||'Workout',notes:w.notes||'',done:w.start,min:Math.round(((w.end||w.start)-w.start)/60000),exercises:(w.exercises||[]).map(e=>({exId:e.exId,rest:e.rest??null,note:e.cue||'',ss:e.ss||null,sets:(e.sets||[]).filter(s=>s.done!==false).map(s=>({type:s.type||'n',w:s.w??'',r:s.r??'',t:s.t??'',d:s.d??''}))})).filter(e=>e.sets.length)}; }
+    const custom={}; for(const e of o.exercises){ if(!BUILTIN[e.exId]&&st.custom[e.exId]){ const c=clone(st.custom[e.exId]); delete c.hidden; custom[e.exId]=c; } }
+    return JSON.parse(JSON.stringify({type:kind,name:o.name,from:(this.profile&&this.profile.name)||'A friend',createdAt:Date.now(),unit,ex:o.exercises.length,sets:o.exercises.reduce((a,e)=>a+e.sets.length,0),data:o,custom}));
+  },
+  async share(kind,id){
+    if(!this.user){ toast('Sign in on the Friends tab to share'); setTab('friends'); return; }
+    const item=this.sharePayload(kind,id); if(!item){ toast('Nothing to share'); return; }
+    if(!item.ex){ toast('Add some exercises first'); return; }
+    const sid=kind[0]+'_'+id;
+    try{ await this.api.putShared(this.user.uid,sid,item); this.myShared=[{...item,id:sid},...(this.myShared||[]).filter(x=>x.id!==sid)]; toast(`Shared "${item.name}" with your friends`); softRender(true); }
+    catch(e){ toast('Could not share: '+(e.code||e.message||'error')); }
+  },
+  async loadPosts(){
+    try{ this.myFeed=await this.api.listFeed(this.user.uid,8); }catch(e){ this.myFeed=[]; }
+    const me={uid:this.user.uid,...(this.profile||{}),...this.myStatus()};
+    const all=[...this.myFeed.map(f=>({...f,owner:me.uid,mine:true}))];
+    for(const fr of this.friends) for(const f of fr.feed||[]) all.push({...f,owner:fr.uid});
+    this.posts=all.filter(x=>x.id).sort((a,b)=>b.start-a.start).slice(0,20);
+    await Promise.all(this.posts.map(async p=>{ try{ this.reacts[p.owner+'/'+p.id]=await this.api.listReacts(p.owner,p.id); }catch(e){ this.reacts[p.owner+'/'+p.id]=this.reacts[p.owner+'/'+p.id]||{likes:[],comments:[]}; } }));
+  },
+  person(uid){ if(this.user&&uid===this.user.uid) return {uid,...(this.profile||{}),...this.myStatus()}; return this.friends.find(f=>f.uid===uid)||{uid,name:'Friend'}; },
+  async toggleLike(owner,fid){
+    if(!this.user) return; const k=owner+'/'+fid; const r=this.reacts[k]||(this.reacts[k]={likes:[],comments:[]}); const me=this.user.uid; const had=r.likes.includes(me);
+    r.likes= had? r.likes.filter(x=>x!==me) : [...r.likes,me]; softRender(true);
+    try{ had? await this.api.unlike(owner,fid,me) : await this.api.like(owner,fid,me); }catch(e){ r.likes= had? [...r.likes,me] : r.likes.filter(x=>x!==me); toast('Could not save that'); softRender(true); }
+  },
+  async comment(owner,fid,text){
+    text=(text||'').trim().slice(0,500); if(!text||!this.user) return; const k=owner+'/'+fid; const r=this.reacts[k]||(this.reacts[k]={likes:[],comments:[]});
+    const c={uid:this.user.uid,name:(this.profile&&this.profile.name)||'Me',text,at:Date.now()};
+    try{ const id=await this.api.addComment(owner,fid,c); r.comments.push({...c,id}); render(); const el=document.getElementById('cmt_'+fid); if(el) el.focus({preventScroll:true}); }catch(e){ toast('Could not post comment'); }
+  },
+  async uncomment(owner,fid,cid){ const r=this.reacts[owner+'/'+fid]; try{ await this.api.delComment(owner,fid,cid); if(r) r.comments=r.comments.filter(c=>c.id!==cid); softRender(true); }catch(e){ toast('Could not delete'); } },
   async loadFriends(){
     if(!this.user) return; this.loading=true;
     try{ const ids=await this.api.listFriends(this.user.uid); const out=[];
-      for(const id of ids){ try{ const p=await this.api.getProfile(id); if(!p) continue; const feed=await this.api.listFeed(id,8); out.push({uid:id,...p,feed}); }catch(e){} }
-      this.friends=out.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); }
+      for(const id of ids){ try{ const p=await this.api.getProfile(id); if(!p) continue; const feed=await this.api.listFeed(id,8); let shared=[]; try{ shared=await this.api.listShared(id,15); }catch(e){} out.push({uid:id,...p,feed,shared}); }catch(e){} }
+      this.friends=out.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+      try{ this.myShared=await this.api.listShared(this.user.uid,30); }catch(e){}
+      await this.loadPosts(); }
     catch(e){ this.err=e.message; }
     this.loading=false; softRender(true);
   },
@@ -5100,7 +5175,7 @@ function feedRow(f){ return `<li class="frow"><div><b>${esc(f.name)}</b><span cl
 function friendCard(f,full){
   return `<article class="card fcard" ${full?'':`data-a="openFriend" data-id="${esc(f.uid)}" tabindex="0"`}>
     <div class="fc-art">${artFor(f)}</div>
-    <div class="fc-h">${avatar(f)}<div class="minw"><h3>${esc(f.name||'Friend')}</h3><span class="muted small">${esc(worldLabel(f))} · <b>${esc(f.stageName||'')}</b> · ${fmtN(f.pts||0)} pts</span>${f.motto?`<p class="small motto">“${esc(f.motto)}”</p>`:''}</div></div>
+    <div class="fc-h">${avatar(f)}<div class="minw"><h3>${esc(f.name||'Friend')}</h3><span class="muted small">${esc(worldLabel(f))} · <b>${esc(f.stageName||'')}</b> · ${fmtN(f.pts||0)} pts</span>${f.motto?`<p class="small motto">“${esc(f.motto)}”</p>`:''}${!full&&(f.shared||[]).length?`<span class="shcount">${ic('share','xs')} ${f.shared.length} shared</span>`:''}</div></div>
     ${(f.feed||[]).length?`<ul class="flist">${(full?f.feed:f.feed.slice(0,2)).map(feedRow).join('')}</ul>`:'<p class="muted small pad">No workouts shared yet.</p>'}
   </article>`;
 }
@@ -5130,15 +5205,75 @@ TABS.friends=function(){
     ${Social.loading&&!Social.friends.length?'<p class="muted pad">Loading friends…</p>':''}
     ${!Social.loading&&!Social.friends.length?'<p class="muted small">No friends yet. Send someone your code and add theirs.</p>':''}
     ${Social.friends.map(f=>friendCard(f)).join('')}
+    ${(()=>{ const all=Social.friends.flatMap(f=>(f.shared||[]).map(it=>({it,fid:f.uid}))).sort((a,b)=>(b.it.createdAt||0)-(a.it.createdAt||0)).slice(0,8);
+      return all.length?`<h2 class="sec">${ic('share')} Shared with you</h2><ul class="shlist card">${all.map(x=>sharedRow(x.it,x.fid)).join('')}</ul>`:''; })()}
+    <h2 class="sec">${ic('upload')} You've shared <span class="muted small">${(Social.myShared||[]).length}</span></h2>
+    ${(Social.myShared||[]).length?`<ul class="shlist card">${Social.myShared.map(it=>sharedRow(it,null)).join('')}</ul>`:`<p class="muted small">Share a routine or workout from its ⋯ menu and your friends can save it.</p>`}
     <button class="btn ghost wide sm" data-a="refreshFriends">${ic('history','sm')} Refresh</button>
     <button class="btn ghost wide sm danger-t" data-a="signOut">Sign out</button>`;
   }
   body+='</section>';
   return {hdr:hdr('Friends',{right: Social.user?`<button class="iconbtn" data-a="refreshFriends" aria-label="Refresh">${ic('history')}</button>`:''}),body};
 };
+function postCard(p){
+  const who=Social.person(p.owner); const k=p.owner+'/'+p.id; const r=Social.reacts[k]||{likes:[],comments:[]};
+  const me=Social.user&&Social.user.uid; const liked=r.likes.includes(me); const open=ui.openPost===k; const u=st.settings.unit;
+  const likers=r.likes.slice().sort((a,b)=>(b===me)-(a===me)).map(x=>x===me?'You':(Social.person(x).name||'Friend'));
+  return `<article class="card post">
+    <div class="post-h">${avatar(who)}<div class="minw"><b>${esc(p.mine?'You':(who.name||'Friend'))}</b><span class="muted small">${esc(fmtWhen(p.start))} · ${esc(who.stageName||'')}</span></div><span class="post-pts">+${p.pts||0} pts</span></div>
+    <h3 class="post-t">${esc(p.name||'Workout')}</h3>
+    <div class="fstats"><span>${ic('dumbbell','xs')} ${fmtN(convW(p.lb||0,'lb',u))} ${u}</span><span>${ic('clock','xs')} ${p.min||0} min</span><span>${ic('list','xs')} ${p.ex||0} exercises</span></div>
+    <div class="post-a"><button class="pbtn ${liked?'on':''}" data-a="likePost" data-o="${esc(p.owner)}" data-id="${esc(p.id)}" aria-pressed="${liked}" aria-label="Like">${ic('heart','sm')} <span>${r.likes.length||''}</span></button>
+      <button class="pbtn" data-a="togglePost" data-k="${esc(k)}" aria-expanded="${open}" aria-label="Comments">${ic('chat','sm')} <span>${r.comments.length||''}</span></button>
+      ${likers.length?`<span class="muted small likers">${esc(likers.slice(0,2).join(', '))}${likers.length>2?` +${likers.length-2}`:''} liked this</span>`:''}</div>
+    ${open||r.comments.length?`<ul class="cmts">${(open?r.comments:r.comments.slice(-2)).map(c=>`<li><b>${esc(c.uid===me?'You':c.name||'Friend')}</b> ${esc(c.text)}${(c.uid===me||p.owner===me)&&open?` <button class="cdel" data-a="delCmt" data-o="${esc(p.owner)}" data-id="${esc(p.id)}" data-c="${esc(c.id)}" aria-label="Delete comment">${ic('x','xs')}</button>`:''}</li>`).join('')}
+      ${!open&&r.comments.length>2?`<li><button class="linkbtn small" data-a="togglePost" data-k="${esc(k)}">View all ${r.comments.length} comments</button></li>`:''}</ul>`:''}
+    ${open?`<div class="cbox"><input id="cmt_${esc(p.id)}" maxlength="500" placeholder="Add a comment…" autocomplete="off" enterkeyhint="send"><button class="btn primary sm" data-a="sendCmt" data-o="${esc(p.owner)}" data-id="${esc(p.id)}">Post</button></div>`:''}
+  </article>`;
+}
+function homeFeed(ws){
+  if(!Social.configured()||!Social.ready||!Social.user){
+    const N=ui.feedN||3; let h='';
+    if(Social.configured()&&Social.ready&&!Social.user) h+=`<div class="card nudge"><b>${ic('users','sm')} See your buddies' workouts here</b><p class="muted small">Sign in on the Friends tab to like and comment on friends' workouts.</p><button class="btn sm" data-a="tab" data-tab="friends">Go to Friends</button></div>`;
+    if(Social.configured()&&!Social.ready) Social.init();
+    h+=`<h2 class="sec">${ic('history')} Recent workouts</h2>`+ws.slice(0,N).map(feedCard).join('');
+    if(ws.length>N) h+=`<button class="btn ghost wide" data-a="moreFeed">${ic('down','sm')} Show more</button>`;
+    return h;
+  }
+  const N=ui.postN||8; const posts=Social.posts||[];
+  let h=`<div class="sec-row"><h2 class="sec">${ic('users')} Friends feed</h2><button class="btn ghost sm" data-a="refreshFriends">${ic('history','sm')} Refresh</button></div>`;
+  if(Social.loading&&!posts.length) return h+'<p class="muted pad">Loading…</p>';
+  if(!Social.friends.length) h+=`<div class="card nudge"><b>${ic('plus','sm')} Add a buddy</b><p class="muted small">Trade friend codes on the Friends tab and their workouts show up here.</p><button class="btn sm" data-a="tab" data-tab="friends">Add friends</button></div>`;
+  h+=posts.slice(0,N).map(postCard).join('');
+  if(posts.length>N) h+=`<button class="btn ghost wide" data-a="morePosts">${ic('down','sm')} Show more</button>`;
+  if(!posts.length) h+='<p class="muted small">No workouts yet. Finish one and it shows up here for your friends.</p>';
+  return h;
+}
+function findShared(fid,id){ const list= fid? ((Social.friends.find(x=>x.uid===fid)||{}).shared||[]) : (Social.myShared||[]); return list.find(x=>x.id===id); }
+function sharedRow(it,fid){
+  const kind=it.type==='workout'?'Workout':'Routine';
+  return `<li><button class="shrow" data-a="openShared" data-f="${esc(fid||'')}" data-id="${esc(it.id)}"><span class="shic">${ic(it.type==='workout'?'dumbbell':'list','sm')}</span><span class="minw"><b>${esc(it.name)}</b><span class="muted small">${kind} · ${it.ex} exercises · ${it.sets} sets${fid?` · from ${esc(it.from||'friend')}`:''} · ${esc(fmtWhen(it.createdAt))}</span></span>${ic('chev','sm')}</button></li>`;
+}
+function sharedExName(it,id){ const x=st.custom[id]||BUILTIN[id]||(it.custom||{})[id]; return x?x.name:'Exercise'; }
+function importSharedCustom(it){ let n=0; for(const [id,def] of Object.entries(it.custom||{})){ if(!BUILTIN[id]&&!st.custom[id]){ Store.put('custom',id,{...def,id}); n++; } } return n; }
+PAGES.shared=function(p){
+  const it=findShared(p.fid,p.id); if(!it) return PAGES.missing();
+  const d=it.data||{}; const u=it.unit||'lb';
+  const fmtSet=s=>{ const b=[]; if(s.w!==''&&s.w!=null) b.push(wDisp(s.w,u)); if(s.r!==''&&s.r!=null) b.push(s.r+' reps'); if(s.t) b.push(fmtTime(s.t)); if(s.d) b.push(s.d+' '+st.settings.dist); return b.join(' × ')||'–'; };
+  return {hdr:hdr(it.type==='workout'?'Shared workout':'Shared routine',{left:backBtn}),body:`<section class="gut stack">
+    <div><h2 class="h2">${esc(it.name)}</h2><div class="muted small">${p.fid?`From ${esc(it.from||'a friend')} · `:'You shared this · '}${it.ex} exercises · ${it.sets} sets${d.min?` · ${d.min} min`:''}</div></div>
+    ${p.fid?`<button class="btn primary wide" data-a="saveShared" data-f="${esc(p.fid)}" data-id="${esc(it.id)}">${ic('plus')} Save to my routines</button>
+    <button class="btn wide" data-a="startShared" data-f="${esc(p.fid)}" data-id="${esc(it.id)}">${ic('play')} Start it now</button>`
+    :`<button class="btn ghost wide danger-t" data-a="unshare" data-id="${esc(it.id)}">${ic('trash','sm')} Stop sharing</button>`}
+    ${d.notes?`<details class="plan card"><summary><b>Notes</b></summary><p>${esc(d.notes)}</p></details>`:''}
+    ${(d.exercises||[]).map(e=>`<div class="card shex"><b class="acc">${esc(sharedExName(it,e.exId))}</b>${e.note?`<p class="cue small">${esc(e.note)}</p>`:''}<ol class="shsets">${(e.sets||[]).map(s=>`<li>${esc(fmtSet(s))}</li>`).join('')}</ol></div>`).join('')}
+  </section>`};
+};
 PAGES.friend=function(p){
   const f=Social.friends.find(x=>x.uid===p.id); if(!f) return PAGES.missing();
-  return {hdr:hdr(f.name||'Friend',{left:backBtn,right:`<button class="iconbtn" data-a="friendMenu" data-id="${esc(f.uid)}" aria-label="Options">${ic('more')}</button>`}),body:`<section class="gut stack">${friendCard(f,true)}</section>`};
+  return {hdr:hdr(f.name||'Friend',{left:backBtn,right:`<button class="iconbtn" data-a="friendMenu" data-id="${esc(f.uid)}" aria-label="Options">${ic('more')}</button>`}),body:`<section class="gut stack">${friendCard(f,true)}
+    <h2 class="sec">${ic('share')} Shared <span class="muted small">${(f.shared||[]).length}</span></h2>
+    ${(f.shared||[]).length?`<ul class="shlist card">${f.shared.map(it=>sharedRow(it,f.uid)).join('')}</ul>`:`<p class="muted small">${esc(f.name||'They')} hasn't shared anything yet.</p>`}</section>`};
 };
 PAGES.profileEdit=function(){
   const me=Social.profile||{};
@@ -5170,6 +5305,18 @@ Object.assign(A,{
     catch(e){ Social.err=e.message; render(); } },
   refreshFriends:async()=>{ await Social.syncAll(); await Social.loadFriends(); toast('Up to date'); },
   openFriend:(d)=>push({name:'friend',id:d.id}),
+  likePost:(d)=>Social.toggleLike(d.o,d.id),
+  togglePost:(d)=>{ ui.openPost= ui.openPost===d.k? null : d.k; render(); if(ui.openPost){ const el=document.getElementById('cmt_'+d.k.split('/')[1]); if(el) el.focus({preventScroll:true}); } },
+  sendCmt:async(d)=>{ const el=document.getElementById('cmt_'+d.id); if(!el||!el.value.trim()) return; const t=el.value; el.value=''; await Social.comment(d.o,d.id,t); },
+  delCmt:(d)=>Social.uncomment(d.o,d.id,d.c),
+  morePosts:()=>{ ui.postN=(ui.postN||8)+8; render(); },
+  openShared:(d)=>push({name:'shared',fid:d.f||'',id:d.id}),
+  saveShared:(d)=>{ const it=findShared(d.f,d.id); if(!it) return; importSharedCustom(it); const src=it.data||{};
+    const r={id:uid(),name:src.name||it.name,notes:src.notes||'',folder:`From ${it.from||'friends'}`,unit:it.unit||'lb',order:routinesSorted().length,updated:Date.now(),exercises:clone(src.exercises||[]).map(e=>({...e,rest:e.rest??undefined,ss:e.ss||undefined}))};
+    Store.put('routines',r.id,r); toast(`Saved "${r.name}" to My routines`); render(); },
+  startShared:(d)=>{ const it=findShared(d.f,d.id); if(!it) return; importSharedCustom(it); const src=clone(it.data||{}); startWorkout({...src,id:'shared',tpl:true,unit:it.unit||'lb'}); },
+  unshare:(d)=>confirmSheet('Stop sharing this?','Friends will no longer see it. Anyone who already saved it keeps their copy.','Stop sharing',async()=>{ try{ await Social.api.delShared(Social.user.uid,d.id); }catch(e){} Social.myShared=(Social.myShared||[]).filter(x=>x.id!==d.id); pop(); }),
+  shareR:(d)=>Social.share(d.kind||'routine',d.id),
   friendMenu:(d)=>menu('',[{label:'Remove friend',icon:'trash',danger:true,fn:()=>confirmSheet('Remove this friend?','You will stop seeing each other\'s progress.','Remove',async()=>{ await Social.api.unlink(Social.user.uid,d.id); Social.friends=Social.friends.filter(f=>f.uid!==d.id); pop(); })}]),
   editProfile:()=>{ ui.newPhoto=null; push({name:'profileEdit'}); },
   clearPhoto:()=>{ ui.newPhoto=''; render(); },
@@ -5185,7 +5332,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171459';
+window.WH_BUILD='202611171509';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
