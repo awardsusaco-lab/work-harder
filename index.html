@@ -267,6 +267,25 @@ textarea{resize:vertical;line-height:1.4}
 .seff button.on{border-color:transparent;color:#fff}
 .seff button.on small{color:rgba(255,255,255,.88)}
 .seff .e-easy.on{background:var(--good)} .seff .e-medium.on{background:var(--accent)} .seff .e-hard.on{background:#E8892B} .seff .e-max.on{background:var(--danger)}
+.tcell{position:relative;display:block;min-width:0}
+.tcell .cell{width:100%;padding-right:30px}
+.tgo{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;padding:0}
+.tgo svg{width:14px;height:14px;margin-left:2px}
+.settimer{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 20px calc(env(safe-area-inset-bottom,0px) + 16px);animation:fadeIn .18s ease}
+.st-in{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.st-top b{display:block;font-family:var(--f-display);font-size:28px;letter-spacing:.02em;text-transform:uppercase}
+.st-fig{width:150px;height:130px;background:var(--surface);border-radius:16px;overflow:hidden}
+.st-fig svg{width:100%;height:100%}
+.st-ring{position:relative;width:min(70vw,260px);aspect-ratio:1}
+.st-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.st-bg{fill:none;stroke:var(--surface2);stroke-width:12}
+.st-fg{fill:none;stroke:var(--accent);stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset .12s linear}
+.st-fg.done{stroke:var(--good)} .st-fg.prep{stroke:var(--warm)}
+.st-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.st-num span{font-family:var(--f-display);font-size:68px;line-height:1;font-variant-numeric:tabular-nums}
+.st-num small{color:var(--muted);font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
+.st-btns{display:flex;gap:10px;width:100%}
+.st-btns .btn{flex:1;min-height:52px;font-size:16px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3092,7 +3111,9 @@ function exCard(obj,e,i,mode){
       if(s['p'+c]!=null && s['p'+c]!=='') ph = c==='t'? fmtTime(s['p'+c]) : s['p'+c];
       else if(ps){ if(c==='w'&&ps.w!=null&&ps.w!=='') ph=wDisp(ps.w,prev.unit); else if(c==='t'&&ps.t) ph=fmtTime(ps.t); else if(c==='d'&&ps.d) ph=ps.d; else if(c==='r'&&ps.r!=null) ph=ps.r; }
       const im = c==='r'? 'numeric':'decimal';
-      return `<input class="cell" data-f="set" data-e="${i}" data-s="${si}" data-c="${c}" inputmode="${im}" enterkeyhint="next" autocomplete="off" value="${esc(val)}" placeholder="${esc(ph||'–')}" aria-label="${colLabel(c,ex)} set ${si+1}">`;
+      const inp=`<input class="cell" data-f="set" data-e="${i}" data-s="${si}" data-c="${c}" inputmode="${im}" enterkeyhint="next" autocomplete="off" value="${esc(val)}" placeholder="${esc(ph||'–')}" aria-label="${colLabel(c,ex)} set ${si+1}">`;
+      if(c==='t' && mode==='active' && !s.done) return `<span class="tcell">${inp}<button class="tgo" data-a="setTimer" data-e="${i}" data-s="${si}" aria-label="Start timer for set ${si+1}">${ic('play','sm')}</button></span>`;
+      return inp;
     }).join('');
     let pr='';
     if(best && s.done){ const ww=toLb(num(s.w)||0,obj.unit), r=num(s.r)||0; if(['wr','wreps'].includes(ex.type) && best.e1rm>0 && e1rm(ww,r)>best.e1rm+0.01) pr=`<span class="prflag" title="New personal record">${ic('trophy','sm')}</span>`; }
@@ -3395,6 +3416,72 @@ setInterval(()=>{
   if(r.hideAt && Date.now()>r.hideAt){ ui.rest=null; renderRest(); }
 },250);
 
+/* ---------- Set timer for timed exercises (planks, hangs, holds, carries) ---------- */
+function setTimerTarget(e,s,si){
+  const t=num(s.t); if(t) return t;
+  const pt=num(s.pt); if(pt) return pt;
+  const prev=prevSetsFor(e.exId); const ps=prev&&prev.sets[si]; if(ps&&num(ps.t)) return num(ps.t);
+  const lastDone=[...e.sets].reverse().find(x=>x.done&&num(x.t)); if(lastDone) return num(lastDone.t);
+  return 0; // stopwatch
+}
+function stNow(){ const T=ui.stimer; if(!T) return 0; const now=T.pausedAt||Date.now(); return Math.max(0,(now-T.start-T.pauseAcc)/1000); }
+function renderSetTimer(){
+  let el=$('#settimer');
+  const T=ui.stimer;
+  if(!T){ if(el) el.remove(); return; }
+  if(!el){ el=document.createElement('div'); el.id='settimer'; el.className='settimer'; document.body.appendChild(el); }
+  const e=st.active&&st.active.exercises[T.e]; if(!e){ ui.stimer=null; el.remove(); return; }
+  const ex=getEx(e.exId);
+  const el_=stNow(); const prep=T.phase==='prep'; const left=T.target? Math.max(0,T.target-el_) : 0;
+  const big = prep? Math.max(1,Math.ceil((T.prepEnd-Date.now())/1000)) : T.target? fmtTime(Math.ceil(left)) : fmtTime(Math.floor(el_));
+  const frac = prep? 0 : T.target? Math.min(1,el_/T.target) : (el_%60)/60;
+  const R=92, C=2*Math.PI*R;
+  el.innerHTML=`<div class="st-in">
+    <div class="st-top"><b>${esc(ex.name)}</b><span class="muted">Set ${T.si+1}${T.target?` · ${fmtTime(T.target)}`:' · stopwatch'}</span></div>
+    <div class="st-fig">${figSVG(ex,{anim:ex.id,cls:'big'})}</div>
+    <div class="st-ring"><svg viewBox="0 0 200 200"><circle class="st-bg" cx="100" cy="100" r="${R}"/><circle class="st-fg ${T.phase}" cx="100" cy="100" r="${R}" stroke-dasharray="${f1(C)}" stroke-dashoffset="${f1(C*(1-frac))}"/></svg>
+      <div class="st-num"><span id="stnum">${big}</span><small>${prep?'Get ready':T.phase==='done'?'Done!':T.pausedAt?'Paused':T.target?'Hold':'Time'}</small></div></div>
+    <div class="st-btns">
+      ${T.phase==='done'?'':`<button class="btn" data-a="stPause">${T.pausedAt?'Resume':'Pause'}</button>`}
+      ${T.target&&T.phase!=='done'?`<button class="btn" data-a="stAdd">+15 s</button>`:''}
+      ${T.phase==='done'?'':`<button class="btn primary" data-a="stDone">${T.target?'Done early':'Stop & save'}</button>`}
+    </div>
+    <button class="btn ghost sm" data-a="stCancel">Cancel</button>
+  </div>`;
+  const svg=el.querySelector('svg[data-anim]'); if(svg){ svg.__ex=ex; Animator.attach(el); }
+}
+function stTick(){
+  const T=ui.stimer; if(!T) return;
+  if(T.phase==='prep'){
+    const n=Math.ceil((T.prepEnd-Date.now())/1000);
+    if(n!==T.lastN){ T.lastN=n; if(n>0) tick1(); }
+    if(Date.now()>=T.prepEnd){ T.phase='run'; T.start=Date.now(); T.pauseAcc=0; goBeep(); renderSetTimer(); }
+    else { const x=$('#stnum'); if(x) x.textContent=n; }
+    return;
+  }
+  if(T.phase!=='run' || T.pausedAt) return;
+  const el_=stNow();
+  if(T.target){
+    const left=Math.ceil(T.target-el_);
+    if(left<=3 && left>0 && left!==T.lastN){ T.lastN=left; tick1(); }
+    if(el_>=T.target){ finishSetTimer(T.target); return; }
+  }
+  const x=$('#stnum'); if(x) x.textContent= T.target? fmtTime(Math.ceil(T.target-el_)) : fmtTime(Math.floor(el_));
+  const fg=document.querySelector('#settimer .st-fg'); if(fg){ const C=2*Math.PI*92; const frac=T.target? Math.min(1,el_/T.target) : (el_%60)/60; fg.setAttribute('stroke-dashoffset',f1(C*(1-frac))); }
+}
+function tick1(){ if(!st.settings.sound) return; const ac=audio(); if(!ac) return; try{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=660; g.gain.setValueAtTime(0.0001,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.25,ac.currentTime+0.01); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.12); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+0.14); }catch(e){} }
+function goBeep(){ if(!st.settings.sound) return; const ac=audio(); if(!ac) return; try{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=1175; g.gain.setValueAtTime(0.0001,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.35,ac.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.35); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+0.4); }catch(e){} try{navigator.vibrate&&navigator.vibrate(120)}catch(e){} }
+function finishSetTimer(sec){
+  const T=ui.stimer; if(!T) return;
+  T.phase='done'; T.pausedAt=Date.now();
+  const e=st.active.exercises[T.e], s=e&&e.sets[T.si];
+  if(s){ s.t=Math.round(sec); }
+  beep(); try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  renderSetTimer();
+  setTimeout(()=>{ if(ui.stimer!==T) return; ui.stimer=null; renderSetTimer(); if(s&&!s.done) A.toggleSet({e:T.e,s:T.si}); else changed(true); },1300);
+}
+setInterval(stTick,100);
+
 /* ---------- Strava text ---------- */
 function stravaText(w){
   const u=st.settings.unit; const vol=convW(workoutVolumeLb(w),'lb',u); const dur=((w.end||w.start)-w.start)/1000;
@@ -3667,6 +3754,14 @@ const A={
     applyCoach(a); changed(true); toast(`Swapped ${old} for ${getEx(d.id).name}${r?' in '+r.name:''}`); },
   effort:(d)=>{ const e=curObj().exercises[+d.e]; e.effort= e.effort===d.v? '' : d.v; changed(true); },
   setEff:(d)=>{ const e=curObj().exercises[+d.e]; const s=e.sets[+d.s]; s.eff= s.eff===d.v? undefined : d.v; if(!s.eff) delete s.eff; e.effort=effFromSets(e)||undefined; if(!e.effort) delete e.effort; changed(true); },
+  setTimer:(d)=>{ audio(); const e=st.active.exercises[+d.e]; const s=e.sets[+d.s]; if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+    ui.rest=null; renderRest();
+    ui.stimer={e:+d.e,si:+d.s,target:setTimerTarget(e,s,+d.s),phase:'prep',prepEnd:Date.now()+3000,start:0,pauseAcc:0,pausedAt:0,lastN:null}; renderSetTimer(); },
+  stPause:()=>{ const T=ui.stimer; if(!T) return; if(T.phase==='prep'){ T.phase='run'; T.start=Date.now(); T.pauseAcc=0; }
+    if(T.pausedAt){ T.pauseAcc+=Date.now()-T.pausedAt; T.pausedAt=0; } else T.pausedAt=Date.now(); renderSetTimer(); },
+  stAdd:()=>{ const T=ui.stimer; if(T){ T.target+=15; renderSetTimer(); } },
+  stDone:()=>{ const T=ui.stimer; if(!T) return; const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; } finishSetTimer(sec); },
+  stCancel:()=>{ ui.stimer=null; renderSetTimer(); },
   toggleSet:(d)=>{
     audio();
     const obj=curObj(); const e=obj.exercises[+d.e]; const s=e.sets[+d.s]; const ex=getEx(e.exId);
@@ -3836,7 +3931,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611170830';
+window.WH_BUILD='202611170831';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
