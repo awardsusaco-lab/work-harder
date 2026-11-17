@@ -429,6 +429,7 @@ textarea{resize:vertical;line-height:1.4}
 .ptlist li{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center;background:var(--surface2);border-radius:10px;padding:8px 10px;font-size:14px}
 .ptlist li .ic{color:var(--accent)}
 .ptlist b{color:var(--accent)}
+.neg{color:var(--danger)} .ptlist.neg li .ic,.ptlist.neg b{color:var(--danger)}
 
 .worlds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .wtile{border:2px solid var(--line);background:var(--surface2);border-radius:14px;padding:0 0 8px;overflow:hidden;display:flex;flex-direction:column;gap:3px;text-align:left;color:var(--fg)}
@@ -494,6 +495,21 @@ textarea{resize:vertical;line-height:1.4}
 .trophy-svg .k-myth .furl{stroke:#9FB0BF}
 .trophy-svg .sc-snowfar{fill:color-mix(in srgb,#DCE7F0 80%,var(--surface))}
 .trophy-svg .sc-snowground{fill:#EEF3F7}
+
+/* ---- Colored animals ---- */
+.trophy-svg .ani .rk{fill:#EADCBE;stroke:#6B5236;stroke-width:.9;stroke-linejoin:round}
+.trophy-svg .ani .rk.far{fill:#B09A74;opacity:.75}
+.trophy-svg .a-elk .b-body{fill:#A8774C}.trophy-svg .a-elk .b-dark,.trophy-svg .a-elk .b-leg{fill:#5A3A24}.trophy-svg .a-elk .b-patch{fill:#E6CFA0}
+.trophy-svg .a-elk .b-calf path{fill:#A8774C}
+.trophy-svg .a-buck .b-body{fill:#9E6E45}.trophy-svg .a-buck .b-leg{fill:#7A5233}.trophy-svg .a-buck .b-belly,.trophy-svg .a-buck .b-white{fill:#F4EEE4}.trophy-svg .a-buck .b-dark{fill:#5E3E26}.trophy-svg .a-buck .b-tail{fill:#F4EEE4;stroke:#7A5233;stroke-width:1}
+.trophy-svg .a-mule .b-body{fill:#8E7D69}.trophy-svg .a-mule .b-leg{fill:#6F604F}.trophy-svg .a-mule .b-white{fill:#F1ECE3}.trophy-svg .a-mule .b-dark{fill:#6B5C4C}
+.trophy-svg .ani .b-eye{fill:#111}
+.trophy-svg .calfspots circle{fill:#F6EEDC;opacity:.95}
+.trophy-svg .a-moose path{fill:#3D2A1F}.trophy-svg .a-moose .palm{fill:#E3D3AF;stroke:#6B5236;stroke-width:.9}.trophy-svg .a-moose .palm.far{fill:#BCA884}
+.trophy-svg .a-ram path{fill:#8C7458}.trophy-svg .a-ram .horn{stroke:#D6BC86}
+.trophy-svg .a-bear path{fill:#1D1A18}.trophy-svg .a-bear .eye{fill:#C9A27A}
+.trophy-svg .a-turkey ellipse,.trophy-svg .a-turkey path,.trophy-svg .a-turkey circle{fill:#3B2C20}.trophy-svg .a-turkey .fanbg{fill:#6B4A2C}.trophy-svg .a-turkey .fan{stroke:#E1B877;stroke-width:1.6;opacity:.9}.trophy-svg .a-turkey circle{fill:#C8433A}.trophy-svg .a-turkey .snood{stroke:#C8433A}.trophy-svg .a-turkey .beard{stroke:#1A120C}.trophy-svg .a-turkey .ant{stroke:#B78A5C}
+.trophy-svg .a-trout .t-body{fill:url(#trg)}.trophy-svg .a-trout .t-fin{fill:#7F8F5A}.trophy-svg .a-trout .t-stripe{fill:#E7708A;opacity:.85}.trophy-svg .a-trout .t-spots circle{fill:#1B1B1B}.trophy-svg .a-trout .t-gill{fill:none;stroke:#C2546B;stroke-width:1.4}.trophy-svg .a-trout .t-eye{fill:#F2C14E}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3080,6 +3096,7 @@ const TROPHY={
 const TR_PTS=[0,10,24,42,64,90,120,155,200];
 /* The trophy grows with your CURRENT plan (a routine folder like "Hunting", or a single routine). */
 function planKeyOf(w){ const r=w&&w.routineId&&st.routines[w.routineId]; if(r) return r.folder||('r:'+r.id); return null; }
+const ACCT_TXT={off:'No points come off. Grow at your own pace.',easy:'Lose 3 points for any full week with zero workouts. That\'s it.',normal:'Lose 2 points for a week under your goal, 4 if you skipped the whole week.',max:'Lose 2 points per missed workout each week, 1 for missing the coach\'s targets, and 1 for skipping more than 20% of your sets. Your animal can shrink.'};
 function planName(key){ if(!key) return 'Any workout'; if(key.startsWith('r:')){ const r=st.routines[key.slice(2)]; return r?r.name:'Routine'; } return key; }
 function currentPlan(){
   if(st.settings.planKey) return st.settings.planKey;
@@ -3094,7 +3111,20 @@ function trophyPoints(until){
   for(const w of ws){ pts+=1; if(w.hit){ pts+=1; hits++; } const p=Math.min(2,(w.prs||[]).length); pts+=p; prs+=p; const k=weekStart(w.start); byWk[k]=(byWk[k]||0)+1; }
   let weeks=0; for(const k in byWk) if(byWk[k]>=goal) weeks++;
   pts+=weeks*2;
-  return {pts, workouts:ws.length, weeks, hits, prs, key, from, week:Math.floor(((until??Date.now())-weekStart(from))/(7*DAY))+1};
+  // Accountability: points come off for finished weeks you missed (and, on Max, for skipped sets and missed targets)
+  const acct=st.settings.acct||'easy'; let pen=0; const penItems=[];
+  if(acct!=='off'){
+    const nowWk=weekStart(until??Date.now());
+    for(let wk=weekStart(from); wk<nowWk; wk+=7*DAY){
+      const n=byWk[wk]||0;
+      if(acct==='easy'){ if(n===0){ pen+=3; penItems.push(['Zero-workout week',3]); } }
+      else if(acct==='normal'){ if(n<goal){ const p= n===0?4:2; pen+=p; penItems.push([n===0?'Zero-workout week':'Missed weekly goal',p]); } }
+      else if(acct==='max'){ if(n<goal){ const p=2*(goal-n); pen+=p; penItems.push([`Missed ${goal-n} workout${goal-n>1?'s':''} in a week`,p]); } }
+    }
+    if(acct==='max') for(const w of ws){ if(w.hit===false){ pen+=1; penItems.push(['Missed coach targets',1]); } if(w.planned && w.skipped/w.planned>0.2){ pen+=1; penItems.push(['Skipped over 20% of sets',1]); } }
+  }
+  const raw=pts; pts=Math.max(0,pts-pen);
+  return {pts, raw, pen, penItems, acct, workouts:ws.length, weeks, hits, prs, key, from, week:Math.floor(((until??Date.now())-weekStart(from))/(7*DAY))+1};
 }
 function trophyStage(pts){ let i=0; while(i+1<TR_PTS.length&&pts>=TR_PTS[i+1]) i++; return i; }
 function trophyKind(){ return st.settings.trophy==='buck'?'buck':'elk'; }
@@ -3112,7 +3142,7 @@ function trophyCard(compact){
     <div class="tro-h"><div><div class="eyebrow">${ic(WORLDS[wk].icon,'sm')} ${wk==='hunt'?`Your ${T.name}`:`Your ${T.unit}`} · stage ${stg+1} of 9</div><h3>${T.stages[stg]}</h3></div>
       <button class="iconbtn" data-a="trophyInfo" aria-label="How your trophy grows">${ic('more')}</button></div>
     <div class="tro-bar"><i style="width:${pct}%"></i></div>
-    <p class="muted small">${ic('folder','xs')} <b>${esc(planName(tp.key))}</b> plan · week ${tp.week} · ${tp.workouts} workout${tp.workouts===1?'':'s'}<br>${next? `<b>${next-pts}</b> more point${next-pts===1?'':'s'} to <b>${T.stages[stg+1]}</b>.` : `Top of the mountain. You're a ${T.stages[8]}.`}</p>
+    <p class="muted small">${ic('folder','xs')} <b>${esc(planName(tp.key))}</b> plan · week ${tp.week} · ${tp.workouts} workout${tp.workouts===1?'':'s'}${tp.pen?` · <span class="neg">−${tp.pen} accountability</span>`:''}<br>${next? `<b>${next-pts}</b> more point${next-pts===1?'':'s'} to <b>${T.stages[stg+1]}</b>.` : `Top of the mountain. You're a ${T.stages[8]}.`}</p>
   </div>`;
 }
 
@@ -3127,10 +3157,10 @@ function mooseAntlers(stage){
   const B=[146,40]; const W=[0,0,14,22,32,42,52,60,68][stage]; if(!W){ return stage===1?`<path class="ant" d="M146 40 l-2 -4"/>`:''; }
   if(stage<=3){ return `<path class="ant" style="stroke-width:3.2" d="M146 40 Q${146-W*.3} ${40-W*.5} ${146-W*.55} ${40-W*.95}${stage===3?` M${146-W*.2} ${40-W*.4} L${146+W*.15} ${40-W*.8}`:''}"/>`; }
   const n=[0,0,0,0,4,5,6,7,8][stage];
-  const top=[]; for(let i=0;i<=n;i++){ const t=i/n; const x=B[0]-1.05*W+t*1.0*W, y=B[1]-.3*W-Math.sin(t*Math.PI*.9)*.24*W; top.push([x,y]); }
-  let d=`M${B[0]} ${B[1]} L${f1(B[0]-.18*W)} ${f1(B[1]-.12*W)} L${f1(B[0]-1.0*W)} ${f1(B[1]-.16*W)}`;
-  top.forEach((p,i)=>{ d+=` L${f1(p[0])} ${f1(p[1])}`; if(i<top.length-1){ const q=top[i+1]; const m=[(p[0]+q[0])/2,(p[1]+q[1])/2]; d+=` L${f1(m[0]-.03*W)} ${f1(m[1]-.15*W)}`; } });
-  d+=` L${f1(B[0]-.02*W)} ${f1(B[1]-.2*W)} Z`;
+  const n2=Math.max(3,Math.round(n*.7)); const top=[]; for(let i=0;i<=n2;i++){ const t=i/n2; const x=B[0]-1.2*W+t*1.45*W, y=B[1]-.22*W-Math.sin(t*Math.PI)*.16*W; top.push([x,y]); }
+  let d=`M${B[0]} ${B[1]} L${f1(B[0]-.2*W)} ${f1(B[1]-.08*W)} L${f1(B[0]-1.15*W)} ${f1(B[1]-.1*W)}`;
+  top.forEach((p,i)=>{ d+=` L${f1(p[0])} ${f1(p[1])}`; if(i<top.length-1){ const q=top[i+1]; const m=[(p[0]+q[0])/2,(p[1]+q[1])/2]; d+=` L${f1(m[0])} ${f1(m[1]-.2*W)}`; } });
+  d+=` L${f1(B[0]+.2*W)} ${f1(B[1]-.12*W)} Z`;
   return `<path class="palm far" transform="translate(-8 3)" d="${d}"/><path class="palm" d="${d}"/>`;
 }
 function ramHorns(stage){
@@ -3188,7 +3218,7 @@ animalSVG=function(kind,stage){
 trophyArt=function(kind,stage,{scene=true}={}){
   const T=TROPHY[kind]; const sc= scene? sceneSVGOut(T.scene||kind) : {bg:'',fg:''};
   const s=T.lo+stage*(T.hi-T.lo)/8;
-  let tx=180-100*s, ty=146-155*s;
+  let tx=180-100*s, ty=149-155*s;
   if(kind==='trout'){ tx=180-115*s; ty=(scene?78:84)-130*s; }
   const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 70 L${f1(180+200*Math.cos(i*Math.PI/6))} ${f1(70+200*Math.sin(i*Math.PI/6))} L${f1(180+200*Math.cos(i*Math.PI/6+.12))} ${f1(70+200*Math.sin(i*Math.PI/6+.12))}Z"/>`).join('')}</g>`:'';
   const fg = '';
@@ -3379,6 +3409,77 @@ trophyArt=function(kind,stage,opts={}){
   return `<svg class="trophy-svg st${stage} myth" viewBox="${scene?'0 0 360 150':'92 4 176 148'}" aria-hidden="true">${rays}${sc.bg}<g transform="translate(${f1(tx)} ${f1(ty)}) scale(${f1(s)})"><g class="sil k-myth">${MYTH[stage]}</g></g></svg>`;
 };
 
+/* ---------- Animal art v2: colored bodies and tapered, full racks ---------- */
+function taper3(P0,P1,P2,w0,w1,n=14){ // filled tapered quadratic stroke
+  const L=[],R=[];
+  for(let i=0;i<=n;i++){ const t=i/n; const p=qpt(P0,P1,P2,t);
+    const dx=2*(1-t)*(P1[0]-P0[0])+2*t*(P2[0]-P1[0]), dy=2*(1-t)*(P1[1]-P0[1])+2*t*(P2[1]-P1[1]); const m=Math.hypot(dx,dy)||1;
+    const w=(w0+(w1-w0)*t)/2; L.push([p[0]-dy/m*w,p[1]+dx/m*w]); R.push([p[0]+dy/m*w,p[1]-dx/m*w]); }
+  return `M${L.map(P).join(' L')} L${R.reverse().map(P).join(' L')}Z`;
+}
+function tine(B,dir,len,w,curl=0.25){ const E=[B[0]+dir[0]*len,B[1]+dir[1]*len]; const C=[B[0]+dir[0]*len*.5-dir[1]*len*curl*(dir[0]>=0?1:-1)*.4, B[1]+dir[1]*len*.5+Math.abs(dir[0])*len*curl*-.3]; return taper3(B,C,E,w,0.4,8); }
+function rackElk(stage,dx=0,dy=0){
+  const H=[150+dx,32+dy]; const L=[0,0,30,46,54,60,66,70,74][stage]; if(stage===1) return `<path class="rk" d="${taper3(H,[H[0]-1,H[1]-3],[H[0]-2,H[1]-6],3,1.5,4)}"/>`; if(!L) return '';
+  const w0=3+stage*.55;
+  if(stage===2) return `<path class="rk" d="${taper3(H,[H[0]-6,H[1]-L*.6],[H[0]-14,H[1]-L],w0,.6)}"/>`;
+  const P0=H, P1=[H[0]-.3*L,H[1]-.9*L], P2=[H[0]-1.0*L,H[1]-.62*L];
+  let d=taper3(P0,P1,P2,w0,1.4,18);
+  const T={brow:[.04,[.92,-.38],.4],bez:[.12,[.85,-.52],.32],trez:[.3,[.55,-.83],.26],royal:[.46,[.42,-.9],.42],fifth:[.66,[.3,-.95],.3],sixth:[.84,[.15,-1],.22],seventh:[.96,[-.2,-.98],.16]};
+  const order=['brow','royal','fifth','bez','trez','sixth','seventh'];
+  const n=[0,0,0,3,4,5,6,6,7][stage];
+  for(const k of order.slice(0,n)){ const [t,dir,len]=T[k]; const B=qpt(P0,P1,P2,t); d+=' '+tine(B,dir,len*L,w0*(1-t*.5)*1.05,.15); }
+  return `<path class="rk" d="${d}"/>`;
+}
+function rackBuck(stage,dx=0,dy=0){
+  const H=[148+dx,37+dy]; const L=[0,0,20,32,38,44,48,54,58][stage]; if(stage===1) return `<path class="rk" d="${taper3(H,[H[0],H[1]-3],[H[0]+1,H[1]-5],3,1.5,4)}"/>`; if(!L) return '';
+  const w0=2.6+stage*.45;
+  if(stage===2) return `<path class="rk" d="${taper3(H,[H[0]-3,H[1]-L*.7],[H[0]+3,H[1]-L],w0,.6)}"/>`;
+  const P0=H, P1=[H[0]-.55*L,H[1]-.95*L], P2=[H[0]+.75*L,H[1]-.78*L];
+  let d=taper3(P0,P1,P2,w0,1,18);
+  const T={brow:[.1,[.1,-1],.2],g2:[.42,[.05,-1],.5],g3:[.62,[.1,-1],.44],g4:[.8,[.15,-1],.32],g5:[.93,[.2,-1],.2]};
+  const sets=[[],[],[],['g2'],['brow','g2'],['brow','g2','g3'],['brow','g2','g3','g4'],['brow','g2','g3','g4'],['brow','g2','g3','g4','g5']][stage];
+  for(const k of sets){ const [t,dir,len]=T[k]; const B=qpt(P0,P1,P2,t); d+=' '+tine(B,dir,len*L,w0*1.0,.1); }
+  if(stage>=7){ const B=qpt(P0,P1,P2,.5); d+=' '+tine(B,[.3,.95],.22*L,w0*.6,.2); }
+  if(stage===8){ const B=qpt(P0,P1,P2,.3); d+=' '+tine(B,[-.6,-.8],.18*L,w0*.5,.2); }
+  return `<path class="rk" d="${d}"/>`;
+}
+function rackMule(stage,dx=0,dy=0){
+  const H=[148+dx,37+dy]; const L=[0,0,24,32,38,44,48,54,60][stage]; if(stage===1) return `<path class="rk" d="${taper3(H,[H[0],H[1]-3],[H[0]+1,H[1]-5],3,1.5,4)}"/>`; if(!L) return '';
+  const w0=2.8+stage*.45; const F=[H[0]-.05*L,H[1]-.5*L];
+  let d=taper3(H,[H[0]-.18*L,H[1]-.28*L],F,w0,w0*.75,8);
+  const back=[F[0]-.3*L,F[1]-.55*L], front=[F[0]+.32*L,F[1]-.5*L];
+  d+=' '+taper3(F,[F[0]-.22*L,F[1]-.2*L],back,w0*.75,.6,10)+' '+taper3(F,[F[0]+.22*L,F[1]-.15*L],front,w0*.75,.6,10);
+  const fork=(P,dir)=>{ const B=[P[0]-dir*.08*L,P[1]+.2*L]; return ' '+tine(B,[dir*.35,-.94],.26*L,w0*.5,.1); };
+  if(stage>=4) d+=fork(front,1);
+  if(stage>=5) d+=fork(back,-1)+' '+tine([H[0]-1,H[1]-4],[.2,-1],.14*L,w0*.5,.1);
+  if(stage>=7) d+=' '+tine([F[0]-.12*L,F[1]-.12*L],[-.95,.2],.16*L,w0*.45,.2);
+  return `<path class="rk" d="${d}"/>`;
+}
+const SIL2={
+  elk:`<path class="b-leg" d="M128 106 L138 108 L136 126 L134 140 L135 154 L128 155 L128 141 L126 124Z M115 110 L124 112 L121 128 L120 141 L121 154 L114 155 L114 140 L113 126Z M36 98 L56 104 L52 118 L46 131 L48 154 L41 155 L40 132 L35 117Z M56 108 L67 110 L64 122 L60 133 L62 154 L55 155 L54 133 L54 120Z"/><path class="b-body" d="M176 58 C176 62 172 64 168 63 L160 62 C158 66 156 70 154 72 L150 80 L153 84 L147 88 L150 93 L143 97 L145 102 L137 106 C132 112 124 114 116 114 C96 116 72 116 56 112 C48 112 40 112 36 108 C30 104 28 92 30 80 C31 70 34 64 40 62 C60 56 92 54 112 54 C120 54 126 50 132 44 C138 38 144 34 150 32 C156 32 160 36 164 42 C168 48 174 52 176 58Z"/><path class="b-dark" d="M112 54 C120 54 126 50 132 44 C138 38 144 34 150 32 C152 40 156 52 158 62 C158 66 156 70 154 72 L150 80 L153 84 L147 88 L150 93 L143 97 L145 102 L137 106 C130 96 122 84 114 70 Z"/><path class="b-patch" d="M30 80 C31 70 34 64 40 62 C46 66 48 80 46 94 C42 102 36 104 32 100 C29 94 29 86 30 80Z"/><path class="b-dark" d="M150 35 L139 30 L147 40Z M166 52 C170 54 174 55 176 58 C176 62 172 64 168 63Z"/><circle class="b-eye" cx="157" cy="44" r="1.4"/>`,
+  buck:`<path class="b-leg" d="M126 102 L134 103 L132 122 L130 136 L131 154 L125 155 L125 137 L123 120Z M114 105 L122 106 L119 123 L118 137 L119 154 L113 155 L113 137 L112 120Z M40 96 L58 101 L54 114 L48 128 L50 154 L44 155 L42 129 L38 113Z M58 104 L67 106 L64 118 L61 130 L62 154 L56 155 L55 130 L55 117Z"/><path class="b-body" d="M170 58 C170 61 167 63 164 62 L156 61 C154 66 151 72 148 76 C144 84 140 92 134 100 C128 106 120 108 112 108 C94 110 70 110 56 107 C48 106 42 104 38 100 C33 95 32 86 34 78 C36 70 40 66 46 64 C64 60 92 60 110 60 C118 60 124 54 130 46 C136 40 142 36 148 36 C154 37 158 41 162 47 C165 51 169 54 170 58Z"/><path class="b-belly" d="M60 104 C80 108 104 108 118 104 C110 108 90 110 60 107Z"/><path class="b-white" d="M150 66 C154 64 156 68 154 72 C152 76 148 76 147 72Z M164 58 C167 57 169 58 170 58 C170 61 167 63 164 62Z"/><path class="b-dark" d="M146 39 L134 32 L142 44Z"/><path class="b-tail" d="M38 68 C30 60 26 50 30 44 C35 48 40 58 42 66Z"/><circle class="b-eye" cx="153" cy="46" r="1.4"/>`,
+  mule:`<path class="b-leg" d="M126 102 L134 103 L132 122 L130 136 L131 154 L125 155 L125 137 L123 120Z M114 105 L122 106 L119 123 L118 137 L119 154 L113 155 L113 137 L112 120Z M40 96 L58 101 L54 114 L48 128 L50 154 L44 155 L42 129 L38 113Z M58 104 L67 106 L64 118 L61 130 L62 154 L56 155 L55 130 L55 117Z"/><path class="b-body" d="M170 58 C170 61 167 63 164 62 L156 61 C154 66 151 72 148 76 C144 84 140 92 134 100 C128 106 120 108 112 108 C94 110 70 110 56 107 C48 106 42 104 38 100 C33 95 32 86 34 78 C36 70 40 66 46 64 C64 60 92 60 110 60 C118 60 124 54 130 46 C136 40 142 36 148 36 C154 37 158 41 162 47 C165 51 169 54 170 58Z"/><path class="b-white" d="M34 78 C36 70 40 66 46 64 C48 74 46 88 40 96 C35 94 33 86 34 78Z M164 58 C167 57 169 58 170 58 C170 61 167 63 164 62Z M150 66 C154 64 156 68 154 72 C152 76 148 76 147 72Z"/><path class="b-dark" d="M146 40 L126 26 C130 36 136 42 142 46Z M38 70 C34 74 33 80 35 86 L38 85 C37 80 38 75 40 72Z"/><circle class="b-eye" cx="153" cy="46" r="1.4"/>`,
+};
+animalSVG=function(kind,stage){
+  if(kind==='elk'){ const body= stage<=1? `<g class="b-calf">${SIL.elkCalfBody}</g>` : SIL2.elk; return `<g class="ani a-elk">${stage>=2?rackElk(stage,-12,3).replace('class="rk"','class="rk far"'):''}${body}${rackElk(stage)}${stage===0?spotsFor('elk'):''}</g>`; }
+  if(kind==='buck'){ return `<g class="ani a-buck">${stage>=2?rackBuck(stage,-7,2).replace('class="rk"','class="rk far"'):''}${SIL2.buck}${rackBuck(stage)}${stage===0?spotsFor('buck'):''}</g>`; }
+  if(kind==='mule'){ return `<g class="ani a-mule">${stage>=2?rackMule(stage,-7,2).replace('class="rk"','class="rk far"'):''}${SIL2.mule}${rackMule(stage)}${stage===0?spotsFor('buck'):''}</g>`; }
+  return `<g class="sil ani a-${kind} k-${kind}">${TROPHY[kind].draw(stage)}</g>`;
+};
+SIL.trout=`<defs><linearGradient id="trg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4E6B3A"/><stop offset=".45" stop-color="#8FA36A"/><stop offset=".62" stop-color="#E9E4D6"/><stop offset="1" stop-color="#F7F4EC"/></linearGradient></defs><path class="t-body" d="M8 50 C18 40 40 35 62 38 C76 40 88 45 96 50 C88 55 76 60 62 62 C40 65 18 60 8 50Z"/><path class="t-fin" d="M92 50 L112 38 C109 45 109 55 112 62Z M40 38 C44 31 52 30 58 37Z M78 42 L84 37 L84 44Z M46 61 L52 67 L56 61Z M22 56 L26 62 L30 57Z"/><path class="t-stripe" d="M14 50 C34 45 64 45 94 50 C64 54 34 55 14 50Z"/><path class="t-gill" d="M22 43 C26 48 26 54 22 58"/><g class="t-spots">${[[30,44],[38,41],[46,42],[54,40],[62,42],[70,43],[78,45],[86,47],[58,56],[66,56],[74,54],[98,44],[102,50],[98,56],[106,46],[104,54],[50,36]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.2"/>`).join('')}</g><circle class="t-eye" cx="16" cy="48" r="2"/><circle cx="16.4" cy="47.6" r=".8" fill="#111"/>`;
+TROPHY.elk.lo=.3; TROPHY.elk.hi=.68; TROPHY.buck.lo=.3; TROPHY.buck.hi=.72; TROPHY.mule.lo=.3; TROPHY.mule.hi=.74;
+TROPHY.moose.lo=.3; TROPHY.moose.hi=.74; TROPHY.ram.lo=.32; TROPHY.ram.hi=.8; TROPHY.bear.lo=.26; TROPHY.bear.hi=.84; TROPHY.turkey.lo=.3; TROPHY.turkey.hi=.8; TROPHY.trout.lo=.4; TROPHY.trout.hi=1.75; TROPHY.myth.lo=.42; TROPHY.myth.hi=.84;
+
+
+/* Western slang stage names */
+TROPHY.elk.stages=["Calf", "Yearlin'", "Spike", "Raghorn", "Four-by", "Five-by", "Six-by", "Herd Bull", "Toad Bull"];
+TROPHY.buck.stages=["Fawn", "Button Buck", "Spike", "Forky", "Basket Rack", "Eight-Point", "Shooter", "Wall Hanger", "Booner"];
+TROPHY.mule.stages=["Fawn", "Button Buck", "Forky", "Two-by", "Three-by", "Four-by", "Heavy Four-by", "Thirty-Incher", "Mossy-Horn Muley"];
+TROPHY.moose.stages=["Calf", "Yearlin'", "Spike", "Fork Horn", "Paddler", "Wide Paddler", "Big Shiras", "Swamp Donkey", "Bull of the Woods"];
+TROPHY.ram.stages=["Lamb", "Yearlin'", "Quarter Curl", "Half Curl", "Three-Quarter", "Seven-Eighths", "Full Curl", "Broomed Ram", "Full-Curl Monarch"];
+TROPHY.bear.stages=["Cub", "Yearlin'", "Young Bruin", "Small Boar", "Shooter Boar", "Big Boar", "Old Boar", "Mountain Boar", "Monster Bruin"];
+TROPHY.turkey.stages=["Poult", "Jenny", "Jake", "Two-Year Tom", "Gobbler", "Longbeard", "Strutter", "Boss Tom", "Limb-Hanger"];
+TROPHY.trout.stages=["Fry", "Fingerling", "Stocker", "Pan-Sizer", "Keeper", "Slab", "Football", "Hog", "Trophy Toad"];
 /* ---------- Worlds: four app-wide looks, each with its own art and reward path ---------- */
 function stars(n,seed,h=150){ let s=seed, o=''; for(let i=0;i<n;i++){ s=(s*9301+49297)%233280; const x=s/233280*360; s=(s*9301+49297)%233280; const y=s/233280*h; s=(s*9301+49297)%233280; const r=.5+s/233280*1.3; o+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}"/>`; } return `<g class="w-stars">${o}</g>`; }
 const ROCKET=`<g class="w-rocket"><path d="M0 -26 C7 -18 9 -6 8 10 L-8 10 C-9 -6 -7 -18 0 -26Z"/><path class="w-fin" d="M-8 2 L-15 14 L-8 12Z M8 2 L15 14 L8 12Z M-3 10 L3 10 L2 16 L-2 16Z"/><circle class="w-win" cx="0" cy="-8" r="3.2"/></g>`;
@@ -3778,6 +3879,7 @@ settings(){
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
    </div><h2 class="sec">${ic('mountain')} App world</h2><div class="card setcard"><p class="muted small">Each world has its own look, art and reward path. Your progress carries over.</p>
    <div class="worlds">${Object.keys(WORLDS).map(k=>{ const W=WORLDS[k]; const art= k==='hunt'? trophyArt(trophyKind(),6) : W.art(6); return `<button class="wtile ${worldKey()===k?'on':''}" data-a="setWorld" data-v="${k}">${art}<b>${ic(W.icon,'sm')} ${esc(W.name)}</b><span class="muted small">${esc(W.tag)}</span></button>`; }).join('')}</div></div>
+   <div class="card setcard"><div class="field"><label>${ic('target','sm')} Accountability</label>${seg('acct',[['off','Off'],['easy','Easy'],['normal','Normal'],['max','Max']],s.acct||'easy')}<p class="muted small">${ACCT_TXT[s.acct||'easy']}</p></div></div>
    <h2 class="sec">${ic('palette')} Color scheme</h2><div class="card setcard">
    <div class="field"><label>Mode</label>${seg('mode',[['auto','Auto'],['dark','Dark'],['light','Light']],s.mode||'auto')}</div>
    <div class="field"><label>Theme</label><div class="thms">${Object.keys(THEMES).map(themePreview).join('')}</div></div>
@@ -4516,12 +4618,15 @@ const A={
     const tp=trophyPoints(); const plans=[...new Set(workoutsSorted().map(planKeyOf).filter(Boolean).concat(folderNames()))];
     openSheet({kind:'html',title: wk==='hunt'?`Grow your ${T.name}`:`Your ${T.unit} path`,html:`<p class="muted small">Your ${wk==='hunt'?'animal':T.unit.toLowerCase()} grows with your current plan, <b>${esc(planName(tp.key))}</b> (week ${tp.week}). Points per plan workout:</p>
       <ul class="ptlist"><li>${ic('check','sm')}<span>Finish the workout</span><b>+1</b></li><li>${ic('target','sm')}<span>Hit every coach target (weight and reps)</span><b>+1</b></li><li>${ic('trophy','sm')}<span>Personal records (up to 2)</span><b>+1 each</b></li><li>${ic('cal','sm')}<span>Hit your weekly goal of ${st.settings.goal||4}</span><b>+2</b></li></ul>
-      <p class="small">You have <b>${tp.pts}</b> points: ${tp.workouts} workouts, ${tp.hits} on target, ${tp.prs} PR points, ${tp.weeks} goal week${tp.weeks===1?'':'s'}.</p>
+      <p class="small">You have <b>${tp.pts}</b> points: ${tp.workouts} workouts, ${tp.hits} on target, ${tp.prs} PR points, ${tp.weeks} goal week${tp.weeks===1?'':'s'}${tp.pen?`, <span class="neg">minus ${tp.pen} for accountability</span>`:''}.</p>
+      <div class="field"><label>Accountability</label><div class="chips">${['off','easy','normal','max'].map(v=>`<button class="chip ${tp.acct===v?'on':''}" data-a="setAcct" data-v="${v}">${{off:'Off',easy:'Easy',normal:'Normal',max:'Max'}[v]}</button>`).join(' ')}</div><p class="muted small">${ACCT_TXT[tp.acct]}</p></div>
+      ${tp.penItems.length?`<ul class="ptlist neg">${Object.entries(tp.penItems.reduce((m,[k,p])=>{m[k]=(m[k]||0)+p;return m;},{})).map(([k,p])=>`<li>${ic('x','sm')}<span>${esc(k)}</span><b>−${p}</b></li>`).join('')}</ul>`:''}
       ${plans.length>1?`<div class="field"><label>Plan</label><div class="chips">${plans.map(k=>`<button class="chip ${k===tp.key?'on':''}" data-a="setPlan" data-v="${esc(k)}">${esc(planName(k))}</button>`).join('')}</div></div>`:''}
       <button class="btn ghost sm" data-a="restartPlan">${ic('history','sm')} Start this plan over (back to ${esc(T.stages[0])})</button>
       ${wk!=='hunt'?'':`<div class="animals tro-pick">`}${wk!=='hunt'?'':''}${(wk!=='hunt'?[]:Object.keys(TROPHY)).map(v=>`<button class="scn ${kind===v?'on':''}" data-a="setTrophy" data-v="${v}">${trophyArt(v,6,{scene:false})}<span>${esc(TROPHY[v].name)}</span></button>`).join('')}${wk==='hunt'?'</div>':''}
       <ol class="tro-ladder">${T.stages.map((n,i)=>`<li class="${i<cur?'got':i===cur?'now':'lock'}">${artOf(i)}<div><b>${n}</b><span class="muted small">${TR_PTS[i]} pts${i===cur?' · you are here':i<cur?' · earned':''}</span></div></li>`).join('')}</ol>`}); },
   setWorld:(d)=>{ st.settings.world=d.v; const W=WORLDS[d.v]; if(W&&W.theme){ st.settings.theme=W.theme; st.settings.accent=''; } Store.saveSettings(); applyTheme(); render(); toast(`${W.name} world on`); },
+  setAcct:(d)=>{ st.settings.acct=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   setPlan:(d)=>{ st.settings.planKey=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   restartPlan:()=>{ const k=currentPlan(); if(!k) return; confirmSheet('Start this plan over?','Your animal goes back to the first stage and grows again from your next workout. Your workout history stays.','Start over',()=>{ st.settings.planStarts={...(st.settings.planStarts||{}),[k]:Date.now()}; st.settings.planKey=k; Store.saveSettings(); render(); toast('Plan restarted. Time to grow.'); },false); },
   setTrophy:(d)=>{ st.settings.trophy=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
@@ -4559,6 +4664,7 @@ const A={
   saveWorkout:()=>{
     const a=clone(st.active); const n=$('#wname'); if(n&&n.value.trim()) a.name=n.value.trim(); const nt=$('#wnotes'); if(nt) a.notes=nt.value;
     a.end=Date.now();
+    { let pl=0, sk=0; for(const e of a.exercises) for(const s of e.sets){ if(s.type==='w') continue; pl++; if(!s.done) sk++; } a.planned=pl; a.skipped=sk; }
     { let tgt=0, ok=0; for(const e of a.exercises){ for(const s of e.sets){ if(s.type==='w') continue; const pw=num(s.pw), pr=num(s.pr), pt=num(s.pt); if(!pw&&!pr&&!pt) continue; tgt++; if(s.done && (!pw||num(s.w)>=pw-0.01) && (!pr||num(s.r)>=pr) && (!pt||num(s.t)>=pt)) ok++; } } a.hit= tgt>0 && ok===tgt; }
     const srcR=a.routineId&&st.routines[a.routineId];
     if(srcR && !(a.comeback&&a.comeback.light&&!a.comebackOff) && !a.deload){ const rr=clone(srcR); let ch=0; rr.exercises.forEach((re,ri)=>{ const we=a.exercises.find((x,xi)=>x.exId===re.exId&&(xi===ri||true)); if(!we) return; const doneW=we.sets.filter(s=>s.done&&s.type!=='w'); if(!doneW.length) return; let k=0; re.sets.forEach(rs=>{ if(rs.type==='w') return; const src=doneW[Math.min(k,doneW.length-1)]; k++; for(const c of ['w','r','t','d']){ if(src[c]!==''&&src[c]!=null&&String(rs[c])!==String(src[c])){ rs[c]=src[c]; ch++; } } }); }); if(ch){ rr.updated=Date.now(); Store.put('routines',rr.id,rr); a.routineUpdated=true; } }
@@ -4698,7 +4804,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171425';
+window.WH_BUILD='202611171430';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
