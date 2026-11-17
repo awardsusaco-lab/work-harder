@@ -5017,7 +5017,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
  Backend: Firebase (Auth email/password + Firestore). Paste the project's web config into FB_CONFIG.
  Data: users/{uid} profile · users/{uid}/feed/{workoutId} · users/{uid}/friends/{friendUid} · codes/{CODE} → {uid}
  Friends are mutual: adding a code writes both sides, and the security rules let you read a profile only if they've linked with you. */
-const FB_CONFIG = null; // ← filled in once the Firebase project exists
+const FB_CONFIG = {apiKey:"AIzaSyA2BpRjGn2hHSLx1zf59dhY76u-JkAvNSI",authDomain:"work-harder-c4d8e.firebaseapp.com",projectId:"work-harder-c4d8e",storageBucket:"work-harder-c4d8e.firebasestorage.app",messagingSenderId:"689581422145",appId:"1:689581422145:web:1785febaf8ab74140b38c0"}; // public web config (not a secret)
 const FBV='10.12.2';
 const Social={
   ready:false, user:null, profile:null, friends:[], loading:false, err:'', api:null,
@@ -5185,7 +5185,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171446';
+window.WH_BUILD='202611171458';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
