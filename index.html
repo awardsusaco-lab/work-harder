@@ -510,6 +510,35 @@ textarea{resize:vertical;line-height:1.4}
 .trophy-svg .a-bear path{fill:#1D1A18}.trophy-svg .a-bear .eye{fill:#C9A27A}
 .trophy-svg .a-turkey ellipse,.trophy-svg .a-turkey path,.trophy-svg .a-turkey circle{fill:#3B2C20}.trophy-svg .a-turkey .fanbg{fill:#6B4A2C}.trophy-svg .a-turkey .fan{stroke:#E1B877;stroke-width:1.6;opacity:.9}.trophy-svg .a-turkey circle{fill:#C8433A}.trophy-svg .a-turkey .snood{stroke:#C8433A}.trophy-svg .a-turkey .beard{stroke:#1A120C}.trophy-svg .a-turkey .ant{stroke:#B78A5C}
 .trophy-svg .a-trout .t-body{fill:url(#trg)}.trophy-svg .a-trout .t-fin{fill:#7F8F5A}.trophy-svg .a-trout .t-stripe{fill:#E7708A;opacity:.85}.trophy-svg .a-trout .t-spots circle{fill:#1B1B1B}.trophy-svg .a-trout .t-gill{fill:none;stroke:#C2546B;stroke-width:1.4}.trophy-svg .a-trout .t-eye{fill:#F2C14E}
+
+.world-space .w-pad{fill:#59627F}
+.world-space .w-flame2{fill:#FFF0A8}
+.world-space .w-cloud{fill:none;stroke:#E8F2FF;stroke-width:5;stroke-linecap:round;opacity:.7}
+.world-space .w-atmo{fill:none;stroke:#8FD0FF;stroke-width:4;opacity:.5}
+.world-space .w-crater{fill:#8F8C85;opacity:.75}
+.world-space .w-crater-hi{fill:#CFCBC2;opacity:.35}
+.world-space .w-limb{fill:none;stroke:#ffffff;stroke-width:1.5;opacity:.25}
+.world-space .w-mars-dark{fill:#7A2E18;opacity:.45}
+.world-space .w-cap{fill:#FFF6EE;opacity:.85}
+.world-space .w-moonlet{fill:#A6928A}
+.world-space .w-ringb{fill:none;stroke:#C9AE78;stroke-width:9;opacity:.55}
+.world-space .w-ringf{fill:none;stroke:#E9D3A1;stroke-width:9;opacity:.95}
+.world-space .w-ringf2{fill:none;stroke:#8E7448;stroke-width:2;opacity:.6}
+.world-space .w-arm{fill:none;stroke:#D9CCFF;stroke-width:6;opacity:.45;stroke-linecap:round}
+.world-mil .w-rifle{stroke:#E5C66A;stroke-width:3.5;stroke-linecap:round}
+.world-mil .w-eagle{fill:#F2F2F2;stroke:#555;stroke-width:1}
+.world-mil.br-navy .w-chev,.world-mil.br-coastguard .w-chev{fill:#F2F2F2;stroke:#7A8899}
+.world-mil.br-navy .w-medal,.world-mil.br-coastguard .w-medal{fill:#0A1830}
+.world-mil .w-anchor path{fill:none;stroke:#E5C66A;stroke-width:5;stroke-linecap:round}
+.world-mil .w-anchor circle{fill:none;stroke:#E5C66A;stroke-width:3}
+.world-mil .w-shield{fill:#C8433A;stroke:#fff;stroke-width:1}
+.world-mil.br-airforce .w-chev{fill:#DDE3EC;stroke:#5C6E8A}
+.world-mil.br-airforce .w-medal{fill:#0F244A}
+.world-mil .w-disk{fill:#5C7AB0;stroke:#DDE3EC;stroke-width:1.5}
+.world-mil.br-spaceforce .w-chev{fill:#C9D2DC;stroke:#4F5B67}
+.world-mil.br-spaceforce .w-medal{fill:#06080A}
+.world-mil .w-delta{fill:#C9D2DC;stroke:#4F5B67;stroke-width:1.5}
+.world-mil.br-marines .w-chev{fill:#E5C66A;stroke:#8B1E24;stroke-width:2}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3538,6 +3567,82 @@ const WORLDS={
   grow:{name:'Grow',theme:'forest',icon:'spark',tag:'Plant a seed and grow a giant sequoia',
     stages:['Seed','Sprout','Seedling','Sapling','Young Tree','Shade Tree','Mighty Oak','Old Growth','Giant Sequoia'],unit:'Tree',art:growArt},
 };
+/* ---------- Space art v2 ---------- */
+const SPACE_DEFS=`<defs>
+<radialGradient id="g-moon" cx="38%" cy="35%" r="70%"><stop offset="0" stop-color="#F4F2EC"/><stop offset=".7" stop-color="#B9B6AE"/><stop offset="1" stop-color="#77746E"/></radialGradient>
+<radialGradient id="g-mars" cx="38%" cy="35%" r="70%"><stop offset="0" stop-color="#F0A06A"/><stop offset=".65" stop-color="#C2522E"/><stop offset="1" stop-color="#6E2614"/></radialGradient>
+<radialGradient id="g-jup" cx="40%" cy="35%" r="72%"><stop offset="0" stop-color="#F6DDB8"/><stop offset=".7" stop-color="#C99A6A"/><stop offset="1" stop-color="#7A5233"/></radialGradient>
+<radialGradient id="g-sat" cx="40%" cy="35%" r="72%"><stop offset="0" stop-color="#FBEBC4"/><stop offset=".7" stop-color="#D9B878"/><stop offset="1" stop-color="#8A6C3C"/></radialGradient>
+<radialGradient id="g-earth" cx="45%" cy="30%" r="75%"><stop offset="0" stop-color="#7FC4FF"/><stop offset=".6" stop-color="#2C6FD0"/><stop offset="1" stop-color="#0E2F6B"/></radialGradient>
+<radialGradient id="g-core" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFF6D8"/><stop offset=".35" stop-color="#FFD58A" stop-opacity=".9"/><stop offset="1" stop-color="#7A5CFF" stop-opacity="0"/></radialGradient>
+<linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05071A"/><stop offset="1" stop-color="#151A40"/></linearGradient>
+<linearGradient id="g-dawn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2A5C"/><stop offset=".7" stop-color="#E58A5A"/><stop offset="1" stop-color="#F4C27A"/></linearGradient>
+<linearGradient id="g-band" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7A5CFF" stop-opacity="0"/><stop offset=".5" stop-color="#C9B8FF" stop-opacity=".55"/><stop offset="1" stop-color="#7A5CFF" stop-opacity="0"/></linearGradient>
+</defs>`;
+function rocketAt(x,y,rot,sc,flame){ return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})">${flame?`<path class="w-flame" d="M-6 16 Q0 ${flame} 6 16Z"/><path class="w-flame2" d="M-3 16 Q0 ${flame*.75} 3 16Z"/>`:''}${ROCKET}</g>`; }
+spaceArt=function(stage,{scene=true}={}){
+  let s=SPACE_DEFS;
+  const sky= stage<=1? `<rect width="360" height="150" fill="url(#g-dawn)"/>${stars(18,stage+2,70)}` : `<rect width="360" height="150" fill="url(#g-sky)"/>${stars(70,stage+3)}`;
+  s+=sky;
+  if(stage===0) s+=`<rect class="w-ground" y="130" width="360" height="20"/><path class="w-tower" d="M150 130 L150 44 L162 44 L162 130 M150 62 L176 62 M150 86 L176 86 M150 110 L176 110 M150 44 L162 56 M162 44 L150 56"/><rect class="w-pad" x="160" y="126" width="44" height="6"/>`+rocketAt(182,104,0,1.15,0);
+  if(stage===1) s+=`<rect class="w-ground" y="136" width="360" height="14"/><g class="w-smoke"><circle cx="186" cy="134" r="20"/><circle cx="160" cy="138" r="15"/><circle cx="212" cy="138" r="16"/><circle cx="140" cy="142" r="10"/><circle cx="232" cy="142" r="11"/></g>`+rocketAt(186,70,0,1.2,46);
+  if(stage===2) s+=`<circle cx="180" cy="300" r="220" fill="url(#g-earth)"/><path class="w-cloud" d="M40 110 q20 -8 40 0 q14 -6 26 2 M220 96 q24 -8 46 2 M120 92 q18 -6 30 0"/><circle cx="180" cy="300" r="224" class="w-atmo"/>`+rocketAt(250,50,60,1,26);
+  if(stage===3) s+=`<circle cx="120" cy="80" r="58" fill="url(#g-moon)"/>${[[100,60,10],[140,92,8],[118,104,6],[90,92,5],[150,60,5],[128,74,4],[104,82,3]].map(([x,y,r])=>`<circle class="w-crater" cx="${x}" cy="${y}" r="${r}"/><circle class="w-crater-hi" cx="${x-r*.25}" cy="${y-r*.25}" r="${r*.7}"/>`).join('')}<circle cx="120" cy="80" r="58" class="w-limb"/>`+rocketAt(268,58,70,1,24);
+  if(stage===4) s+=`<circle cx="118" cy="78" r="54" fill="url(#g-mars)"/><path class="w-mars-dark" d="M80 70 q20 -10 36 4 q16 12 34 2 q-10 22 -34 16 q-22 -4 -36 -22Z M96 104 q14 6 30 0"/><ellipse class="w-cap" cx="112" cy="30" rx="18" ry="6"/><circle cx="118" cy="78" r="54" class="w-limb"/><circle cx="210" cy="40" r="5" class="w-moonlet"/>`+rocketAt(272,70,70,1,24);
+  if(stage===5) s+=[[40,40,10],[80,110,8],[130,28,6],[170,120,12],[214,40,7],[300,30,9],[320,110,8],[250,126,5],[20,120,6],[110,70,4],[340,70,5]].map(([x,y,r],i)=>`<path class="w-rock" d="M${x-r} ${y} L${x-r*.4} ${y-r} L${x+r*.7} ${y-r*.8} L${x+r} ${y+r*.2} L${x+r*.2} ${y+r} L${x-r*.8} ${y+r*.6}Z" transform="rotate(${i*31} ${x} ${y})"/>`).join('')+rocketAt(220,78,60,1.05,26);
+  if(stage===6) s+=`<circle cx="112" cy="76" r="62" fill="url(#g-jup)"/>${[[38,'#B8835A'],[56,'#E7C9A2'],[70,'#A9714A'],[86,'#D9B48A'],[100,'#B07A50'],[114,'#E2C29C']].map(([y,c])=>`<path d="M${112-Math.sqrt(Math.max(0,62*62-(y-76)**2))} ${y} Q112 ${y+4} ${112+Math.sqrt(Math.max(0,62*62-(y-76)**2))} ${y}" stroke="${c}" stroke-width="7" fill="none" opacity=".75"/>`).join('')}<ellipse cx="132" cy="96" rx="12" ry="7" fill="#C8573A" opacity=".9"/><circle cx="112" cy="76" r="62" class="w-limb"/>`+rocketAt(278,64,70,1.05,26);
+  if(stage===7) s+=`<g transform="rotate(-16 112 76)"><path class="w-ringb" d="M40 76 A72 18 0 0 1 184 76"/></g><circle cx="112" cy="76" r="44" fill="url(#g-sat)"/><path d="M72 64 Q112 70 152 64 M70 84 Q112 90 154 84" stroke="#B89458" stroke-width="5" fill="none" opacity=".6"/><g transform="rotate(-16 112 76)"><path class="w-ringf" d="M40 76 A72 18 0 0 0 184 76"/><path class="w-ringf2" d="M50 76 A62 14 0 0 0 174 76"/></g>`+rocketAt(282,70,70,1.05,26);
+  if(stage===8) s+=`<path d="M-20 140 C80 80 200 70 380 10 L380 50 C220 100 100 120 -20 170Z" fill="url(#g-band)"/>${stars(60,99)}<g transform="translate(190 70) rotate(-24)"><ellipse rx="70" ry="22" fill="url(#g-core)"/>${Array.from({length:4},(_,i)=>`<path class="w-arm" d="M0 0 C40 -14 74 -2 86 14" transform="rotate(${i*90}) scale(1 .45)"/>`).join('')}<circle r="7" fill="#FFF6D8"/></g>`+rocketAt(60,112,40,1,24);
+  const rays=''; 
+  return `<svg class="trophy-svg world-space" viewBox="${scene?'0 0 360 150':'40 0 280 150'}" aria-hidden="true">${s}</svg>`;
+};
+WORLDS.space.art=spaceArt; WORLDS.space.stages=['Launchpad','Liftoff','Low Orbit','The Moon','Mars','Asteroid Belt','Jupiter','Saturn','The Milky Way'];
+
+/* ---------- Military: every branch of the U.S. Armed Forces ---------- */
+const BRANCHES={
+  army:{name:'Army',ranks:['Private (E-1)','Private (E-2)','Private First Class','Corporal','Sergeant','Staff Sergeant','Sergeant First Class','Master Sergeant','Sergeant Major'],
+    ins:[['tags'],['chev',1],['chev',1,1],['chev',2],['chev',3],['chev',3,1],['chev',3,2],['chev',3,3],['chev',3,3,'star']]},
+  marines:{name:'Marine Corps',ranks:['Private','Private First Class','Lance Corporal','Corporal','Sergeant','Staff Sergeant','Gunnery Sergeant','Master Sergeant','Sergeant Major'],
+    ins:[['tags'],['chev',1],['chev',1,0,'rifles'],['chev',2,0,'rifles'],['chev',3,0,'rifles'],['chev',3,1,'rifles'],['chev',3,2,'rifles'],['chev',3,3,'rifles'],['chev',3,3,'star']]},
+  navy:{name:'Navy',ranks:['Seaman Recruit','Seaman Apprentice','Seaman','Petty Officer Third Class','Petty Officer Second Class','Petty Officer First Class','Chief Petty Officer','Senior Chief Petty Officer','Master Chief Petty Officer'],
+    ins:[['stripes',1],['stripes',2],['stripes',3],['po',1],['po',2],['po',3],['anchor',0],['anchor',1],['anchor',2]]},
+  airforce:{name:'Air Force',ranks:['Airman Basic','Airman','Airman First Class','Senior Airman','Staff Sergeant','Technical Sergeant','Master Sergeant','Senior Master Sergeant','Chief Master Sergeant'],
+    ins:[['tags'],['af',1,0],['af',2,0],['af',3,0],['af',4,0],['af',5,0],['af',5,1],['af',5,2],['af',5,3]]},
+  spaceforce:{name:'Space Force',ranks:['Specialist 1','Specialist 2','Specialist 3','Specialist 4','Sergeant','Technical Sergeant','Master Sergeant','Senior Master Sergeant','Chief Master Sergeant'],
+    ins:[['tags'],['delta',1],['delta',2],['delta',3],['delta',4],['delta',5],['delta',5,1],['delta',5,2],['delta',5,3]]},
+  coastguard:{name:'Coast Guard',ranks:['Seaman Recruit','Seaman Apprentice','Seaman','Petty Officer Third Class','Petty Officer Second Class','Petty Officer First Class','Chief Petty Officer','Senior Chief Petty Officer','Master Chief Petty Officer'],
+    ins:[['stripes',1],['stripes',2],['stripes',3],['po',1,'shield'],['po',2,'shield'],['po',3,'shield'],['anchor',0,'shield'],['anchor',1,'shield'],['anchor',2,'shield']]},
+};
+function branchKey(){ return BRANCHES[st.settings.branch]? st.settings.branch : 'army'; }
+const STAR5=(x,y,r)=>{ let d=''; for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.42:r; d+=(i?'L':'M')+f1(x+rr*Math.cos(a))+' '+f1(y+rr*Math.sin(a))+' '; } return `<path class="w-star" d="${d}Z"/>`; };
+function insignia(spec){
+  const [k,a=0,b=0,c]=spec; let s='';
+  const chev=(n,dir=1,y0=0,w=34)=>{ let o=''; for(let i=0;i<n;i++){ const y=y0+i*14*dir; o+=dir>0?`<path class="w-chev" d="M${-w} ${18+y} L0 ${-4+y} L${w} ${18+y} L${w} ${27+y} L0 ${5+y} L${-w} ${27+y}Z"/>`:`<path class="w-chev" d="M${-w} ${-18+y} L0 ${4+y} L${w} ${-18+y} L${w} ${-27+y} L0 ${-5+y} L${-w} ${-27+y}Z"/>`; } return o; };
+  const rock=(n,y0)=>{ let o=''; for(let i=0;i<n;i++){ const y=y0+i*12; o+=`<path class="w-chev" d="M-34 ${y} Q0 ${y+16} 34 ${y} L34 ${y+8} Q0 ${y+24} -34 ${y+8}Z"/>`; } return o; };
+  if(k==='tags') return `<g class="w-tags"><rect x="-20" y="-28" width="30" height="44" rx="8" transform="rotate(-10)"/><rect x="-6" y="-24" width="30" height="44" rx="8" transform="rotate(8)"/><path class="w-chain" d="M-14 -40 Q0 -60 14 -40"/></g>`;
+  if(k==='chev'){ s+=`<g transform="translate(0 ${-(a-1)*7-10})">${chev(a)}${rock(b,a*14+14)}${c==='star'?STAR5(0,a*14+12,7):''}${c==='rifles'?`<path class="w-rifle" d="M-14 ${a*14+6} L14 ${a*14+30} M14 ${a*14+6} L-14 ${a*14+30}"/>`:''}</g>`; return s; }
+  if(k==='stripes'){ for(let i=0;i<a;i++) s+=`<path class="w-chev" d="M${-30+i*20} 22 L${-14+i*20} -22 L${-6+i*20} -22 L${-22+i*20} 22Z"/>`; return s; }
+  if(k==='po'){ s+=`<g transform="translate(0 -26)"><path class="w-eagle" d="M0 -8 L-22 -14 L-8 -2 L-20 4 L-4 4 L0 12 L4 4 L20 4 L8 -2 L22 -14Z"/></g>${b==='shield'?`<path class="w-shield" d="M-6 -2 L6 -2 L6 6 Q0 12 -6 6Z"/>`:''}<g transform="translate(0 2)">${chev(a,1,0,30)}</g>`; return s; }
+  if(k==='anchor'){ s+=`<g class="w-anchor"><path d="M0 -30 L0 26 M-22 6 Q-20 26 0 28 Q20 26 22 6 M-12 -18 L12 -18"/><circle cx="0" cy="-34" r="5"/></g>`; for(let i=0;i<a;i++) s+=STAR5(a===1?0:(i?14:-14),-50,7); if(b==='shield') s+=`<path class="w-shield" d="M-6 -6 L6 -6 L6 2 Q0 8 -6 2Z"/>`; return s; }
+  if(k==='af'){ const sh=b?b*6:0; s+=`<g transform="translate(0 ${-4+sh})">${chev(a,1,-6,32)}<circle class="w-disk" cx="0" cy="-4" r="10"/>${STAR5(0,-4,7)}</g>`; for(let i=0;i<b;i++) s+=`<g transform="translate(0 ${-14+sh-i*12})">${chev(1,-1,0,32)}</g>`; return `<g transform="scale(${b?.86:1})">${s}</g>`; }
+  if(k==='delta'){ s+=`<path class="w-delta" d="M0 -38 L30 30 L0 14 L-30 30Z"/>`; for(let i=0;i<a;i++) s+=`<path class="w-chev" d="M-30 ${34+i*10} L0 ${20+i*10} L30 ${34+i*10} L30 ${39+i*10} L0 ${25+i*10} L-30 ${39+i*10}Z"/>`; for(let i=0;i<b;i++) s+=`<path class="w-chev" d="M-30 ${-30-i*10} L0 ${-44-i*10} L30 ${-30-i*10} L30 ${-25-i*10} L0 ${-39-i*10} L-30 ${-25-i*10}Z"/>`; return s; }
+  return s;
+}
+milArt=function(stage,{scene=true}={}){
+  const bk=branchKey(), B=BRANCHES[bk];
+  const bgs={army:['#4F5A38','#66704A','#3A4329','#7C7350'],marines:['#5C6340','#7A6F4C','#3C432C','#2F3523'],navy:['#13294B','#1C3A66','#0E1F3A','#24467A'],airforce:['#1D3E73','#2B5394','#14305C','#3A64A8'],spaceforce:['#101418','#1C232B','#0A0D10','#2A333D'],coastguard:['#163A6B','#1E4C86','#0F2C55','#E8743B']}[bk];
+  let bg=`<rect width="360" height="150" fill="${bgs[0]}"/>`;
+  if(bk==='army'||bk==='marines') bg+=[[30,30,40],[120,110,50],[300,40,46],[220,130,36],[340,120,30],[70,120,26],[200,20,30],[260,80,24]].map(([x,y,r],i)=>`<ellipse fill="${bgs[1+i%3]}" cx="${x}" cy="${y}" rx="${r}" ry="${r*.6}" transform="rotate(${i*37} ${x} ${y})"/>`).join('');
+  else if(bk==='coastguard') bg+=`<path d="M250 0 L290 0 L190 150 L150 150Z" fill="#E8743B"/><path d="M296 0 L308 0 L208 150 L196 150Z" fill="#2E6FB7"/>`;
+  else if(bk==='spaceforce') bg+=stars(50,7);
+  else bg+=`<path d="M0 120 Q90 100 180 120 T360 120 L360 150 L0 150Z" fill="${bgs[2]}" opacity=".7"/><path d="M0 132 Q90 116 180 132 T360 132" fill="none" stroke="${bgs[3]}" stroke-width="3" opacity=".6"/>`;
+  const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 75 L${f1(180+220*Math.cos(i*Math.PI/6))} ${f1(75+220*Math.sin(i*Math.PI/6))} L${f1(180+220*Math.cos(i*Math.PI/6+.1))} ${f1(75+220*Math.sin(i*Math.PI/6+.1))}Z"/>`).join('')}</g>`:'';
+  return `<svg class="trophy-svg world-mil br-${bk}" viewBox="${scene?'0 0 360 150':'105 0 150 150'}" aria-hidden="true">${scene?bg:`<rect width="360" height="150" fill="${bgs[0]}"/>`}${rays}<circle class="w-medal" cx="180" cy="75" r="64"/><g transform="translate(180 76) scale(${.86+stage*.03})">${insignia(B.ins[stage])}</g></svg>`;
+};
+WORLDS.mil.art=milArt;
+Object.defineProperty(WORLDS.mil,'stages',{get(){ return BRANCHES[branchKey()].ranks; }});
+Object.defineProperty(WORLDS.mil,'tag',{get(){ return `Earn ${BRANCHES[branchKey()].name} ranks from ${BRANCHES[branchKey()].ranks[0]} up`; }});
+
 function worldKey(){ return WORLDS[st.settings.world]? st.settings.world : 'hunt'; }
 const BADGE_NAMES={
   space:['Ignition','Cadet','Pilot','Commander','Captain','Space Legend','Payload 100K','Heavy Lift','Million-Pound Launch','Saturn V','Max Thrust','Four Orbits','12-Week Mission','Six-Month Voyage','Mission Accomplished','New Frontier','Hall of Astronauts','Sunrise Launch','Night Shift','Landing Gear','Cargo Bay','Steady Spine','50 Hours in Orbit','Reach Deep Space'],
@@ -3879,6 +3984,7 @@ settings(){
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
    </div><h2 class="sec">${ic('mountain')} App world</h2><div class="card setcard"><p class="muted small">Each world has its own look, art and reward path. Your progress carries over.</p>
    <div class="worlds">${Object.keys(WORLDS).map(k=>{ const W=WORLDS[k]; const art= k==='hunt'? trophyArt(trophyKind(),6) : W.art(6); return `<button class="wtile ${worldKey()===k?'on':''}" data-a="setWorld" data-v="${k}">${art}<b>${ic(W.icon,'sm')} ${esc(W.name)}</b><span class="muted small">${esc(W.tag)}</span></button>`; }).join('')}</div></div>
+   ${worldKey()==='mil'?`<div class="card setcard"><div class="field"><label>${ic('shield','sm')} Branch</label><div class="animals">${Object.keys(BRANCHES).map(k=>`<button class="scn ${branchKey()===k?'on':''}" data-a="setS" data-k="branch" data-v="${k}">${(()=>{ const prev=st.settings.branch; st.settings.branch=k; const a=milArt(6,{scene:false}); st.settings.branch=prev; return a; })()}<span>${esc(BRANCHES[k].name)}</span></button>`).join('')}</div></div></div>`:''}
    <div class="card setcard"><div class="field"><label>${ic('target','sm')} Accountability</label>${seg('acct',[['off','Off'],['easy','Easy'],['normal','Normal'],['max','Max']],s.acct||'easy')}<p class="muted small">${ACCT_TXT[s.acct||'easy']}</p></div></div>
    <h2 class="sec">${ic('palette')} Color scheme</h2><div class="card setcard">
    <div class="field"><label>Mode</label>${seg('mode',[['auto','Auto'],['dark','Dark'],['light','Light']],s.mode||'auto')}</div>
@@ -4623,9 +4729,11 @@ const A={
       ${tp.penItems.length?`<ul class="ptlist neg">${Object.entries(tp.penItems.reduce((m,[k,p])=>{m[k]=(m[k]||0)+p;return m;},{})).map(([k,p])=>`<li>${ic('x','sm')}<span>${esc(k)}</span><b>−${p}</b></li>`).join('')}</ul>`:''}
       ${plans.length>1?`<div class="field"><label>Plan</label><div class="chips">${plans.map(k=>`<button class="chip ${k===tp.key?'on':''}" data-a="setPlan" data-v="${esc(k)}">${esc(planName(k))}</button>`).join('')}</div></div>`:''}
       <button class="btn ghost sm" data-a="restartPlan">${ic('history','sm')} Start this plan over (back to ${esc(T.stages[0])})</button>
+      ${wk==='mil'?`<div class="animals tro-pick">${Object.keys(BRANCHES).map(k=>`<button class="scn ${branchKey()===k?'on':''}" data-a="setBranch" data-v="${k}">${(()=>{ const prev=st.settings.branch; st.settings.branch=k; const a=milArt(6,{scene:false}); st.settings.branch=prev; return a; })()}<span>${esc(BRANCHES[k].name)}</span></button>`).join('')}</div>`:''}
       ${wk!=='hunt'?'':`<div class="animals tro-pick">`}${wk!=='hunt'?'':''}${(wk!=='hunt'?[]:Object.keys(TROPHY)).map(v=>`<button class="scn ${kind===v?'on':''}" data-a="setTrophy" data-v="${v}">${trophyArt(v,6,{scene:false})}<span>${esc(TROPHY[v].name)}</span></button>`).join('')}${wk==='hunt'?'</div>':''}
       <ol class="tro-ladder">${T.stages.map((n,i)=>`<li class="${i<cur?'got':i===cur?'now':'lock'}">${artOf(i)}<div><b>${n}</b><span class="muted small">${TR_PTS[i]} pts${i===cur?' · you are here':i<cur?' · earned':''}</span></div></li>`).join('')}</ol>`}); },
   setWorld:(d)=>{ st.settings.world=d.v; const W=WORLDS[d.v]; if(W&&W.theme){ st.settings.theme=W.theme; st.settings.accent=''; } Store.saveSettings(); applyTheme(); render(); toast(`${W.name} world on`); },
+  setBranch:(d)=>{ st.settings.branch=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   setAcct:(d)=>{ st.settings.acct=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   setPlan:(d)=>{ st.settings.planKey=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   restartPlan:()=>{ const k=currentPlan(); if(!k) return; confirmSheet('Start this plan over?','Your animal goes back to the first stage and grows again from your next workout. Your workout history stays.','Start over',()=>{ st.settings.planStarts={...(st.settings.planStarts||{}),[k]:Date.now()}; st.settings.planKey=k; Store.saveSettings(); render(); toast('Plan restarted. Time to grow.'); },false); },
@@ -4804,7 +4912,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171430';
+window.WH_BUILD='202611171434';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
