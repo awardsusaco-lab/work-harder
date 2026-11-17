@@ -5021,7 +5021,7 @@ const FB_CONFIG = {apiKey:"AIzaSyA2BpRjGn2hHSLx1zf59dhY76u-JkAvNSI",authDomain:"
 const FBV='10.12.2';
 const Social={
   ready:false, user:null, profile:null, friends:[], loading:false, err:'', api:null,
-  configured(){ return !!(window.WH_MOCK_FB || FB_CONFIG); },
+  configured(){ return !!(window.WH_MOCK_FB || (FB_CONFIG && window.WH_STANDALONE)); },
   async init(){
     if(this.api||!this.configured()) return;
     if(window.WH_MOCK_FB){ this.api=window.WH_MOCK_FB; }
@@ -5107,7 +5107,7 @@ function friendCard(f,full){
 TABS.friends=function(){
   let body='<section class="gut stack">';
   if(!Social.configured()){
-    body+=`<div class="card"><h3>${ic('user','sm')} Friends is almost ready</h3><p class="muted small">Sign-in and friends need a free Firebase project. Once it's connected, you'll make a profile with a photo, share your code, and watch your friends' animals, rockets, ranks and trees grow alongside yours.</p></div>`;
+    body+=`<div class="card"><h3>${ic('user','sm')} Friends lives in the phone app</h3><p class="muted small">Open Work Harder from your home screen (awardsusaco-lab.github.io/work-harder) to sign in, add friends, and watch their animals, rockets and trees grow alongside yours.</p></div>`;
   } else if(!Social.ready){ Social.init(); body+=`<p class="muted center pad">Connecting…</p>`; }
   else if(!Social.user){
     const m=ui.authMode||'in';
@@ -5185,7 +5185,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171458';
+window.WH_BUILD='202611171459';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
