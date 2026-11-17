@@ -428,6 +428,71 @@ textarea{resize:vertical;line-height:1.4}
 .ptlist li{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center;background:var(--surface2);border-radius:10px;padding:8px 10px;font-size:14px}
 .ptlist li .ic{color:var(--accent)}
 .ptlist b{color:var(--accent)}
+
+.worlds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wtile{border:2px solid var(--line);background:var(--surface2);border-radius:14px;padding:0 0 8px;overflow:hidden;display:flex;flex-direction:column;gap:3px;text-align:left;color:var(--fg)}
+.wtile b{display:flex;align-items:center;gap:5px;padding:4px 8px 0;font-size:14px}
+.wtile b .ic{color:var(--accent)}
+.wtile span{padding:0 8px;font-size:11.5px;line-height:1.25}
+.wtile.on{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+/* Space */
+.world-space .w-sky{fill:#0B1030}
+.world-space .w-stars circle{fill:#E8ECFF;opacity:.8}
+.world-space .w-ground{fill:#2B3145}
+.world-space .w-tower{fill:none;stroke:#59627F;stroke-width:3}
+.world-space .w-smoke circle{fill:#C9CEDF;opacity:.6}
+.world-space .w-earth{fill:#2E6FD0}
+.world-space .w-atmo{fill:none;stroke:#7CC3FF;stroke-width:3;opacity:.6}
+.world-space .w-crater{fill:#A7ABB8}
+.world-space .w-band{fill:none;stroke:#B97E4C;stroke-width:4;opacity:.7}
+.world-space .w-ring{fill:none;stroke:#F0DDB0;stroke-width:4;opacity:.9}
+.world-space .w-rock{fill:#6E6A77}
+.world-space .w-galaxy path{fill:none;stroke:#B6A3FF;stroke-width:5;opacity:.55;stroke-linecap:round}
+.world-space .w-galaxy circle{fill:#FFF3C8}
+.world-space .w-rocket path{fill:#EEF1F8}
+.world-space .w-rocket .w-fin{fill:#E4553F}
+.world-space .w-rocket .w-win{fill:#5FA8E8}
+.world-space .w-flame{fill:#FFB341}
+.world-space .rays path{fill:#B6A3FF;opacity:.14}
+/* Military */
+.world-mil .w-camo0{fill:#55603E}
+.world-mil .w-camo1{fill:#6B7449}
+.world-mil .w-camo2{fill:#3E4630}
+.world-mil .w-camo3{fill:#8A7F56}
+.world-mil .w-medal{fill:#2B3123;opacity:.85}
+.world-mil .w-chev{fill:#E5C66A;stroke:#7A6424;stroke-width:1.5}
+.world-mil .w-star{fill:#FFF1B8;stroke:#7A6424;stroke-width:1}
+.world-mil .w-tags rect{fill:#C9CDD3;stroke:#7D838C;stroke-width:1.5}
+.world-mil .w-chain{fill:none;stroke:#C9CDD3;stroke-width:1.5;stroke-dasharray:2 2}
+.world-mil .rays path{fill:#E5C66A;opacity:.16}
+/* Grow */
+.world-grow .w-sky2{fill:color-mix(in srgb,#9BD3F0 35%,var(--surface))}
+.world-grow .w-hill{fill:color-mix(in srgb,#6DB16A 55%,var(--surface))}
+.world-grow .w-soil{fill:#7A5A3C}
+.world-grow .w-seed{fill:#9C6B3E}
+.world-grow .w-trunk{fill:none;stroke:#6B4A2E;stroke-linecap:round}
+.world-grow .w-trunkf{fill:#6B4A2E}
+.world-grow .w-leaf,.world-grow .w-can{fill:#3E8E4E}
+.world-grow .w-can:nth-of-type(even){fill:#4FA35C}
+.world-grow .w-bird{fill:none;stroke:#3C4650;stroke-width:1.5}
+.world-grow .rays path{fill:#F5C542;opacity:.18}
+.duckmini .sil path,.duckmini path.sil{fill:var(--accent)}
+
+.trophy-svg .k-myth .leg,.trophy-svg .k-myth .fur,.trophy-svg .k-myth .furl{fill:none;stroke:color-mix(in srgb,var(--fg) 88%,var(--accent));stroke-width:3;stroke-linecap:round}
+.trophy-svg .k-myth .spike{fill:none;stroke:color-mix(in srgb,var(--fg) 88%,var(--accent));stroke-width:3;stroke-linejoin:round}
+.trophy-svg .k-myth .teeth{fill:none;stroke:var(--surface);stroke-width:1.3}
+.trophy-svg .k-myth .wing{opacity:.8}
+.trophy-svg .k-myth .eye{fill:var(--surface)}
+.trophy-svg .k-myth .eye.glow{fill:#FFC94A}
+.trophy-svg .k-myth .eye.red{fill:#FF3B30}
+.trophy-svg .k-myth .eye.dark{fill:#2A3540}
+.trophy-svg .k-myth .w-lake{fill:color-mix(in srgb,#5FA8C8 45%,var(--surface2))}
+.trophy-svg .k-myth .yeti{fill:#F4F7FA;stroke:#9FB0BF;stroke-width:1.5}
+.trophy-svg .k-myth .yface{fill:#8FA3B4}
+.trophy-svg .k-myth .mouth{fill:none;stroke:#2A3540;stroke-width:2;stroke-linecap:round}
+.trophy-svg .k-myth .furl{stroke:#9FB0BF}
+.trophy-svg .sc-snowfar{fill:color-mix(in srgb,#DCE7F0 80%,var(--surface))}
+.trophy-svg .sc-snowground{fill:#EEF3F7}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2780,6 +2845,10 @@ const THEMES={
            light:{bg:'#EDF4F8',surface:'#FFFFFF',surface2:'#DEEAF1',line:'#C6D8E3',accent:'#0A8DB0',muted:'#557080'}},
   royal:{name:'Royal',dark:{bg:'#100E17',surface:'#191623',surface2:'#221E30',line:'#332D45',accent:'#9D6BFF',muted:'#9A93AE'},
          light:{bg:'#F3F1F8',surface:'#FFFFFF',surface2:'#E7E3F1',line:'#D3CDE3',accent:'#6C3BE0',muted:'#625B76'}},
+  space:{name:'Space',dark:{bg:'#070A16',surface:'#0F1426',surface2:'#18203A',line:'#26304F',accent:'#7C8CFF',muted:'#8E98BF','on-accent':'#0A0F2A'},
+          light:{bg:'#EEF0FA',surface:'#FFFFFF',surface2:'#E1E5F5',line:'#C9CFEA',accent:'#4B57D6',muted:'#5A6285'}},
+  olive:{name:'Olive Drab',dark:{bg:'#0F120C',surface:'#181D13',surface2:'#22291B',line:'#333D28',accent:'#C8A951',muted:'#9AA38A','on-accent':'#1A1505'},
+          light:{bg:'#EFEFE6',surface:'#FFFFFF',surface2:'#E2E3D3',line:'#CCCDB6',accent:'#6B7A2E',muted:'#5F6450'}},
   greenhead:{name:'Greenhead',dark:{bg:'#0A1312',surface:'#11201E',surface2:'#182C29',line:'#24403B',accent:'#2FB57A',muted:'#8AA39C','on-accent':'#04190F'},
           light:{bg:'#EEF3EF',surface:'#FFFFFF',surface2:'#DFE9E3',line:'#C5D6CC',accent:'#1F7A52',muted:'#56685F'}},
   rainbow:{name:'Rainbow Trout',dark:{bg:'#0F1213',surface:'#171D1E',surface2:'#20292A',line:'#2F3B3C',accent:'#F0758A',muted:'#97A5A6','on-accent':'#2A0C12'},
@@ -3007,7 +3076,7 @@ const TROPHY={
   elk:{name:'Bull Elk',stages:['Calf','Yearling','Spike Bull','Raghorn','4×4 Bull','5×5 Bull','6×6 Bull','Herd Bull','Big Bull']},
   buck:{name:'Whitetail',stages:['Fawn','Button Buck','Spike','4-Pointer','6-Pointer','8-Pointer','10-Pointer','Wall Hanger','Big Buck']},
 };
-const TR_PTS=[0,4,9,15,22,30,40,52,66];
+const TR_PTS=[0,10,24,42,64,90,120,155,200];
 /* The trophy grows with your CURRENT plan (a routine folder like "Hunting", or a single routine). */
 function planKeyOf(w){ const r=w&&w.routineId&&st.routines[w.routineId]; if(r) return r.folder||('r:'+r.id); return null; }
 function planName(key){ if(!key) return 'Any workout'; if(key.startsWith('r:')){ const r=st.routines[key.slice(2)]; return r?r.name:'Routine'; } return key; }
@@ -3035,11 +3104,11 @@ function trophyArt(kind,stage,{scene=true}={}){
   return `<svg class="trophy-svg st${stage}" viewBox="${scene?'0 0 360 150':'92 4 176 148'}" aria-hidden="true">${stage===8?`<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 70 L${f1(180+200*Math.cos(i*Math.PI/6))} ${f1(70+200*Math.sin(i*Math.PI/6))} L${f1(180+200*Math.cos(i*Math.PI/6+.12))} ${f1(70+200*Math.sin(i*Math.PI/6+.12))}Z"/>`).join('')}</g>`:''}${sc.bg}<g transform="translate(${f1(tx)} ${f1(ty)}) scale(${f1(s)})">${animalSVG(kind,stage)}</g>${sc.fg}</svg>`;
 }
 function trophyCard(compact){
-  const kind=trophyKind(), T=TROPHY[kind]; const tp=trophyPoints(); const {pts}=tp; const stg=trophyStage(pts);
+  const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'? TROPHY[kind] : WORLDS[wk]; const tp=trophyPoints(); const {pts}=tp; const stg=trophyStage(pts);
   const next=TR_PTS[stg+1]; const base=TR_PTS[stg]; const pct= next? Math.round((pts-base)/(next-base)*100) : 100;
   return `<div class="card trophy">
-    <div class="tro-art">${trophyArt(kind,stg)}</div>
-    <div class="tro-h"><div><div class="eyebrow">${ic('target','sm')} Your ${T.name} · stage ${stg+1} of 9</div><h3>${T.stages[stg]}</h3></div>
+    <div class="tro-art">${wk==='hunt'?trophyArt(kind,stg):T.art(stg)}</div>
+    <div class="tro-h"><div><div class="eyebrow">${ic(WORLDS[wk].icon,'sm')} ${wk==='hunt'?`Your ${T.name}`:`Your ${T.unit}`} · stage ${stg+1} of 9</div><h3>${T.stages[stg]}</h3></div>
       <button class="iconbtn" data-a="trophyInfo" aria-label="How your trophy grows">${ic('more')}</button></div>
     <div class="tro-bar"><i style="width:${pct}%"></i></div>
     <p class="muted small">${ic('folder','xs')} <b>${esc(planName(tp.key))}</b> plan · week ${tp.week} · ${tp.workouts} workout${tp.workouts===1?'':'s'}<br>${next? `<b>${next-pts}</b> more point${next-pts===1?'':'s'} to <b>${T.stages[stg+1]}</b>.` : `Top of the mountain. You're a ${T.stages[8]}.`}</p>
@@ -3178,7 +3247,7 @@ const BADGES=[
   ['h50','50 Hours','50 hours of training','clock',c=>[c.hours,50]],
   ['trophy','Big Game','Grow your trophy animal to its final stage','antler',c=>[c.stage,8]],
 ];
-function badgeState(until){ const c=badgeCtx(until); return BADGES.map(([id,name,desc,icon,f])=>{ const [v,g]=f(c); return {id,name,desc,icon,v,g,got:v>=g}; }); }
+function badgeState(until){ const c=badgeCtx(until); const nm=BADGE_NAMES[worldKey()]; return BADGES.map(([id,name,desc,icon,f],i)=>{ const [v,g]=f(c); return {id,name:nm?nm[i]:name,desc,icon,v,g,got:v>=g}; }); }
 function patch(b,size){ const pct=Math.max(0,Math.min(1,b.v/b.g)); const R=30, C=2*Math.PI*R;
   return `<div class="patch ${b.got?'got':''} ${size||''}" title="${esc(b.desc)}"><svg viewBox="0 0 80 80" aria-hidden="true"><circle class="p-bg" cx="40" cy="40" r="36"/><circle class="p-st" cx="40" cy="40" r="32"/>${b.got?'':`<circle class="p-pr" cx="40" cy="40" r="${R}" stroke-dasharray="${f1(C)}" stroke-dashoffset="${f1(C*(1-pct))}" transform="rotate(-90 40 40)"/>`}<g transform="translate(22 22) scale(1.5)" class="p-ic">${I[b.icon]||''}</g></svg><b>${esc(b.name)}</b>${size==='big'?`<span class="muted small">${esc(b.desc)}${b.got?'':` · ${fmtN(Math.min(b.v,b.g),b.g<5?1:0)} / ${fmtN(b.g)}`}</span>`:''}</div>`; }
 function badgesCard(){
@@ -3189,8 +3258,116 @@ function badgesCard(){
     <button class="btn ghost wide sm" data-a="allBadges">See all badges ${ic('right','sm')}</button></div>`;
 }
 
+/* Mythical creatures: a different cryptid at every stage, from a tiny Snipe to the Yeti */
+const MYTH=[
+ /* Snipe */ `<ellipse cx="96" cy="128" rx="20" ry="15"/><circle cx="114" cy="116" r="9"/><path d="M121 115 L152 112 L121 119Z"/><path d="M90 140 L88 155 M100 141 L102 155" class="leg"/><path d="M76 124 L64 118 L74 132Z"/><circle class="eye" cx="116" cy="114" r="1.8"/>`,
+ /* Jackalope */ `<ellipse cx="90" cy="128" rx="30" ry="20"/><circle cx="64" cy="122" r="7"/><circle cx="122" cy="110" r="13"/><path d="M114 100 C108 80 110 66 116 64 C120 70 120 86 120 100Z M124 99 C124 80 130 68 136 68 C138 76 132 90 128 100Z"/><path d="M80 142 L76 155 L86 155 L90 144Z M106 140 L112 155 L120 155 L114 140Z"/><path class="ant" d="M118 98 C112 84 104 78 98 70 M110 86 L104 84 M126 96 C132 82 140 76 146 70 M134 84 L140 82"/><circle class="eye" cx="128" cy="108" r="2"/>`,
+ /* Hodag */ `<path d="M30 112 C40 96 70 90 100 92 C120 94 134 98 146 104 C160 102 172 106 176 116 C170 124 156 126 146 122 C136 130 120 132 100 132 C70 134 44 128 30 120 L10 124 L26 114Z"/><path class="spike" d="M50 96 L56 80 L62 94 M70 92 L76 74 L82 92 M90 91 L96 72 L102 91 M110 92 L116 76 L122 94 M130 96 L135 82 L140 99"/><path d="M152 102 L160 86 L162 102 M162 104 L174 92 L170 106"/><path d="M60 128 L56 155 L68 155 L72 130Z M118 130 L122 155 L134 155 L128 128Z"/><path class="teeth" d="M162 118 l3 4 3-4 3 4 3-4"/><circle class="eye glow" cx="160" cy="108" r="2.4"/>`,
+ /* Chupacabra */ `<path d="M40 104 C50 92 80 88 110 92 C124 94 132 90 140 82 C146 76 156 76 162 82 L176 92 L162 96 C156 104 148 110 140 112 C130 118 116 122 100 122 C76 124 54 120 40 112 L22 106Z"/><path class="spike" d="M60 92 L64 76 L70 90 M80 89 L85 70 L90 88 M100 89 L105 72 L110 90 M120 92 L124 78 L128 92 M140 84 L146 70 L148 82"/><path d="M58 116 L50 140 L54 155 L60 155 L58 140 L68 118Z M80 120 L78 155 L86 155 L88 122Z M118 118 L124 155 L132 155 L128 118Z M134 114 L144 140 L142 155 L150 155 L150 138 L142 112Z"/><circle class="eye glow" cx="156" cy="86" r="2.6"/>`,
+ /* Jersey Devil */ `<path class="wing" d="M100 76 C80 40 50 30 20 36 C36 48 40 60 36 74 C52 66 62 70 70 80 C78 74 90 74 100 82Z"/><path d="M96 72 C108 66 120 70 124 82 C130 100 128 118 118 128 L124 155 L114 155 L108 132 L96 132 L92 155 L82 155 L86 126 C78 114 80 92 96 72Z"/><path d="M120 76 C124 60 136 54 146 58 C152 62 152 72 146 78 L156 84 L144 86 C136 88 128 84 120 82Z"/><path class="ant" d="M136 58 C134 48 128 44 122 44 M144 58 C148 48 154 46 158 48"/><path d="M84 124 C66 132 54 144 40 146 C52 140 62 130 70 118Z"/><circle class="eye glow" cx="144" cy="66" r="2.4"/>`,
+ /* Mothman */ `<path class="wing" d="M96 60 C70 30 34 26 10 40 C30 52 32 74 22 94 C50 84 70 90 90 104Z M104 60 C130 30 166 26 190 40 C170 52 168 74 178 94 C150 84 130 90 110 104Z"/><path d="M100 36 C110 36 116 44 116 54 C116 62 112 68 108 72 L110 110 L104 155 L96 155 L100 116 L96 116 L92 155 L84 155 L90 110 L92 72 C88 68 84 62 84 54 C84 44 90 36 100 36Z"/><circle class="eye red" cx="94" cy="52" r="4"/><circle class="eye red" cx="106" cy="52" r="4"/>`,
+ /* Bigfoot */ `<path d="M104 24 C116 24 124 34 122 46 C130 50 138 62 140 76 C142 90 138 104 132 108 L130 92 C128 100 126 110 124 118 L136 152 L120 155 L110 126 L104 126 L96 152 L80 155 L90 118 C84 104 84 90 86 76 C76 84 70 96 70 108 L62 106 C62 86 70 66 84 54 C88 46 94 36 96 30 C98 26 100 24 104 24Z"/><circle class="eye" cx="114" cy="36" r="1.8"/><path class="fur" d="M88 70 l-4 4 M134 74 l4 4 M100 120 l-3 5 M122 118 l3 5"/>`,
+ /* Nessie */ `<path class="w-lake" d="M0 128 L200 128 L200 160 L0 160Z"/><path d="M40 128 C46 112 60 112 66 128Z M80 128 C88 106 108 106 116 128Z"/><path d="M124 128 C128 96 132 70 140 52 C144 42 154 38 162 42 C168 46 168 54 160 56 C152 58 148 66 146 80 C144 96 144 112 146 128Z"/><path d="M20 128 C26 120 34 120 36 128Z"/><circle class="eye" cx="160" cy="46" r="1.8"/>`,
+ /* Yeti */ `<path class="yeti" d="M100 14 C118 12 132 24 132 40 C146 46 158 62 160 82 C162 100 156 116 148 122 L144 102 C142 112 140 120 138 128 L150 153 L128 155 L118 132 L104 132 L94 155 L72 153 L84 128 C78 116 76 104 78 90 C68 98 62 110 62 124 L50 120 C50 96 60 70 76 56 C78 36 86 16 100 14Z"/><path class="yface" d="M100 26 C110 26 116 32 116 40 C116 48 110 52 100 52 C90 52 84 48 84 40 C84 32 90 26 100 26Z"/><circle class="eye dark" cx="94" cy="38" r="2.2"/><circle class="eye dark" cx="106" cy="38" r="2.2"/><path class="mouth" d="M93 46 Q100 51 107 46"/><path class="furl" d="M70 70 l-5 6 M150 76 l6 5 M96 130 l-4 6 M130 128 l4 6 M84 100 l-5 4"/>`,
+];
+const MYTH_SCENE=['buck','buck','buck','elk','buck','buck','elk','river','snow'];
+TROPHY.myth={name:'Mythical Creatures',scene:'buck',stages:['Snipe','Jackalope','Hodag','Chupacabra','Jersey Devil','Mothman','Bigfoot','Loch Ness Monster','Yeti'],lo:.5,hi:.82,draw:st=>MYTH[st]};
+const _sceneOutBase=sceneSVGOut;
+sceneSVGOut=function(kind,opts){
+  if(kind==='snow'){ return {bg:`<circle class="sc-sun" cx="80" cy="44" r="18"/><polygon class="sc-snowfar" points="${ridge(29,70,46,150)}"/><polygon class="sc-mid" points="${ridge(31,104,22,150)}"/><polygon class="sc-snowground" points="${ridge(5,128,6,150)}"/>`,fg:''}; }
+  return _sceneOutBase(kind,opts);
+};
+const _trophyArtBase=trophyArt;
+trophyArt=function(kind,stage,opts={}){
+  if(kind!=='myth') return _trophyArtBase(kind,stage,opts);
+  const T=TROPHY.myth; const scene=opts.scene!==false; const sc= scene? sceneSVGOut(MYTH_SCENE[stage]) : {bg:''};
+  const s=T.lo+stage*(T.hi-T.lo)/8; const tx=180-100*s, ty=146-155*s;
+  const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 70 L${f1(180+200*Math.cos(i*Math.PI/6))} ${f1(70+200*Math.sin(i*Math.PI/6))} L${f1(180+200*Math.cos(i*Math.PI/6+.12))} ${f1(70+200*Math.sin(i*Math.PI/6+.12))}Z"/>`).join('')}</g>`:'';
+  return `<svg class="trophy-svg st${stage} myth" viewBox="${scene?'0 0 360 150':'92 4 176 148'}" aria-hidden="true">${rays}${sc.bg}<g transform="translate(${f1(tx)} ${f1(ty)}) scale(${f1(s)})"><g class="sil k-myth">${MYTH[stage]}</g></g></svg>`;
+};
+
+/* ---------- Worlds: four app-wide looks, each with its own art and reward path ---------- */
+function stars(n,seed,h=150){ let s=seed, o=''; for(let i=0;i<n;i++){ s=(s*9301+49297)%233280; const x=s/233280*360; s=(s*9301+49297)%233280; const y=s/233280*h; s=(s*9301+49297)%233280; const r=.5+s/233280*1.3; o+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}"/>`; } return `<g class="w-stars">${o}</g>`; }
+const ROCKET=`<g class="w-rocket"><path d="M0 -26 C7 -18 9 -6 8 10 L-8 10 C-9 -6 -7 -18 0 -26Z"/><path class="w-fin" d="M-8 2 L-15 14 L-8 12Z M8 2 L15 14 L8 12Z M-3 10 L3 10 L2 16 L-2 16Z"/><circle class="w-win" cx="0" cy="-8" r="3.2"/></g>`;
+function spaceArt(stage,{scene=true}={}){
+  const P=[[0,0],[0,0],[0,0],['#C9CCD6',34],['#D0643E',30],[0,0],['#D9A877',44],['#E6C989',30],[0,0]][stage];
+  let bg=`<rect class="w-sky" width="360" height="150"/>${stars(46,stage+3)}`;
+  if(stage===0) bg+=`<rect class="w-ground" y="132" width="360" height="18"/><path class="w-tower" d="M150 132 L150 52 L160 52 L160 132 M150 70 L170 70 M150 96 L170 96"/>`;
+  if(stage===1) bg+=`<rect class="w-ground" y="138" width="360" height="12"/><g class="w-smoke"><circle cx="180" cy="138" r="18"/><circle cx="158" cy="142" r="13"/><circle cx="204" cy="142" r="14"/></g>`;
+  if(stage===2) bg+=`<ellipse class="w-earth" cx="180" cy="260" rx="260" ry="140"/><ellipse class="w-atmo" cx="180" cy="260" rx="266" ry="146"/>`;
+  if(P[0]) bg+=`<circle cx="${stage===7?92:96}" cy="${stage===3?64:70}" r="${P[1]}" fill="${P[0]}"/>${stage===3?'<circle class="w-crater" cx="86" cy="58" r="6"/><circle class="w-crater" cx="106" cy="76" r="4"/><circle class="w-crater" cx="100" cy="52" r="3"/>':''}${stage===6?'<path class="w-band" d="M54 60 Q96 54 138 60 M52 74 Q96 80 140 74 M60 88 Q96 92 132 88"/>':''}${stage===7?'<ellipse class="w-ring" cx="92" cy="70" rx="56" ry="13" transform="rotate(-14 92 70)"/>':''}`;
+  if(stage===5) bg+=[[60,40,8],[96,90,6],[130,30,5],[250,110,9],[300,46,7],[280,90,4],[40,110,5],[320,120,6]].map(([x,y,r])=>`<path class="w-rock" d="M${x-r} ${y} L${x-r*.4} ${y-r} L${x+r*.7} ${y-r*.8} L${x+r} ${y+r*.2} L${x+r*.2} ${y+r} L${x-r*.8} ${y+r*.6}Z"/>`).join('');
+  if(stage===8) bg+=`<g class="w-galaxy" transform="translate(110 70)">${Array.from({length:4},(_,i)=>`<path d="M0 0 C${30} ${-20} ${60} ${10} ${70} ${40}" transform="rotate(${i*90})"/>`).join('')}<circle r="8"/></g>`;
+  const pos=[[180,108,0],[180,92,0],[200,70,30],[220,72,40],[230,70,40],[220,74,30],[240,74,40],[250,76,40],[250,72,30]][stage];
+  const flame= stage>0? `<path class="w-flame" d="M-6 16 Q0 ${stage===1?40:32} 6 16Z"/>`:'';
+  const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M250 72 L${f1(250+220*Math.cos(i*Math.PI/6))} ${f1(72+220*Math.sin(i*Math.PI/6))} L${f1(250+220*Math.cos(i*Math.PI/6+.1))} ${f1(72+220*Math.sin(i*Math.PI/6+.1))}Z"/>`).join('')}</g>`:'';
+  return `<svg class="trophy-svg world-space" viewBox="${scene?'0 0 360 150':'150 20 200 120'}" aria-hidden="true">${scene?bg:`<rect class="w-sky" width="360" height="150"/>${stars(30,stage+3)}`}${rays}<g transform="translate(${pos[0]} ${pos[1]}) rotate(${pos[2]}) scale(${1+stage*.06})">${flame}${ROCKET}</g></svg>`;
+}
+function chevrons(n,rockers,star){
+  let s=''; for(let i=0;i<n;i++){ const y=i*15; s+=`<path class="w-chev" d="M-34 ${18+y} L0 ${-4+y} L34 ${18+y} L34 ${28+y} L0 ${6+y} L-34 ${28+y}Z"/>`; }
+  for(let i=0;i<rockers;i++){ const y=n*15+14+i*13; s+=`<path class="w-chev" d="M-34 ${y} Q0 ${y+16} 34 ${y} L34 ${y+9} Q0 ${y+25} -34 ${y+9}Z"/>`; }
+  if(star) s+=`<path class="w-star" d="M0 ${n*15+2} l3.5 7 7.7 1 -5.6 5.4 1.4 7.6 -7-3.7 -7 3.7 1.4-7.6 -5.6-5.4 7.7-1z"/>`;
+  return s;
+}
+function milArt(stage,{scene=true}={}){
+  const spec=[[0,0,0],[1,0,0],[1,1,0],[2,0,0],[3,0,0],[3,1,0],[3,2,0],[3,3,0],[3,3,1]][stage];
+  let bg=`<rect class="w-camo0" width="360" height="150"/>${[[30,30,40],[120,110,50],[300,40,46],[220,130,36],[340,120,30],[70,120,26],[200,20,30]].map(([x,y,r],i)=>`<ellipse class="w-camo${1+i%3}" cx="${x}" cy="${y}" rx="${r}" ry="${r*.6}" transform="rotate(${i*37} ${x} ${y})"/>`).join('')}`;
+  const ins= stage===0? `<g class="w-tags" transform="translate(180 72)"><rect x="-20" y="-28" width="30" height="44" rx="8" transform="rotate(-10)"/><rect x="-6" y="-24" width="30" height="44" rx="8" transform="rotate(8)"/><path class="w-chain" d="M-14 -40 Q0 -60 14 -40"/></g>` : `<g transform="translate(180 ${44-(spec[0]-1)*6}) scale(${.9+stage*.03})">${chevrons(...spec)}</g>`;
+  const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 75 L${f1(180+220*Math.cos(i*Math.PI/6))} ${f1(75+220*Math.sin(i*Math.PI/6))} L${f1(180+220*Math.cos(i*Math.PI/6+.1))} ${f1(75+220*Math.sin(i*Math.PI/6+.1))}Z"/>`).join('')}</g>`:'';
+  return `<svg class="trophy-svg world-mil" viewBox="${scene?'0 0 360 150':'110 0 140 150'}" aria-hidden="true">${scene?bg:'<rect class="w-camo0" width="360" height="150"/>'}${rays}<circle class="w-medal" cx="180" cy="75" r="62"/>${ins}</svg>`;
+}
+function treeShape(stage){
+  if(stage===0) return `<ellipse class="w-seed" cx="180" cy="134" rx="6" ry="4"/>`;
+  if(stage===1) return `<path class="w-trunk" d="M180 136 L180 122" style="stroke-width:2"/><ellipse class="w-leaf" cx="173" cy="119" rx="7" ry="3.5" transform="rotate(-20 173 119)"/><ellipse class="w-leaf" cx="187" cy="119" rx="7" ry="3.5" transform="rotate(20 187 119)"/>`;
+  if(stage===2) return `<path class="w-trunk" d="M180 136 L180 108" style="stroke-width:2.5"/>${[[172,118,-25],[188,114,25],[173,106,-30],[187,102,30]].map(([x,y,r])=>`<ellipse class="w-leaf" cx="${x}" cy="${y}" rx="8" ry="4" transform="rotate(${r} ${x} ${y})"/>`).join('')}`;
+  if(stage===8){ let s=`<path class="w-trunkf" d="M172 136 L176 40 L184 40 L188 136Z"/>`; for(let i=0;i<9;i++){ const y=26+i*12, w=10+i*7; s+=`<path class="w-can" d="M180 ${y-12} L${180+w} ${y+10} L${180-w} ${y+10}Z"/>`; } return s; }
+  const H=[0,0,0,46,58,66,68,70][stage], R=[0,0,0,14,22,28,34,38][stage], tw=[0,0,0,3,5,7,10,13][stage];
+  let s=`<path class="w-trunkf" d="M${180-tw/2} 136 L${180-tw/3} ${136-H} L${180+tw/3} ${136-H} L${180+tw/2} 136Z"/>`;
+  if(stage>=6) s+=`<path class="w-trunk" d="M180 ${136-H*.55} L${180-R*.6} ${136-H*.85} M180 ${136-H*.6} L${180+R*.6} ${136-H*.9}" style="stroke-width:${tw/3}"/>`;
+  const cy=136-H-R*.3; const blobs=[[0,0,1],[-.7,.25,.75],[.7,.25,.75],[-.4,-.45,.7],[.4,-.45,.7],[0,.4,.7]];
+  s+=blobs.slice(0,stage>=5?6:4).map(([dx,dy,k])=>`<circle class="w-can" cx="${f1(180+dx*R)}" cy="${f1(cy+dy*R)}" r="${f1(R*k)}"/>`).join('');
+  if(stage>=7) s+=`<path class="w-trunk" d="M${180-tw/2} 136 Q${170-tw} 140 ${160-tw} 138 M${180+tw/2} 136 Q${190+tw} 140 ${200+tw} 138" style="stroke-width:3"/>`;
+  return s;
+}
+function growArt(stage,{scene=true}={}){
+  let bg=`<rect class="w-sky2" width="360" height="150"/><circle class="sc-sun" cx="300" cy="40" r="20"/><path class="w-hill" d="M0 110 Q90 86 180 104 T360 100 L360 150 L0 150Z"/><rect class="w-soil" y="134" width="360" height="16"/>`;
+  if(stage>=4) bg+=`<path class="w-bird" d="M60 40 q5 -5 10 0 q5 -5 10 0 M90 54 q4 -4 8 0 q4 -4 8 0"/>`;
+  const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 70 L${f1(180+220*Math.cos(i*Math.PI/6))} ${f1(70+220*Math.sin(i*Math.PI/6))} L${f1(180+220*Math.cos(i*Math.PI/6+.1))} ${f1(70+220*Math.sin(i*Math.PI/6+.1))}Z"/>`).join('')}</g>`:'';
+  return `<svg class="trophy-svg world-grow" viewBox="${scene?'0 0 360 150':(stage<=2?'140 90 80 52':'100 0 160 150')}" aria-hidden="true">${scene?bg:''}${rays}${treeShape(stage)}</svg>`;
+}
+const WORLDS={
+  hunt:{name:'Hunting',theme:'timber',icon:'antler',tag:'Trophy animals, hunting badges and mountain scenery'},
+  space:{name:'Space Mission',theme:'space',icon:'bolt',tag:'Launch a rocket from the pad to deep space',
+    stages:['Launchpad','Liftoff','Low Orbit','The Moon','Mars','Asteroid Belt','Jupiter','Saturn','Deep Space'],unit:'Rocket',art:spaceArt},
+  mil:{name:'Military Ranks',theme:'olive',icon:'shield',tag:'Earn stripes from Recruit to Sergeant Major',
+    stages:['Recruit','Private','Private First Class','Corporal','Sergeant','Staff Sergeant','Sergeant First Class','Master Sergeant','Sergeant Major'],unit:'Rank',art:milArt},
+  grow:{name:'Grow',theme:'forest',icon:'spark',tag:'Plant a seed and grow a giant sequoia',
+    stages:['Seed','Sprout','Seedling','Sapling','Young Tree','Shade Tree','Mighty Oak','Old Growth','Giant Sequoia'],unit:'Tree',art:growArt},
+};
+function worldKey(){ return WORLDS[st.settings.world]? st.settings.world : 'hunt'; }
+const BADGE_NAMES={
+  space:['Ignition','Cadet','Pilot','Commander','Captain','Space Legend','Payload 100K','Heavy Lift','Million-Pound Launch','Saturn V','Max Thrust','Four Orbits','12-Week Mission','Six-Month Voyage','Mission Accomplished','New Frontier','Hall of Astronauts','Sunrise Launch','Night Shift','Landing Gear','Cargo Bay','Steady Spine','50 Hours in Orbit','Reach Deep Space'],
+  mil:['Enlisted','Basic Training','Squad Member','Fire Team Leader','Platoon Veteran','Hall of Valor','Supply Run','Heavy Logistics','Million-Pound Club','Armored Column','Heavy Weapons','Four-Week Tour','Full Deployment','Half-Year Tour','Mission Complete','Commendation','Distinguished Service','Reveille','Night Ops','Ruck Ready','Ruck March','At Attention','50 Hours of Drill','Sergeant Major'],
+  grow:['First Seed','Taking Root','Green Thumb','Tree Hugger','Forest Keeper','Ancient Grove','Wheelbarrow','Truckload','Million-Pound Harvest','Logging Train','Timber!','Four-Week Bloom','Full Season','Half-Year Growth','Harvest Moon','Blue Ribbon','Champion Tree','Early Bird','Night Owl','Strong Roots','Haul the Harvest','Stand Tall','50 Hours of Sunlight','Giant Sequoia'],
+};
+function worldCompare(lb){
+  const w=worldKey(); if(lb<20) return '';
+  const r=v=>v>=10?Math.round(v):Math.round(v*10)/10;
+  if(w==='space') return lb>=2000? `That's about <b>${r(lb/2000)} Mars rovers</b> lifted off the ground.` : `That's about <b>${r(lb/300)} astronauts in full suits</b>.`;
+  if(w==='mil') return lb>=5000? `That's about <b>${r(lb/5000)} Humvees</b> worth of steel moved.` : `That's about <b>${r(lb/70)} loaded rucksacks</b>.`;
+  if(w==='grow') return lb>=4000? `That's about <b>${r(lb/4000)} cords of firewood</b> split and stacked.` : `That's about <b>${r(lb/40)} bags of soil</b> hauled.`;
+  return packOut(lb);
+}
+function worldMascot(){
+  const w=worldKey();
+  if(w==='space') return `<svg class="duckmini" viewBox="-20 -30 40 50" aria-hidden="true"><g transform="rotate(90)" class="sil">${ROCKET}</g></svg>`;
+  if(w==='mil') return `<svg class="duckmini" viewBox="0 0 24 24" aria-hidden="true"><path class="sil" d="M12 2.5l2.8 5.8 6.2.9-4.5 4.4 1 6.3L12 17l-5.5 2.9 1-6.3L3 9.2l6.2-.9z"/></svg>`;
+  if(w==='grow') return `<svg class="duckmini" viewBox="0 0 24 24" aria-hidden="true"><path class="sil" d="M4 20C4 10 10 4 20 4c0 10-6 16-16 16zM4 20l9-9"/></svg>`;
+  return DUCK_MINI;
+}
+
 function sceneKind(){ const v=st.settings.scene||'rotate'; if(v==='off') return null; if(v!=='rotate') return v; const k=['elk','buck','marsh','river']; return k[Math.floor(Date.now()/DAY)%4]; }
-function sceneBanner(){ const k=sceneKind(); if(!k) return ''; const sc=sceneSVGOut(k); const extra = (k==='elk'||k==='buck')? `<g transform="translate(${k==='elk'?222:214} ${k==='elk'?88:90}) scale(${k==='elk'?.3:.32})">${animalSVG(k,k==='elk'?6:6)}</g>`:''; return `<div class="scene-banner"><svg class="trophy-svg" viewBox="0 0 360 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${sc.bg}${extra}${sc.fg}</svg></div>`; }
+function sceneBanner(){ const wk=worldKey(); if((st.settings.scene||'rotate')==='off') return ''; if(wk!=='hunt'){ const st_=trophyStage(trophyPoints().pts); return `<div class="scene-banner">${WORLDS[wk].art(st_).replace('class="trophy-svg','preserveAspectRatio="xMidYMid slice" class="trophy-svg')}</div>`; } const k=sceneKind(); if(!k) return ''; const sc=sceneSVGOut(k); const extra = (k==='elk'||k==='buck')? `<g transform="translate(${k==='elk'?222:214} ${k==='elk'?88:90}) scale(${k==='elk'?.3:.32})">${animalSVG(k,k==='elk'?6:6)}</g>`:''; return `<div class="scene-banner"><svg class="trophy-svg" viewBox="0 0 360 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${sc.bg}${extra}${sc.fg}</svg></div>`; }
 function packOut(lb){
   if(lb<20) return '';
   const elk=lb/700, buck=lb/200, duck=lb/2.75;
@@ -3367,13 +3544,13 @@ done(p){
   const dur=((w.end||w.start)-w.start)/1000;
   return {hdr:hdr('',{right:`<button class="btn sm" data-a="doneClose">Done</button>`}),
   body:`<section class="gut stack celebrate">
-    ${(()=>{ const kind=trophyKind(), T=TROPHY[kind]; const before=trophyStage(trophyPoints(w.start-1).pts), after=trophyStage(trophyPoints(w.start).pts);
-      return `<div class="done-trophy ${after>before?'levelup':''}">${trophyArt(kind,after)}${after>before?`<div class="lvl">${ic('bolt','sm')} Level up! You're now a <b>${T.stages[after]}</b></div>`:`<div class="lvl muted">${T.stages[after]} · keep stacking workouts to grow</div>`}</div>`; })()}
+    ${(()=>{ const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'?TROPHY[kind]:WORLDS[wk]; const before=trophyStage(trophyPoints(w.start-1).pts), after=trophyStage(trophyPoints(w.start).pts);
+      return `<div class="done-trophy ${after>before?'levelup':''}">${wk==='hunt'?trophyArt(kind,after):T.art(after)}${after>before?`<div class="lvl">${ic('bolt','sm')} Level up! You're now a <b>${T.stages[after]}</b></div>`:`<div class="lvl muted">${T.stages[after]} · keep stacking workouts to grow</div>`}</div>`; })()}
     ${(()=>{ const a=badgeState(w.start-1), b=badgeState(w.start); const nw=b.filter((x,i)=>x.got&&!a[i].got); return nw.length?`<div class="card newbadges"><h3>${ic('shield','sm')} New badge${nw.length>1?'s':''} earned</h3><div class="patches">${nw.map(x=>patch(x)).join('')}</div></div>`:''; })()}
     <div class="eyebrow center">Workout #${nth} complete</div>
     <h2 class="center bigname">${esc(w.name)}</h2>
     <div class="liftbig"><span class="num">${fmtN(convW(vol,'lb',u))}</span><span class="unit">${u} lifted</span></div>
-    ${packOut(vol)?`<p class="center lead">${packOut(vol)}</p>`:cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
+    ${worldCompare(vol)?`<p class="center lead">${worldCompare(vol)}</p>`:cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
     <div class="kv3"><div><label>Duration</label><b>${fmtDur(dur)}</b></div><div><label>Sets</label><b>${workoutSets(w)}</b></div><div><label>Streak</label><b>${streak} wk</b></div></div>
     ${prs.length?`<div class="card"><h3 class="gold-t">${ic('trophy','sm')} ${prs.length} new personal record${prs.length>1?'s':''}</h3><ul class="prlist">${prs.map(p=>`<li><span>${esc(getEx(p.exId).name)}</span><span class="muted small">${PR_LABEL[p.kind]}</span><b>${prValue(p)}</b></li>`).join('')}</ul></div>`:''}
     ${w.routineUpdated?`<p class="muted small center">${ic('spark','sm')} The coach saved today's weights into <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> and will set next session's targets from them.</p>`:''}
@@ -3506,14 +3683,16 @@ settings(){
    <div class="field"><label>Weekly goal</label>${seg('goal',[[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6']],s.goal)}</div>
    <label class="toggle"><input type="checkbox" data-f="ssound" ${s.sound?'checked':''}><span>Beep when rest is over</span></label>
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
-   </div><h2 class="sec">${ic('palette')} Color scheme</h2><div class="card setcard">
+   </div><h2 class="sec">${ic('mountain')} App world</h2><div class="card setcard"><p class="muted small">Each world has its own look, art and reward path. Your progress carries over.</p>
+   <div class="worlds">${Object.keys(WORLDS).map(k=>{ const W=WORLDS[k]; const art= k==='hunt'? trophyArt(trophyKind(),6) : W.art(6); return `<button class="wtile ${worldKey()===k?'on':''}" data-a="setWorld" data-v="${k}">${art}<b>${ic(W.icon,'sm')} ${esc(W.name)}</b><span class="muted small">${esc(W.tag)}</span></button>`; }).join('')}</div></div>
+   <h2 class="sec">${ic('palette')} Color scheme</h2><div class="card setcard">
    <div class="field"><label>Mode</label>${seg('mode',[['auto','Auto'],['dark','Dark'],['light','Light']],s.mode||'auto')}</div>
    <div class="field"><label>Theme</label><div class="thms">${Object.keys(THEMES).map(themePreview).join('')}</div></div>
    <div class="field"><label>Accent color <span class="muted small">(Auto uses the theme's color)</span></label><div class="swatches">${sw.map(c=>`<button class="sw ${s.accent===c?'on':''}" style="${c?`--c:${c}`:''}" data-a="setAccent" data-v="${c}" aria-label="${c||'Default'}">${c?'':'Auto'}</button>`).join('')}<label class="sw custom" aria-label="Custom color"><input type="color" data-f="saccent" value="${s.accent||'#3D8BFF'}"></label></div></div>
-   </div><h2 class="sec">${ic('target')} Outdoors</h2><div class="card setcard">
+   </div>${worldKey()!=='hunt'?`<h2 class="sec">${ic('target')} Scenery</h2><div class="card setcard"><div class="field"><label>Art on the Home screen</label>${seg('scene',[['rotate','Show'],['off','Hide']],(s.scene||'rotate')==='off'?'off':'rotate')}</div></div>`:''}<div ${worldKey()!=='hunt'?'hidden':''}><h2 class="sec">${ic('target')} Outdoors</h2><div class="card setcard">
    <div class="field"><label>Trophy animal</label><div class="animals">${Object.keys(TROPHY).map(k=>`<button class="scn ${trophyKind()===k?'on':''}" data-a="setS" data-k="trophy" data-v="${k}">${trophyArt(k,6,{scene:false})}<span>${esc(TROPHY[k].name)}</span></button>`).join('')}</div></div>
    <div class="field"><label>Scenery on Home</label><div class="scenes">${[['rotate','Rotate daily'],['elk','Elk mountains'],['buck','Whitetail woods'],['marsh','Duck marsh'],['river','Trout river'],['off','Off']].map(([v,l])=>`<button class="scn ${ (s.scene||'rotate')===v?'on':''}" data-a="setS" data-k="scene" data-v="${v}">${v==='off'||v==='rotate'?`<span class="scn-ic">${ic(v==='off'?'x':'history')}</span>`:(()=>{const sc=sceneSVGOut(v); return `<svg class="trophy-svg" viewBox="0 0 360 150" aria-hidden="true">${sc.bg}${sc.fg}</svg>`;})()}<span>${l}</span></button>`).join('')}</div></div>
-   </div><h2 class="sec">${ic('link')} Connected apps</h2>
+   </div></div><h2 class="sec">${ic('link')} Connected apps</h2>
    <div class="card conn"><div class="conn-h"><b>Strava</b><span class="badge">Share</span></div><p class="muted small">After each workout, tap <b>Share to Strava</b>. Work Harder writes the title and a full set breakdown for you to paste into Strava's manual activity form.</p></div>
    <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge off">Not available here</span></div><p class="muted small">Apple only lets native iPhone apps read and write Health data. This needs the installable iPhone version of Work Harder.</p></div>
    <div class="card conn"><div class="conn-h"><b>Garmin Connect</b><span class="badge off">Not available here</span></div><p class="muted small">Garmin's activity upload is limited to approved developer apps, so it also needs a standalone version.</p></div>
@@ -3763,7 +3942,7 @@ function renderRest(){
   const left=Math.max(0,Math.ceil((r.end-Date.now())/1000));
   const pct = r.total? Math.max(0,Math.min(100,(left/r.total)*100)) : 0;
   el.className = left===0? 'restbar over':'restbar';
-  el.innerHTML=`<div class="rest-in gut"><div class="rest-fill" style="width:${pct}%">${left?DUCK_MINI:''}</div>
+  el.innerHTML=`<div class="rest-in gut"><div class="rest-fill" style="width:${pct}%">${left?worldMascot():''}</div>
     <button class="btn sm" data-a="restAdj" data-v="-15">−15</button>
     <div class="rest-t"><span class="num" id="restnum">${left?fmtTime(left):'Rest over'}</span><span class="muted small">${left?'Rest':'Next set'}</span></div>
     <button class="btn sm" data-a="restAdj" data-v="15">+15</button><button class="btn primary sm" data-a="restSkip">${left?'Skip':'Close'}</button></div>`;
@@ -4239,15 +4418,16 @@ const A={
   stDone:()=>{ const T=ui.stimer; if(!T) return; const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; } finishSetTimer(sec); },
   stCancel:()=>{ ui.stimer=null; renderSetTimer(); },
   allBadges:()=>{ const bs=badgeState(); openSheet({kind:'html',title:`Badges · ${bs.filter(b=>b.got).length} of ${bs.length}`,html:`<div class="patches big">${bs.map(b=>patch(b,'big')).join('')}</div>`}); },
-  trophyInfo:()=>{ const kind=trophyKind(), T=TROPHY[kind]; const pts=trophyPoints().pts, cur=trophyStage(pts);
+  trophyInfo:()=>{ const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'? TROPHY[kind] : WORLDS[wk]; const pts=trophyPoints().pts, cur=trophyStage(pts); const artOf=(i)=> wk==='hunt'? trophyArt(kind,i,{scene:false}) : T.art(i,{scene:false});
     const tp=trophyPoints(); const plans=[...new Set(workoutsSorted().map(planKeyOf).filter(Boolean).concat(folderNames()))];
-    openSheet({kind:'html',title:`Grow your ${T.name}`,html:`<p class="muted small">Your animal grows with your current plan, <b>${esc(planName(tp.key))}</b> (week ${tp.week}). Points per plan workout:</p>
+    openSheet({kind:'html',title: wk==='hunt'?`Grow your ${T.name}`:`Your ${T.unit} path`,html:`<p class="muted small">Your ${wk==='hunt'?'animal':T.unit.toLowerCase()} grows with your current plan, <b>${esc(planName(tp.key))}</b> (week ${tp.week}). Points per plan workout:</p>
       <ul class="ptlist"><li>${ic('check','sm')}<span>Finish the workout</span><b>+1</b></li><li>${ic('target','sm')}<span>Hit every coach target (weight and reps)</span><b>+1</b></li><li>${ic('trophy','sm')}<span>Personal records (up to 2)</span><b>+1 each</b></li><li>${ic('cal','sm')}<span>Hit your weekly goal of ${st.settings.goal||4}</span><b>+2</b></li></ul>
       <p class="small">You have <b>${tp.pts}</b> points: ${tp.workouts} workouts, ${tp.hits} on target, ${tp.prs} PR points, ${tp.weeks} goal week${tp.weeks===1?'':'s'}.</p>
       ${plans.length>1?`<div class="field"><label>Plan</label><div class="chips">${plans.map(k=>`<button class="chip ${k===tp.key?'on':''}" data-a="setPlan" data-v="${esc(k)}">${esc(planName(k))}</button>`).join('')}</div></div>`:''}
       <button class="btn ghost sm" data-a="restartPlan">${ic('history','sm')} Start this plan over (back to ${esc(T.stages[0])})</button>
-      <div class="animals tro-pick">${Object.keys(TROPHY).map(v=>`<button class="scn ${kind===v?'on':''}" data-a="setTrophy" data-v="${v}">${trophyArt(v,6,{scene:false})}<span>${esc(TROPHY[v].name)}</span></button>`).join('')}</div>
-      <ol class="tro-ladder">${T.stages.map((n,i)=>`<li class="${i<cur?'got':i===cur?'now':'lock'}">${trophyArt(kind,i,{scene:false})}<div><b>${n}</b><span class="muted small">${TR_PTS[i]} pts${i===cur?' · you are here':i<cur?' · earned':''}</span></div></li>`).join('')}</ol>`}); },
+      ${wk!=='hunt'?'':`<div class="animals tro-pick">`}${wk!=='hunt'?'':''}${(wk!=='hunt'?[]:Object.keys(TROPHY)).map(v=>`<button class="scn ${kind===v?'on':''}" data-a="setTrophy" data-v="${v}">${trophyArt(v,6,{scene:false})}<span>${esc(TROPHY[v].name)}</span></button>`).join('')}${wk==='hunt'?'</div>':''}
+      <ol class="tro-ladder">${T.stages.map((n,i)=>`<li class="${i<cur?'got':i===cur?'now':'lock'}">${artOf(i)}<div><b>${n}</b><span class="muted small">${TR_PTS[i]} pts${i===cur?' · you are here':i<cur?' · earned':''}</span></div></li>`).join('')}</ol>`}); },
+  setWorld:(d)=>{ st.settings.world=d.v; const W=WORLDS[d.v]; if(W&&W.theme){ st.settings.theme=W.theme; st.settings.accent=''; } Store.saveSettings(); applyTheme(); render(); toast(`${W.name} world on`); },
   setPlan:(d)=>{ st.settings.planKey=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   restartPlan:()=>{ const k=currentPlan(); if(!k) return; confirmSheet('Start this plan over?','Your animal goes back to the first stage and grows again from your next workout. Your workout history stays.','Start over',()=>{ st.settings.planStarts={...(st.settings.planStarts||{}),[k]:Date.now()}; st.settings.planKey=k; Store.saveSettings(); render(); toast('Plan restarted. Time to grow.'); },false); },
   setTrophy:(d)=>{ st.settings.trophy=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
@@ -4424,7 +4604,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171418';
+window.WH_BUILD='202611171423';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
