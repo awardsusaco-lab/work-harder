@@ -135,6 +135,10 @@ button{cursor:pointer}
 .fig .fx-plate{fill:var(--accent);stroke:var(--bg);stroke-width:1.5}
 .fig .fx-hub{fill:var(--bg)}
 .fig .fx-db{fill:var(--accent)}
+.fig .fx-pad2{fill:var(--equip);stroke:var(--fig-far);stroke-width:1}
+.fig .fx-rail{stroke:var(--fig-far);stroke-width:3;fill:none;stroke-linecap:round}
+.fig .fx-band{stroke:#2FBF71;stroke-width:3;fill:none;stroke-linecap:round}
+.fig .fx-band-h{fill:#2FBF71}
 .fig .fx-cable{stroke:var(--muted);stroke-width:1.6;stroke-dasharray:3 3;fill:none}
 .fig .fx-pulley{fill:var(--surface2);stroke:var(--muted);stroke-width:1.5}
 .fig .fx-water{stroke:var(--accent);stroke-width:2;fill:none;opacity:.6}
@@ -1079,7 +1083,7 @@ TEMPLATES.unshift(
  anchor: {pt, x, y}: pt is hip|ankle|ankle2|toe|toe2|hand|hand2|knee|knee2|shoulder. Ground is y=196. */
 const SEG = {torso:48,neck:6,head:9,ua:27,fa:25,th:38,sh:36,foot:11};
 const GROUND = 196;
-const POSE_KEYS = ['t','ua','fa','ua2','fa2','th','sh','th2','sh2','fo','fo2','sg'];
+const POSE_KEYS = ['t','ua','fa','ua2','fa2','th','sh','th2','sh2','fo','fo2','sg','al','al2','ll','ll2'];
 const ANCH = {hip:'hip',ankle:'an',ankle2:'an2',toe:'toe',toe2:'toe2',hand:'wr',hand2:'wr2',knee:'kn',knee2:'kn2',shoulder:'sho'};
 const anc = (pt,x,y)=>({pt,x,y});
 const ST = anc('ankle',120,192);
@@ -1173,11 +1177,12 @@ const PATTERNS = {
 function rad(a){return a*Math.PI/180}
 function dv(a){const r=rad(a);return [Math.sin(r),Math.cos(r)]}
 function fullPose(f){
-  const p = {t:0,ua:0,fa:0,th:0,sh:0,fo:90,sg:0};
+  const p = {t:0,ua:0,fa:0,th:0,sh:0,fo:90,sg:0,al:1,ll:1};
   for(const k of POSE_KEYS){ if(typeof f[k]==='number' && isFinite(f[k])) p[k]=f[k]; }
   if(!(typeof f.ua2==='number'))p.ua2=p.ua; if(!(typeof f.fa2==='number'))p.fa2=p.fa;
   if(!(typeof f.th2==='number'))p.th2=p.th; if(!(typeof f.sh2==='number'))p.sh2=p.sh;
   if(!(typeof f.fo2==='number'))p.fo2=p.fo;
+  if(!(typeof f.al2==='number'))p.al2=p.al; if(!(typeof f.ll2==='number'))p.ll2=p.ll;
   return p;
 }
 function joints(p,h){
@@ -1186,10 +1191,11 @@ function joints(p,h){
   const hip=[h[0],h[1]];
   const sho0=add(hip,up,SEG.torso); const sho=[sho0[0],sho0[1]-p.sg];
   const neck=add(sho,up,SEG.neck); const head=add(sho,up,SEG.neck+SEG.head);
-  const el=add(sho,dv(p.ua),SEG.ua), wr=add(el,dv(p.fa),SEG.fa);
-  const el2=add(sho,dv(p.ua2),SEG.ua), wr2=add(el2,dv(p.fa2),SEG.fa);
-  const kn=add(hip,dv(p.th),SEG.th), an=add(kn,dv(p.sh),SEG.sh), toe=add(an,dv(p.sh+p.fo),SEG.foot);
-  const kn2=add(hip,dv(p.th2),SEG.th), an2=add(kn2,dv(p.sh2),SEG.sh), toe2=add(an2,dv(p.sh2+p.fo2),SEG.foot);
+  const al=p.al??1, al2=p.al2??al, ll=p.ll??1, ll2=p.ll2??ll;
+  const el=add(sho,dv(p.ua),SEG.ua*al), wr=add(el,dv(p.fa),SEG.fa*al);
+  const el2=add(sho,dv(p.ua2),SEG.ua*al2), wr2=add(el2,dv(p.fa2),SEG.fa*al2);
+  const kn=add(hip,dv(p.th),SEG.th*ll), an=add(kn,dv(p.sh),SEG.sh), toe=add(an,dv(p.sh+p.fo),SEG.foot);
+  const kn2=add(hip,dv(p.th2),SEG.th*ll2), an2=add(kn2,dv(p.sh2),SEG.sh), toe2=add(an2,dv(p.sh2+p.fo2),SEG.foot);
   return {hip,sho,neck,head,el,wr,el2,wr2,kn,an,toe,kn2,an2,toe2,up};
 }
 function placeHip(f,p){
@@ -1520,6 +1526,246 @@ animSpecFor = function(ex){
   }
   return s;
 };
+/* ---------- Equipment-accurate animations ----------
+ Per-exercise fixes so each animation shows the right machine, bench, pads and load.
+ al/al2 shrink an arm (and ll/ll2 a thigh) to show it swinging out to the side, toward the viewer. */
+const ikAnc=(x,y)=>({x,y});
+/* two-link leg IK: knee bends forward */
+function legIK(hip,T){
+  const L1=SEG.th, L2=SEG.sh; let dx=T[0]-hip[0], dy=T[1]-hip[1]; let d=Math.hypot(dx,dy);
+  const mx=L1+L2-0.5; if(d>mx){ dx*=mx/d; dy*=mx/d; d=mx; }
+  const base=Math.atan2(dx,dy)*180/Math.PI;
+  const a=Math.acos(Math.max(-1,Math.min(1,(L1*L1+d*d-L2*L2)/(2*L1*d))))*180/Math.PI;
+  const th=base+a; const kn=[hip[0]+Math.sin(rad(th))*L1, hip[1]+Math.cos(rad(th))*L1];
+  const sh=Math.atan2(T[0]-hip[0]-(kn[0]-hip[0]),T[1]-kn[1])*180/Math.PI;
+  return {th,sh};
+}
+function applyIK(prep,pp){
+  if(!prep.ik && !prep.ik2) return pp;
+  const p={...pp.p};
+  if(prep.ik2){ const r=legIK(pp.hip,[prep.ik2.x,prep.ik2.y]); p.th2=r.th; p.sh2=r.sh; }
+  if(prep.ik){ const r=legIK(pp.hip,[prep.ik.x,prep.ik.y]); p.th=r.th; p.sh=r.sh; }
+  return {p,hip:pp.hip};
+}
+const PROP_FX = {
+  armpad:(j)=>`<rect class="fx-pad2" x="${f1(j.el[0]-6)}" y="${f1(j.el[1]-6)}" width="12" height="12" rx="4"/>`,
+  handles:(j)=>`<rect class="fx-db" x="${f1(j.wr[0]-2.5)}" y="${f1(j.wr[1]-7)}" width="5" height="14" rx="2"/>`,
+  rollerFront:(j)=>{ const d=[j.an[0]-j.kn[0],j.an[1]-j.kn[1]], L=Math.hypot(...d)||1, n=[d[1]/L,-d[0]/L]; const c=[j.an[0]-d[0]/L*6+n[0]*7,j.an[1]-d[1]/L*6+n[1]*7]; return `<circle class="fx-pad2" cx="${f1(c[0])}" cy="${f1(c[1])}" r="6"/>`; },
+  rollerBack:(j)=>{ const d=[j.an[0]-j.kn[0],j.an[1]-j.kn[1]], L=Math.hypot(...d)||1, n=[-d[1]/L,d[0]/L]; const c=[j.an[0]-d[0]/L*5+n[0]*7,j.an[1]-d[1]/L*5+n[1]*7]; return `<circle class="fx-pad2" cx="${f1(c[0])}" cy="${f1(c[1])}" r="6"/>`+`<rect class="fx-pad2" x="${f1(j.kn[0]-16)}" y="${f1(j.kn[1]-14)}" width="22" height="7" rx="3"/>`; },
+  kneepad:(j)=>`<rect class="fx-pad2" x="${f1(j.kn[0]-14)}" y="${f1(j.kn[1]-12)}" width="22" height="7" rx="3"/>`,
+  kneeside:(j)=>`<rect class="fx-pad2" x="${f1(j.kn[0]-9)}" y="${f1(j.kn[1]-8)}" width="14" height="14" rx="5"/>`,
+  shoulderpad:(j)=>`<rect class="fx-pad2" x="${f1(j.sho[0]-12)}" y="${f1(j.sho[1]-8)}" width="22" height="8" rx="3"/><path class="fx-frame" d="M${P([j.sho[0]-12,j.sho[1]-4])} L${P([70,j.sho[1]-4])}"/>`,
+  landmine:(j)=>{ const piv=[226,193]; const d=[j.wr[0]-piv[0],j.wr[1]-piv[1]], L=Math.hypot(...d)||1, u=[d[0]/L,d[1]/L]; const end=[j.wr[0]+u[0]*14,j.wr[1]+u[1]*14];
+    return `<path class="fx-bar" d="M${P(piv)} L${P(end)}"/><circle class="fx-plate" cx="${f1(end[0]+u[0]*2)}" cy="${f1(end[1]+u[1]*2)}" r="10"/><circle class="fx-hub" cx="${f1(end[0]+u[0]*2)}" cy="${f1(end[1]+u[1]*2)}" r="2.5"/><circle class="fx-pulley" cx="${piv[0]}" cy="${piv[1]}" r="4"/>`; },
+  sleddrag:(j)=>{ const s=[198,176]; return `<path class="fx-cable" d="M${P(j.wr)} L${P([s[0],s[1]+6])}"/><path class="fx-equip" d="M${s[0]} ${s[1]} L${s[0]+30} ${s[1]} L${s[0]+34} ${GROUND} L${s[0]-4} ${GROUND}Z"/><rect class="fx-plate" x="${s[0]+6}" y="${s[1]-16}" width="18" height="16" rx="3"/>`; },
+  bandknee:(j)=>`<path class="fx-band" d="M${P([j.kn[0]-4,j.kn[1]])} L${P([214,j.kn[1]+2])}"/>`,
+  bandhands:(j)=>`<path class="fx-band" d="M${P(j.wr2)} L${P(j.wr)}"/><circle class="fx-band-h" cx="${f1(j.wr[0])}" cy="${f1(j.wr[1])}" r="3"/>`,
+  pack:(j)=>{ const u=j.up, b=[-u[1],u[0]]; const c=[j.hip[0]+u[0]*30-b[0]*12, j.hip[1]+u[1]*30-b[1]*12]; return `<rect class="fx-plate" transform="rotate(${f1(Math.atan2(u[0],-u[1])*180/Math.PI)} ${f1(c[0])} ${f1(c[1])})" x="${f1(c[0]-8)}" y="${f1(c[1]-17)}" width="16" height="34" rx="5"/>`; },
+  sandbag:(j)=>{ const u=j.up, f=[-u[1],u[0]]; const c=[j.hip[0]+u[0]*30+f[0]*16, j.hip[1]+u[1]*30+f[1]*16]; return `<rect class="fx-plate" x="${f1(c[0]-11)}" y="${f1(c[1]-13)}" width="22" height="26" rx="9"/>`; },
+  rope:(j)=>`<path class="fx-cable" d="M${P(j.wr)} L${P([j.wr[0]+3,j.wr[1]+9])} M${P(j.wr)} L${P([j.wr[0]-3,j.wr[1]+9])}"/>`,
+};
+const _propsBase = propsSVG;
+propsSVG = function(j,ex,spec){
+  let s='';
+  const pr=spec.prop? [].concat(spec.prop):[];
+  for(const k of pr) if(PROP_FX[k]) s+=PROP_FX[k](j,spec,ex);
+  if(spec.load==='onehand'){
+    const L=loadKind(ex,{...spec,load:'hands'});
+    const sp={...spec,load:'none'}; s+=_propsBase(j,ex,sp);
+    if(L.kind==='db') s+=`<rect class="fx-db" x="${f1(j.wr[0]-8)}" y="${f1(j.wr[1]-3.5)}" width="16" height="7" rx="2"/>`;
+    else if(L.kind==='kb') s+=`<circle class="fx-plate" cx="${f1(j.wr[0])}" cy="${f1(j.wr[1]+8)}" r="7"/>`;
+    return s;
+  }
+  return s+_propsBase(j,ex,spec);
+};
+const _sceneFix = sceneSVG;
+sceneSVG = function(spec,j){
+  const r=(x,y,w,h,c='fx-equip')=>`<rect class="${c}" x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="2"/>`;
+  const ln=(a,b,c='fx-frame')=>`<path class="${c}" d="M${P(a)} L${P(b)}"/>`;
+  const h=j.hip;
+  switch(spec.scene){
+    case 'padseat': { const s=r(h[0]-20,h[1]+4,38,6)+ln([h[0],h[1]+10],[h[0],GROUND]);
+      const px=Math.max(j.sho[0],h[0])+13; return s+ln([px,h[1]-12],[px,j.sho[1]+4],'fx-pad')+ln([px+4,h[1]-6],[px+4,GROUND]); }
+    case 'decline': { const u=j.up, n=[u[1],-u[0]]; const a=[h[0]+n[0]*-9+u[0]*-6,h[1]+n[1]*-9+u[1]*-6], b=[j.sho[0]+n[0]*-9,j.sho[1]+n[1]*-9];
+      return ln(a,b,'fx-pad')+ln([h[0]+4,h[1]+12],[h[0]+4,GROUND])+ln([b[0],b[1]+4],[b[0],GROUND])+ln([h[0]+4,h[1]+10],[j.an[0]+2,j.an[1]+8])+`<circle class="fx-pad2" cx="${f1(j.an[0]+2)}" cy="${f1(j.an[1]+9)}" r="5.5"/>`; }
+    case 'bssbench': return r(28,150,58,8,'fx-equip')+ln([36,158],[36,GROUND])+ln([78,158],[78,GROUND]);
+    case 'rowbench': return r(30,158,120,8,'fx-equip')+ln([42,166],[42,GROUND])+ln([138,166],[138,GROUND]);
+    case 'calfmachine': return r(114,183,40,13,'fx-box')+ln([70,30],[70,GROUND],'fx-bar');
+    case 'treadmill': return `<path class="fx-equip" d="M58 ${GROUND-1} L196 ${GROUND-9} L198 ${GROUND-3} L60 ${GROUND+3}Z"/>`+ln([194,GROUND-8],[206,96],'fx-bar')+ln([206,96],[176,100],'fx-bar')+r(198,86,18,12,'fx-equip');
+    case 'tibwall': { const x=Math.min(j.sho[0],h[0])-10; return ln([x,40],[x,GROUND],'fx-bar'); }
+    case 'copbench': return r(18,150,60,8,'fx-equip')+ln([26,158],[26,GROUND])+ln([70,158],[70,GROUND]);
+  }
+  return _sceneFix(spec,j);
+};
+const _bodyFix = bodySVG;
+bodySVG = function(prep,ex,pp){ return _bodyFix(prep,ex,applyIK(prep,pp)); };
+
+/* Movement fixes */
+Object.assign(PATTERNS,{
+ latraise:{name:'Lateral raise',frames:[{ua:4,fa:6,al:1,anchor:ST},{ua:88,fa:92,al:.5,anchor:ST}]},
+ machlatraise:{name:'Machine lateral raise',scene:'seat',load:'none',prop:['armpad','handles'],frames:[{t:-5,ua:4,fa:40,al:1,th:90,anchor:anc('hip',105,156)},{t:-5,ua:88,fa:110,al:.5,th:90,anchor:anc('hip',105,156)}]},
+ revpecdeck:{name:'Reverse pec deck',scene:'padseat',load:'none',prop:'handles',frames:[{t:2,ua:90,fa:90,al:1,th:90,anchor:anc('hip',100,156)},{t:2,ua:-80,fa:-80,al:.18,th:90,anchor:anc('hip',100,156)}]},
+ revfly:{name:'Reverse fly (bent over)',frames:[{t:70,th:15,sh:-5,ua:4,fa:4,anchor:ST},{t:70,th:15,sh:-5,ua:-40,fa:-40,al:.22,anchor:ST}]},
+ pecdeck:{name:'Pec deck / machine fly',scene:'seat',load:'none',prop:'handles',frames:[{t:-6,ua:60,fa:75,al:.25,th:90,anchor:anc('hip',105,156)},{t:-6,ua:88,fa:92,al:.95,th:90,anchor:anc('hip',105,156)}]},
+ cablefly:{name:'Cable fly',cable:[70,40],frames:[{t:10,th:6,th2:-10,sh2:-8,ua:70,fa:80,al:.3,anchor:ST},{t:10,th:6,th2:-10,sh2:-8,ua:100,fa:105,al:.95,anchor:ST}]},
+ seatcablefly:{name:'Seated cable fly',scene:'seat',cable:[66,96],frames:[{t:-6,ua:70,fa:80,al:.3,th:90,anchor:anc('hip',105,156)},{t:-6,ua:90,fa:95,al:.95,th:90,anchor:anc('hip',105,156)}]},
+ fly:{name:'Fly (lying)',scene:'bench',frames:[{t:-90,ua:180,fa:180,th:75,sh:-5,anchor:anc('hip',130,150)},{t:-90,ua:178,fa:200,al:.28,th:75,sh:-5,anchor:anc('hip',130,150)}]},
+ dbrow:{name:'One-arm dumbbell row',scene:'rowbench',load:'onehand',frames:[{t:85,ua:0,fa:0,ua2:20,fa2:20,th:0,sh:0,th2:-5,sh2:-95,fo2:150,anchor:anc('hip',100,119)},{t:85,ua:-55,fa:5,ua2:20,fa2:20,th:0,sh:0,th2:-5,sh2:-95,fo2:150,anchor:anc('hip',100,119)}]},
+ bss:{name:'Bulgarian split squat',scene:'bssbench',ik2:ikAnc(82,146),frames:[{t:6,th:12,sh:-6,fo2:170,anchor:anc('ankle',150,192)},{t:14,th:78,sh:-14,fo2:170,anchor:anc('ankle',150,192)}]},
+ calfmach:{name:'Standing calf raise machine',scene:'calfmachine',load:'none',prop:'shoulderpad',frames:[{ua:-25,fa:150,fo:112,fo2:112,anchor:anc('toe',140,183)},{ua:-25,fa:150,fo:62,fo2:62,anchor:anc('toe',140,183)}]},
+ adabduct:{name:'Hip abduction / adduction',scene:'seat',load:'none',prop:'kneeside',frames:[{t:-5,ua:20,fa:60,th:90,ll:1,ll2:1,anchor:anc('hip',105,156)},{t:-5,ua:20,fa:60,th:90,ll:.72,ll2:.72,anchor:anc('hip',105,156)}]},
+ legext:{name:'Leg extension',scene:'seat',load:'none',prop:'rollerFront',frames:[{t:-5,ua:15,fa:15,th:90,sh:3,anchor:anc('hip',105,156)},{t:-5,ua:15,fa:15,th:90,sh:85,anchor:anc('hip',105,156)}]},
+ seatlegcurl:{name:'Seated leg curl',scene:'seat',load:'none',prop:'rollerBack',frames:[{t:-5,ua:15,fa:15,th:90,sh:82,anchor:anc('hip',105,156)},{t:-5,ua:15,fa:15,th:90,sh:-12,anchor:anc('hip',105,156)}]},
+ seatcalf:{name:'Seated calf raise',scene:'seat',load:'none',prop:'kneepad',frames:[{ua:40,fa:80,th:90,fo:110,fo2:110,anchor:anc('toe',154,192)},{ua:40,fa:80,th:90,fo:60,fo2:60,anchor:anc('toe',154,192)}]},
+ suitcase:{name:'Suitcase carry',load:'onehand',frames:[{th:18,sh:-4,th2:-14,sh2:-22,ua2:-12,fa2:-5,anchor:anc('ankle',125,192)},{th:-14,sh:-22,th2:18,sh2:-4,ua2:12,fa2:20,anchor:anc('ankle2',125,192)}]},
+ hugcarry:{name:'Bear-hug carry',load:'none',prop:'sandbag',frames:[{ua:40,fa:118,th:18,sh:-4,th2:-14,sh2:-22,anchor:anc('ankle',125,192)},{ua:40,fa:118,th:-14,sh:-22,th2:18,sh2:-4,anchor:anc('ankle2',125,192)}]},
+ ruck:{name:'Ruck / hike with pack',load:'none',prop:'pack',frames:[{t:8,th:18,sh:-4,th2:-14,sh2:-22,ua:-20,fa:-10,ua2:20,fa2:35,anchor:anc('ankle',125,192)},{t:8,th:-14,sh:-22,th2:18,sh2:-4,ua:20,fa:35,ua2:-20,fa2:-10,anchor:anc('ankle2',125,192)}]},
+ treadwalk:{name:'Incline treadmill walk',scene:'treadmill',load:'none',prop:'pack',frames:[{t:8,th:22,sh:-4,th2:-14,sh2:-22,ua:-20,fa:-10,ua2:20,fa2:35,anchor:anc('ankle',128,186)},{t:8,th:-14,sh:-22,th2:22,sh2:-4,ua:20,fa:35,ua2:-20,fa2:-10,anchor:anc('ankle2',124,188)}]},
+ treadmill:{name:'Treadmill',scene:'treadmill',load:'none',frames:[{t:6,th:22,sh:-4,th2:-14,sh2:-22,ua:-20,fa:-10,ua2:20,fa2:35,anchor:anc('ankle',128,186)},{t:6,th:-14,sh:-22,th2:22,sh2:-4,ua:20,fa:35,ua2:-20,fa2:-10,anchor:anc('ankle2',124,188)}]},
+ sleddrag:{name:'Backward sled drag',load:'none',prop:'sleddrag',frames:[{t:-4,th:-14,sh:-22,th2:24,sh2:-8,ua:62,fa:66,anchor:anc('ankle2',110,192)},{t:-4,th:24,sh:-8,th2:-14,sh2:-22,ua:62,fa:66,anchor:anc('ankle',110,192)}]},
+ declinecrunch:{name:'Decline crunch',scene:'decline',load:'none',frames:[{t:-112,th:120,sh:62,ua:155,fa:262,anchor:anc('hip',132,150)},{t:-48,th:120,sh:62,ua:150,fa:262,anchor:anc('hip',132,150)}]},
+ bicycle:{name:'Bicycle crunch',load:'none',frames:[{t:-68,ua:150,fa:265,th:140,sh:70,th2:100,sh2:100,anchor:anc('hip',125,188)},{t:-62,ua:150,fa:265,th:100,sh:100,th2:140,sh2:70,anchor:anc('hip',125,188)}]},
+ tib:{name:'Tibialis raise (back on wall)',scene:'tibwall',load:'none',frames:[{t:-10,th:14,sh:14,ua:4,fa:4,fo:76,fo2:76,anchor:anc('ankle',140,192)},{t:-10,th:14,sh:14,ua:4,fa:4,fo:128,fo2:128,anchor:anc('ankle',140,192)}]},
+ ohtricable:{name:'Overhead cable triceps extension',cable:[30,118],prop:'rope',load:'none',frames:[{t:22,th:22,sh:-6,th2:-16,sh2:-12,ua:150,fa:-30,anchor:ST},{t:22,th:22,sh:-6,th2:-16,sh2:-12,ua:150,fa:150,anchor:ST}]},
+ machinerow:{name:'Seated machine row',scene:'padseat',load:'none',prop:'handles',frames:[{t:4,ua:88,fa:88,th:90,anchor:anc('hip',96,156)},{t:0,ua:-48,fa:82,th:90,anchor:anc('hip',96,156)}]},
+ cabley:{name:'Cable Y-raise',cable:[218,190],frames:[{t:8,th:4,th2:-10,sh2:-8,ua:30,fa:30,anchor:ST},{t:6,th:4,th2:-10,sh2:-8,ua:158,fa:160,anchor:ST}]},
+ copenhagen:{name:'Copenhagen plank',scene:'copbench',load:'none',frames:[{t:86,th:-86,sh:-86,ua:2,fa:92,th2:-50,sh2:-20,anchor:anc('ankle',58,150)},{t:80,th:-82,sh:-82,ua:2,fa:92,th2:-50,sh2:-20,anchor:anc('ankle',58,150)}]},
+ landmine:{name:'Landmine press',load:'none',prop:'landmine',frames:[{t:6,th:8,th2:-14,sh2:-10,ua:22,fa:168,anchor:ST},{t:12,th:8,th2:-14,sh2:-10,ua:122,fa:128,anchor:ST}]},
+ spanish:{name:'Spanish squat',load:'none',prop:'bandknee',frames:[{t:10,th:40,sh:0,ua:80,fa:80,anchor:anc('ankle',125,192)},{t:22,th:80,sh:2,ua:84,fa:84,anchor:anc('ankle',125,192)}]},
+ pullapart:{name:'Band pull-apart',load:'none',prop:'bandhands',frames:[{ua:90,fa:90,al:1,anchor:ST},{ua:-60,fa:-60,al:.16,anchor:ST}]},
+});
+/* Exercise → pattern/equipment overrides (library ids) */
+const ANIM_FIX = {
+  machine_latraise:{pattern:'machlatraise'}, seated_machine_latraise:{pattern:'machlatraise'},
+  latraise_cable:{cable:[124,188]}, cuffed_latraise:{cable:[124,188]},
+  revpecdeck:{pattern:'revpecdeck'},
+  pecdeck:{pattern:'pecdeck'}, machine_fly:{pattern:'pecdeck'},
+  seat_cable_fly:{pattern:'seatcablefly'},
+  low_high_fly:{cable:[70,186]}, high_low_fly:{cable:[70,20]},
+  row_db:{pattern:'dbrow'}, kroc_row:{pattern:'dbrow'},
+  bss:{pattern:'bss'},
+  calf_stand:{pattern:'calfmach'},
+  abductor:{pattern:'adabduct'}, adductor:{pattern:'adabduct'},
+  suitcase_carry:{pattern:'suitcase'}, sandbag_carry:{pattern:'hugcarry'}, ruck:{pattern:'ruck'}, hike:{pattern:'ruck'},
+  incline_walk:{pattern:'treadwalk'}, treadmill:{pattern:'treadmill'},
+  sled_drag:{pattern:'sleddrag'},
+  decline_crunch:{pattern:'declinecrunch'}, bicycle_crunch:{pattern:'bicycle'},
+  ohtri_cable:{pattern:'ohtricable'},
+  row_machine:{pattern:'machinerow'}, iso_low_row:{pattern:'machinerow'},
+  cable_y_raise:{pattern:'cabley'},
+  copenhagen:{pattern:'copenhagen'},
+  spanish_squat:{pattern:'spanish',force:true}, band_pullapart:{pattern:'pullapart',force:true},
+};
+const _animSpecFix = animSpecFor;
+animSpecFor = function(ex){
+  const fx=ANIM_FIX[ex.id];
+  if(fx && (fx.force || !(ex.anim && ex.anim.frames && ex.anim.frames.length))){
+    const ex2={...ex,anim:null}; if(fx.pattern) ex2.pattern=fx.pattern;
+    const s=_animSpecFix(ex2); if(fx.cable) s.cable=fx.cable; return s;
+  }
+  return _animSpecFix(ex);
+};
+
+/* More equipment fixes (library-wide) */
+Object.assign(PROP_FX,{
+  tbar:(j)=>{ const piv=[24,193]; const d=[j.wr[0]-piv[0],j.wr[1]-piv[1]], L=Math.hypot(...d)||1, u=[d[0]/L,d[1]/L]; const end=[j.wr[0]+u[0]*12,j.wr[1]+u[1]*12];
+    return `<path class="fx-bar" d="M${P(piv)} L${P(end)}"/><circle class="fx-plate" cx="${f1(end[0])}" cy="${f1(end[1])}" r="11"/><circle class="fx-hub" cx="${f1(end[0])}" cy="${f1(end[1])}" r="2.5"/><circle class="fx-pulley" cx="${piv[0]}" cy="${piv[1]}" r="4"/>`; },
+  smith:(j,spec,ex)=>{ const l=spec.load||ex.load; const x= l==='back'? j.sho[0]-4 : l==='front'? j.sho[0]+8 : j.wr[0];
+    return `<path class="fx-rail" d="M${f1(x)} 22 L${f1(x)} ${GROUND}"/>`; },
+  backpad:(j)=>{ const u=j.up, b=[u[1],-u[0]]; const a=[j.hip[0]+b[0]*9-u[0]*4,j.hip[1]+b[1]*9-u[1]*4], c=[j.sho[0]+b[0]*9+u[0]*6,j.sho[1]+b[1]*9+u[1]*6];
+    return `<path class="fx-pad" d="M${P(a)} L${P(c)}"/><rect class="fx-pad2" x="${f1(j.sho[0]-6)}" y="${f1(j.sho[1]-9)}" width="16" height="7" rx="3"/>`; },
+  hippad:(j)=>`<rect class="fx-pad2" x="${f1(j.hip[0]-6)}" y="${f1(j.hip[1]-14)}" width="22" height="8" rx="3"/>`,
+  belt:(j)=>`<path class="fx-cable" d="M${P([j.hip[0]+2,j.hip[1]])} L${P([j.hip[0]+6,GROUND-22])}"/><circle class="fx-plate" cx="${f1(j.hip[0]+6)}" cy="${GROUND-12}" r="10"/><circle class="fx-hub" cx="${f1(j.hip[0]+6)}" cy="${GROUND-12}" r="2.5"/>`,
+  yoke:(j)=>{ const c=[j.sho[0]-4,j.sho[1]-3]; return `<path class="fx-frame" d="M${P([c[0]-10,c[1]])} L${P([c[0]-10,GROUND])} M${P([c[0]+10,c[1]])} L${P([c[0]+10,GROUND])}"/><circle class="fx-plate" cx="${f1(c[0])}" cy="${f1(c[1])}" r="12"/><circle class="fx-hub" cx="${f1(c[0])}" cy="${f1(c[1])}" r="2.5"/>`; },
+  ball:(j)=>`<circle class="fx-plate" cx="${f1(j.wr[0]+3)}" cy="${f1(j.wr[1]-4)}" r="9"/>`,
+  stone:(j)=>`<circle class="fx-equip" cx="${f1(j.wr[0]+4)}" cy="${f1(j.wr[1]-6)}" r="14"/>`,
+  tire:(j)=>`<ellipse class="fx-equip" cx="${f1(j.wr[0]+18)}" cy="${f1(j.wr[1])}" rx="12" ry="26" transform="rotate(${f1(Math.max(-70,Math.min(0,(j.wr[1]-180)*1.2)))} ${f1(j.wr[0]+18)} ${f1(j.wr[1])})"/>`,
+  bandshins:(j)=>{ const m=[(j.kn[0]+j.an[0])/2,(j.kn[1]+j.an[1])/2], n=[(j.kn2[0]+j.an2[0])/2,(j.kn2[1]+j.an2[1])/2]; return `<path class="fx-band" d="M${P([m[0]+3,m[1]])} L${P([n[0]-3,n[1]])}"/>`; },
+  supportbar:(j)=>`<rect class="fx-pad2" x="${f1(j.wr[0]-8)}" y="${f1(j.wr[1]-2)}" width="16" height="6" rx="2"/><path class="fx-frame" d="M${P([j.wr[0],j.wr[1]+4])} L${P([j.wr[0],GROUND])}"/>`,
+});
+const _sceneFix2 = sceneSVG;
+sceneSVG = function(spec,j){
+  const r=(x,y,w,h,c='fx-equip')=>`<rect class="${c}" x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="2"/>`;
+  const ln=(a,b,c='fx-frame')=>`<path class="${c}" d="M${P(a)} L${P(b)}"/>`;
+  const h=j.hip;
+  switch(spec.scene){
+    case 'dipbench': return r(52,150,56,8)+ln([60,158],[60,GROUND])+ln([100,158],[100,GROUND]);
+    case 'hacksled': { const u=j.up, b=[u[1],-u[0]]; const o=[h[0]+b[0]*16,h[1]+b[1]*16];
+      return ln([o[0]-u[0]*40,o[1]-u[1]*40],[o[0]+u[0]*70,o[1]+u[1]*70],'fx-rail')+`<path class="fx-equip" d="M${f1(j.an[0]-8)} ${f1(j.an[1]+4)} L${f1(j.an[0]+30)} ${f1(j.an[1]-14)} L${f1(j.an[0]+33)} ${f1(j.an[1]-8)} L${f1(j.an[0]-5)} ${f1(j.an[1]+10)}Z"/>`+ln([j.an[0]+12,j.an[1]],[j.an[0]+12,GROUND]); }
+    case 'thrustbench': return r(38,150,48,8)+ln([46,158],[46,GROUND])+ln([78,158],[78,GROUND]);
+    case 'stool': return r(h[0]-18,h[1]+4,36,7)+ln([h[0]-12,h[1]+11],[h[0]-12,GROUND])+ln([h[0]+12,h[1]+11],[h[0]+12,GROUND]);
+    case 'hswall': { const x=Math.max(h[0],j.sho[0])+11; return ln([x,20],[x,GROUND],'fx-bar'); }
+    case 'box3': return r(140,166,44,30,'fx-box');
+    case 'calfblock': return r(118,183,38,13,'fx-box');
+    case 'wallball': return ln([226,20],[226,GROUND],'fx-bar')+r(214,30,12,10,'fx-equip');
+    case 'ellipt': return `<path class="fx-equip" d="M60 ${GROUND-2} L200 ${GROUND-2} L200 ${GROUND+2} L60 ${GROUND+2}Z"/>`+ln([196,GROUND-2],[184,92],'fx-bar')+r(178,82,18,12);
+  }
+  return _sceneFix2(spec,j);
+};
+Object.assign(PATTERNS,{
+ revcable:{name:'Reverse cable crossover',cable:[100,56],frames:[{t:5,ua:88,fa:90,al:.95,anchor:ST},{t:5,ua:-60,fa:-60,al:.2,anchor:ST}]},
+ benchdip:{name:'Bench dip',scene:'dipbench',load:'none',ik:ikAnc(186,191),ik2:ikAnc(186,191),frames:[{t:2,ua:-12,fa:-8,anchor:anc('hand',96,150)},{t:4,ua:-75,fa:12,anchor:anc('hand',96,150)}]},
+ hacksquat:{name:'Hack squat',scene:'hacksled',load:'none',prop:'backpad',ik:ikAnc(152,182),ik2:ikAnc(152,182),frames:[{t:-35,ua:-25,fa:160,anchor:anc('hip',116,118)},{t:-35,ua:-25,fa:160,anchor:anc('hip',134,144)}]},
+ hipthrust:{name:'Hip thrust',scene:'thrustbench',load:'hips',ik:ikAnc(160,190),ik2:ikAnc(160,190),frames:[{t:-58,ua:30,fa:60,anchor:anc('shoulder',70,150)},{t:-94,ua:30,fa:60,anchor:anc('shoulder',70,150)}]},
+ slhipthrust:{name:'Single-leg hip thrust',scene:'thrustbench',load:'hips',ik:ikAnc(160,190),frames:[{t:-58,ua:30,fa:60,th2:120,sh2:110,anchor:anc('shoulder',70,150)},{t:-94,ua:30,fa:60,th2:115,sh2:115,anchor:anc('shoulder',70,150)}]},
+ seatdip:{name:'Seated dip machine',scene:'seat',load:'none',prop:'handles',frames:[{t:-5,ua:-45,fa:40,th:90,anchor:anc('hip',105,156)},{t:-5,ua:-6,fa:-4,th:90,anchor:anc('hip',105,156)}]},
+ kneelpull:{name:'Half-kneeling one-arm pulldown',cable:'up',frames:[{t:0,th:90,sh:0,th2:0,sh2:-90,ua:176,fa:178,ua2:-5,fa2:-5,anchor:anc('knee2',110,192)},{t:-4,th:90,sh:0,th2:0,sh2:-90,ua:22,fa:166,ua2:-5,fa2:-5,anchor:anc('knee2',110,192)}]},
+ renegade:{name:'Renegade row',load:'onehand',frames:[{t:68,th:-68,sh:-68,ua:2,fa:2,ua2:2,fa2:2,anchor:anc('ankle',58,192)},{t:68,th:-68,sh:-68,ua:-55,fa:10,ua2:2,fa2:2,anchor:anc('ankle',58,192)}]},
+ zpress:{name:'Z press (seated on floor)',frames:[{ua:25,fa:178,th:90,sh:90,anchor:anc('hip',95,186)},{ua:178,fa:180,th:90,sh:90,anchor:anc('hip',95,186)}]},
+ hspu:{name:'Handstand push-up',scene:'hswall',load:'none',frames:[{t:180,ua:0,fa:0,th:180,sh:180,anchor:anc('hand',118,192)},{t:180,ua:52,fa:-40,th:180,sh:180,anchor:anc('hand',118,192)}]},
+ conccurl:{name:'Concentration curl',scene:'stool',load:'onehand',frames:[{t:42,th:90,sh:0,ua:4,fa:4,ua2:40,fa2:80,anchor:anc('hip',96,156)},{t:42,th:90,sh:0,ua:4,fa:150,ua2:40,fa2:80,anchor:anc('hip',96,156)}]},
+ lyingcurl:{name:'Lying curl on bench',scene:'bench',frames:[{t:-90,ua:-8,fa:-8,th:75,sh:-5,anchor:anc('hip',130,150)},{t:-90,ua:-8,fa:165,th:75,sh:-5,anchor:anc('hip',130,150)}]},
+ beltsquat:{name:'Belt squat',load:'none',prop:'belt',frames:[{ua:40,fa:80,anchor:ST},{t:20,ua:50,fa:85,th:80,sh:-22,anchor:ST}]},
+ pistol:{name:'Pistol squat',load:'none',frames:[{ua:85,fa:85,th2:30,sh2:30,anchor:ST},{t:45,ua:95,fa:95,th:100,sh:-38,th2:92,sh2:92,anchor:ST}]},
+ latlunge:{name:'Lateral lunge',frames:[{ua:3,fa:3,ll:.9,ll2:.9,anchor:ST},{t:30,ua:70,fa:70,th:80,sh:-20,th2:2,sh2:0,ll2:.12,anchor:ST}]},
+ donkeycalf:{name:'Donkey calf raise',scene:'calfblock',load:'none',prop:'supportbar',frames:[{t:85,ua:2,fa:2,fo:112,fo2:112,anchor:anc('toe',140,183)},{t:85,ua:2,fa:2,fo:62,fo2:62,anchor:anc('toe',140,183)}]},
+ slcalf:{name:'Single-leg calf raise',scene:'calfblock',frames:[{fo:112,th2:-5,sh2:-85,anchor:anc('toe',140,183)},{fo:62,th2:-5,sh2:-85,anchor:anc('toe',140,183)}]},
+ slrdl:{name:'Single-leg RDL',frames:[{anchor:ST},{t:78,th:10,sh:-4,th2:-80,sh2:-82,anchor:ST}]},
+ abmach:{name:'Ab crunch machine',scene:'seat',load:'none',frames:[{t:-5,ua:-30,fa:165,th:90,anchor:anc('hip',105,156)},{t:38,ua:10,fa:190,th:90,anchor:anc('hip',105,156)}]},
+ chairkr:{name:'Captain\'s chair knee raise',scene:'dips',load:'none',frames:[{t:2,anchor:anc('hand',125,120)},{t:-8,th:102,sh:6,anchor:anc('hand',125,120)}]},
+ ttb:{name:'Toes to bar',scene:'bar',load:'none',frames:[{ua:180,fa:180,anchor:anc('hand',120,38)},{t:-28,ua:150,fa:155,th:158,sh:168,anchor:anc('hand',120,38)}]},
+ yokewalk:{name:'Yoke walk',load:'none',prop:'yoke',frames:[{ua:-38,fa:150,th:18,sh:-4,th2:-14,sh2:-22,anchor:anc('ankle',125,192)},{ua:-38,fa:150,th:-14,sh:-22,th2:18,sh2:-4,anchor:anc('ankle2',125,192)}]},
+ wallball:{name:'Wall ball',scene:'wallball',load:'none',prop:'ball',frames:[{t:30,th:80,sh:-22,ua:20,fa:160,anchor:ST},{ua:160,fa:165,anchor:ST}]},
+ atlas:{name:'Atlas stone',load:'none',prop:'stone',frames:[{t:70,th:60,sh:-25,ua:5,fa:30,anchor:ST},{t:-4,ua:20,fa:120,anchor:ST}]},
+ tireflip:{name:'Tire flip',load:'none',prop:'tire',frames:[{t:62,th:55,sh:-25,ua:20,fa:40,anchor:ST},{t:30,th:25,sh:-10,ua:60,fa:100,anchor:ST},{t:5,ua:110,fa:120,th:-15,sh:-20,th2:30,sh2:-5,anchor:ST}]},
+ sidelying:{name:'Side-lying leg raise',load:'none',frames:[{t:-90,ua:180,fa:250,th:90,sh:90,anchor:anc('hip',112,184)},{t:-90,ua:180,fa:250,th:128,sh:128,anchor:anc('hip',112,184)}]},
+ bandwalk:{name:'Lateral band walk',load:'none',prop:'bandshins',frames:[{t:20,th:28,sh:-10,ua:40,fa:80,ll:1,ll2:.7,anchor:ST},{t:20,th:28,sh:-10,ua:40,fa:80,ll:.7,ll2:1,anchor:ST}]},
+ inclinepush:{name:'Incline push-up',scene:'box3',load:'none',frames:[{t:52,th:-52,sh:-52,anchor:anc('ankle',50,192)},{t:62,th:-62,sh:-62,ua:-55,fa:70,anchor:anc('ankle',50,192)}]},
+ cableabd:{name:'Cable hip abduction',cable:[118,190],cableFrom:'ankle',frames:[{t:2,ua:70,fa:70,anchor:anc('ankle2',125,192)},{t:2,ua:70,fa:70,th:12,sh:12,ll:.7,anchor:anc('ankle2',125,192)}]},
+ ellip:{name:'Elliptical',scene:'ellipt',load:'none',frames:[{t:6,th:24,sh:-8,th2:-16,sh2:-16,ua:40,fa:80,ua2:20,fa2:70,anchor:anc('ankle',140,186)},{t:6,th:-16,sh:-16,th2:24,sh2:-8,ua:20,fa:70,ua2:40,fa2:80,anchor:anc('ankle2',140,186)}]},
+});
+Object.assign(ANIM_FIX,{
+  tbar:{prop:'tbar',load:'none'},
+  preacher:{pattern:'preacher'}, curl_cable:{cable:[150,190]},
+  benchdip:{pattern:'benchdip'},
+  hacksquat:{pattern:'hacksquat'}, pendulum_squat:{pattern:'hacksquat'},
+  smith_bench:{prop:'smith'}, smith_incline:{prop:'smith'}, smithsquat:{prop:'smith'}, smith_jm:{prop:'smith'}, smith_ffe_lunge:{prop:'smith'}, smith_lunge:{prop:'smith'}, good_morning_smith:{prop:'smith'},
+  hipthrust:{pattern:'hipthrust'}, machine_hipthrust:{pattern:'hipthrust',load:'none',prop:'hippad'}, sl_hipthrust:{pattern:'slhipthrust'},
+  machine_dip:{pattern:'seatdip'}, onearm_pulldown:{pattern:'kneelpull'},
+  renegade_row:{pattern:'renegade'}, z_press:{pattern:'zpress'}, hspu:{pattern:'hspu'},
+  concentration_curl:{pattern:'conccurl'}, lying_db_curl:{pattern:'lyingcurl'}, flat_bench_curl:{pattern:'lyingcurl'},
+  belt_squat:{pattern:'beltsquat'}, pistol_squat:{pattern:'pistol'},
+  lateral_lunge:{pattern:'latlunge'}, cossack_squat:{pattern:'latlunge'},
+  donkey_calf:{pattern:'donkeycalf'}, sl_calf:{pattern:'slcalf'}, sl_rdl:{pattern:'slrdl'},
+  ab_machine:{pattern:'abmach'}, captains_chair:{pattern:'chairkr'}, toes_to_bar:{pattern:'ttb'},
+  yoke_walk:{pattern:'yokewalk'}, wall_ball:{pattern:'wallball'}, atlas_stone:{pattern:'atlas'}, tire_flip:{pattern:'tireflip'},
+  iso_high_row:{cable:'none',prop:'handles'},
+  lying_abduction:{pattern:'sidelying'}, lying_adduction:{pattern:'sidelying'},
+  band_walk:{pattern:'bandwalk'}, incline_pushup:{pattern:'inclinepush'}, pull_through:{cable:[30,186]},
+  cable_abduction:{pattern:'cableabd'}, elliptical:{pattern:'ellip'},
+});
+/* apply prop/load/cable overrides from ANIM_FIX */
+const _animSpecFix2 = animSpecFor;
+animSpecFor = function(ex){
+  const s=_animSpecFix2(ex), fx=ANIM_FIX[ex.id];
+  if(fx && (fx.force || !(ex.anim && ex.anim.frames && ex.anim.frames.length))){
+    if(fx.prop) s.prop=[].concat(s.prop||[],fx.prop);
+    if(fx.load) s.load=fx.load;
+    if(fx.cable==='none') delete s.cable;
+  }
+  return s;
+};
+
 /* ---------- Utilities ---------- */
 const $ = (s,el=document)=>el.querySelector(s);
 const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
@@ -3276,7 +3522,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611170727';
+window.WH_BUILD='202611170817';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
