@@ -343,6 +343,58 @@ textarea{resize:vertical;line-height:1.4}
 .setcard{display:flex;flex-direction:column;gap:14px}
 .setcard .field{margin:0}
 .coachcard .btn .ic{margin-left:2px}
+
+/* ---- Outdoors art ---- */
+.trophy-svg{width:100%;height:auto;display:block}
+.trophy-svg .sil,.trophy-svg .sil path{fill:color-mix(in srgb,var(--fg) 88%,var(--accent))}
+.trophy-svg .sil .ant{fill:none;stroke:color-mix(in srgb,var(--fg) 88%,var(--accent));stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.trophy-svg .sil .far{opacity:.5}
+.trophy-svg .tail{fill:var(--surface)!important;stroke:color-mix(in srgb,var(--fg) 88%,var(--accent));stroke-width:1.2}
+.trophy-svg .calfspots circle{fill:var(--surface);opacity:.85}
+.trophy-svg .spots circle{fill:var(--surface)}
+.trophy-svg .band{fill:none!important;stroke:#E9879A;stroke-width:3;opacity:.9}
+.trophy-svg .sc-sun{fill:var(--accent);opacity:.32}
+.trophy-svg .sc-far{fill:color-mix(in srgb,var(--accent) 22%,var(--surface2))}
+.trophy-svg .sc-mid,.trophy-svg .sc-mid *{fill:color-mix(in srgb,var(--accent) 38%,var(--surface2))}
+.trophy-svg .sc-near,.trophy-svg .sc-near path,.trophy-svg .sc-near polygon,.trophy-svg .sc-near rect{fill:color-mix(in srgb,var(--accent) 55%,var(--surface2))}
+.trophy-svg .sc-near .reed{fill:none!important;stroke:color-mix(in srgb,var(--accent) 55%,var(--surface2));stroke-width:2}
+.trophy-svg .sc-water{fill:color-mix(in srgb,#5FA8C8 40%,var(--surface2))}
+.trophy-svg .splash{fill:none;stroke:color-mix(in srgb,#5FA8C8 60%,var(--surface2));stroke-width:2}
+.trophy-svg .rays path{fill:var(--accent);opacity:.16}
+.scene-banner{margin:-16px -16px 2px;height:96px;overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--surface)}
+.scene-banner svg{width:100%;height:100%}
+.hero{overflow:hidden}
+.card.trophy{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.tro-art{background:var(--surface)}
+.tro-h{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 16px 0}
+.tro-h .eyebrow{display:flex;align-items:center;gap:6px;color:var(--accent)}
+.tro-h h3{font-family:var(--f-display);font-size:26px;text-transform:uppercase;letter-spacing:.02em;margin:2px 0 0;line-height:1}
+.tro-bar{margin:10px 16px 6px;height:8px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.tro-bar i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .6s ease}
+.card.trophy>p{margin:0 16px 14px}
+.done-trophy{background:var(--surface);border-radius:var(--r);overflow:hidden;text-align:center}
+.done-trophy .lvl{padding:8px 12px 12px;font-size:14px;display:flex;justify-content:center;align-items:center;gap:6px}
+.done-trophy.levelup{box-shadow:0 0 0 2px var(--accent)}
+.done-trophy.levelup .lvl{color:var(--accent);font-weight:700;font-size:16px}
+.done-trophy.levelup svg{animation:lvlpop .9s cubic-bezier(.2,1.4,.4,1)}
+@keyframes lvlpop{0%{transform:scale(.85);opacity:.4}100%{transform:scale(1);opacity:1}}
+.tro-ladder{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tro-ladder li{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:12px;background:var(--surface2);border-radius:12px;padding:4px 12px 4px 4px}
+.tro-ladder li svg{background:var(--surface);border-radius:10px}
+.tro-ladder li div{display:flex;flex-direction:column}
+.tro-ladder li.lock svg .sil{opacity:.25}
+.tro-ladder li.now{box-shadow:0 0 0 2px var(--accent)}
+.tro-pick{margin-top:6px}
+.scenes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.scn{border:2px solid var(--line);background:var(--surface2);border-radius:12px;padding:0;overflow:hidden;display:flex;flex-direction:column;color:var(--fg);font-size:12px;font-weight:600}
+.scn svg{aspect-ratio:360/150;background:var(--surface)}
+.scn span{padding:5px 4px}
+.scn .scn-ic{aspect-ratio:360/150;display:grid;place-items:center;background:var(--surface);color:var(--muted);padding:0}
+.scn.on{border-color:var(--accent)}
+.rest-fill{position:relative}
+.duckmini{position:absolute;right:-14px;top:50%;width:26px;height:22px;transform:translateY(-55%)}
+.duckmini .sil,.duckmini .sil path{fill:var(--accent)}
+.duckmini .far{opacity:.5}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2678,6 +2730,12 @@ const THEMES={
            light:{bg:'#EDF4F8',surface:'#FFFFFF',surface2:'#DEEAF1',line:'#C6D8E3',accent:'#0A8DB0',muted:'#557080'}},
   royal:{name:'Royal',dark:{bg:'#100E17',surface:'#191623',surface2:'#221E30',line:'#332D45',accent:'#9D6BFF',muted:'#9A93AE'},
          light:{bg:'#F3F1F8',surface:'#FFFFFF',surface2:'#E7E3F1',line:'#D3CDE3',accent:'#6C3BE0',muted:'#625B76'}},
+  greenhead:{name:'Greenhead',dark:{bg:'#0A1312',surface:'#11201E',surface2:'#182C29',line:'#24403B',accent:'#2FB57A',muted:'#8AA39C','on-accent':'#04190F'},
+          light:{bg:'#EEF3EF',surface:'#FFFFFF',surface2:'#DFE9E3',line:'#C5D6CC',accent:'#1F7A52',muted:'#56685F'}},
+  rainbow:{name:'Rainbow Trout',dark:{bg:'#0F1213',surface:'#171D1E',surface2:'#20292A',line:'#2F3B3C',accent:'#F0758A',muted:'#97A5A6','on-accent':'#2A0C12'},
+          light:{bg:'#F1F3F0',surface:'#FFFFFF',surface2:'#E3E8E4',line:'#CCD5CF',accent:'#C9445E',muted:'#5E6B67'}},
+  whitetail:{name:'Whitetail',dark:{bg:'#13110E',surface:'#1C1915',surface2:'#26221C',line:'#38322A',accent:'#C98A4B',muted:'#A39886','on-accent':'#1E1208'},
+          light:{bg:'#F5F1EA',surface:'#FFFFFF',surface2:'#EAE3D8',line:'#D8CDBD',accent:'#8E5A2B',muted:'#6D6253'}},
   forest:{name:'Timberline',dark:{bg:'#0B130F',surface:'#111D17',surface2:'#182820',line:'#22382C',accent:'#34C77B',muted:'#86A293','on-accent':'#04200F'},
           light:{bg:'#ECF4EF',surface:'#FFFFFF',surface2:'#DCEAE1',line:'#C3D9CB',accent:'#16884A',muted:'#557062'}}
 };
@@ -2816,7 +2874,7 @@ function heroCard(nx){
   if(!nx) return '';
   const r=nx.r, n=(r.exercises||[]).length;
   const mus=[...new Set((r.exercises||[]).flatMap(e=>getEx(e.exId).primary||[]))].slice(0,4);
-  return `<div class="hero">
+  return `<div class="hero">${sceneBanner()}
     <div class="eyebrow">${ic('cal','sm')} Up next${nx.f?` · ${esc(nx.f)}`:''}</div>
     <button class="linkhead" data-a="openR" data-id="${esc(r.id)}"><h3>${esc(r.name)}</h3></button>
     <div class="hero-meta"><span>${ic('list','sm')} ${n} exercises</span><span>${ic('clock','sm')} ~${estMin(r)} min</span></div>
@@ -2825,6 +2883,118 @@ function heroCard(nx){
     <div class="row2"><button class="btn" data-a="startEmpty">${ic('plus')} Empty workout</button><button class="btn" data-tab="routines">${ic('folder')} Routines</button></div>
   </div>`;
 }
+/* ---------- Outdoors: hand-drawn hunting & fishing art, scenes, and the Trophy progression ---------- */
+const SIL={
+ elkBody:`<path d="M176 58 C176 62 172 64 168 63 L160 62 C158 66 156 70 154 72 L150 80 L153 84 L147 88 L150 93 L143 97 L145 102 L137 106 C132 112 124 114 116 114 C96 116 72 116 56 112 C48 112 40 112 36 108 C30 104 28 92 30 80 C31 70 34 64 40 62 C60 56 92 54 112 54 C120 54 126 50 132 44 C138 38 144 34 150 32 C156 32 160 36 164 42 C168 48 174 52 176 58Z"/><path d="M150 35 L139 30 L147 40Z M34 66 L27 73 L33 72Z"/><path d="M128 106 L138 108 L136 126 L134 140 L135 154 L128 155 L128 141 L126 124Z M115 110 L124 112 L121 128 L120 141 L121 154 L114 155 L114 140 L113 126Z M36 98 L56 104 L52 118 L46 131 L48 154 L41 155 L40 132 L35 117Z M56 108 L67 110 L64 122 L60 133 L62 154 L55 155 L54 133 L54 120Z"/>`,
+ elkCalfBody:`<path d="M176 60 C176 64 172 66 168 65 L160 64 C158 70 154 76 150 82 C146 90 142 98 136 104 C130 110 122 112 114 112 C96 114 72 114 56 110 C48 110 40 110 36 106 C30 102 28 92 30 82 C31 72 34 66 40 64 C60 58 92 58 112 58 C120 58 126 52 132 44 C138 38 144 34 150 34 C156 34 160 38 164 44 C168 50 174 54 176 60Z"/><path d="M150 37 L136 28 L146 42Z M34 68 L28 74 L33 74Z"/><path d="M128 104 L136 106 L134 126 L133 140 L134 154 L128 155 L128 141 L126 124Z M115 108 L123 110 L121 128 L120 141 L121 154 L115 155 L114 140 L113 126Z M36 98 L54 102 L51 116 L46 130 L48 154 L42 155 L41 131 L36 116Z M56 106 L65 108 L63 120 L60 132 L61 154 L55 155 L54 132 L54 118Z"/>`,
+ buckBody:`<path d="M170 58 C170 61 167 63 164 62 L156 61 C154 66 151 72 148 76 C144 84 140 92 134 100 C128 106 120 108 112 108 C94 110 70 110 56 107 C48 106 42 104 38 100 C33 95 32 86 34 78 C36 70 40 66 46 64 C64 60 92 60 110 60 C118 60 124 54 130 46 C136 40 142 36 148 36 C154 37 158 41 162 47 C165 51 169 54 170 58Z"/><path d="M146 39 L134 32 L142 44Z"/><path d="M126 102 L134 103 L132 122 L130 136 L131 154 L125 155 L125 137 L123 120Z M114 105 L122 106 L119 123 L118 137 L119 154 L113 155 L113 137 L112 120Z M40 96 L58 101 L54 114 L48 128 L50 154 L44 155 L42 129 L38 113Z M58 104 L67 106 L64 118 L61 130 L62 154 L56 155 L55 130 L55 117Z"/>`,
+ buckTail:`<path class="tail" d="M38 68 C30 60 26 50 30 44 C35 48 40 58 42 66Z"/>`,
+ duck:`<path class="far" d="M50 62 C54 74 62 84 76 92 C71 80 69 70 66 62Z"/><path d="M16 60 C24 56 34 55 40 55 C56 53 72 53 82 56 C86 51 92 49 98 51 C102 52 104 55 101 57 L112 58 L101 60 C97 64 89 64 83 62 C66 68 42 68 26 64 L14 66 L18 61Z"/><path d="M42 57 C48 40 60 22 80 10 C75 28 70 44 64 57Z"/>`,
+ trout:`<path d="M8 50 C18 40 40 35 62 38 C76 40 88 45 96 50 C88 55 76 60 62 62 C40 65 18 60 8 50Z"/><path d="M92 50 L112 38 C109 45 109 55 112 62Z"/><path d="M40 38 C44 31 52 30 58 37Z M78 42 L84 37 L84 44Z M46 61 L52 67 L56 61Z M22 56 L26 62 L30 57Z"/><path class="band" d="M14 50 C34 46 64 46 92 50"/><g class="spots"><circle cx="34" cy="45" r="1.3"/><circle cx="46" cy="42" r="1.3"/><circle cx="58" cy="44" r="1.3"/><circle cx="70" cy="44" r="1.2"/><circle cx="82" cy="47" r="1.1"/><circle cx="62" cy="56" r="1.1"/><circle cx="74" cy="54" r="1.1"/></g>`,
+};
+function qpt(P0,P1,P2,t){ const a=(1-t)*(1-t), b=2*(1-t)*t, c=t*t; return [a*P0[0]+b*P1[0]+c*P2[0], a*P0[1]+b*P1[1]+c*P2[1]]; }
+function antlers(kind,stage){
+  const out=(dx,dy,cls)=>{
+    let d='';
+    if(kind==='elk'){
+      const H=[150+dx,32+dy]; const L=[0,0,26,40,50,58,66,72,80][stage]; const n=[0,0,0,3,4,5,6,6,7][stage];
+      if(stage===1) return `<path class="ant ${cls}" d="M${H[0]} ${H[1]} l-1 -4 M${H[0]-3} ${H[1]+1} l-2 -3"/>`;
+      if(!L) return '';
+      if(stage===2){ d=`M${H[0]} ${H[1]} Q${H[0]-4} ${H[1]-L*.6} ${H[0]-10} ${H[1]-L}`; return `<path class="ant ${cls}" d="${d}"/>`; }
+      const P0=H, P1=[H[0]-.12*L,H[1]-.85*L], P2=[H[0]-.85*L,H[1]-.6*L];
+      d=`M${f1(P0[0])} ${f1(P0[1])} Q${f1(P1[0])} ${f1(P1[1])} ${f1(P2[0])} ${f1(P2[1])}`;
+      for(let i=0;i<n-1;i++){
+        let t,dir,len;
+        if(i===0){ t=.05; dir=[.8,-.6]; len=.24*L; }
+        else if(i===1){ t=.15; dir=[.55,-.84]; len=.24*L; }
+        else { const k=i-2, m=Math.max(1,n-3); t=.38+(.5*k/m); dir=[.05,-1]; len=.3*L*(1-.12*k); }
+        const p=qpt(P0,P1,P2,t); const e=[p[0]+dir[0]*len,p[1]+dir[1]*len]; const c=[p[0]+dir[0]*len*.5-2,p[1]+dir[1]*len*.5];
+        d+=` M${f1(p[0])} ${f1(p[1])} Q${f1(c[0])} ${f1(c[1])} ${f1(e[0])} ${f1(e[1])}`;
+      }
+      return `<path class="ant ${cls}" style="stroke-width:${f1(2.4+stage*.28)}" d="${d}"/>`;
+    } else {
+      const H=[148+dx,37+dy]; const L=[0,0,18,30,36,40,44,48,52][stage]; const n=[0,0,0,1,2,3,4,4,5][stage];
+      if(stage===1) return `<path class="ant ${cls}" d="M${H[0]} ${H[1]} l1 -4"/>`;
+      if(!L) return '';
+      if(stage===2){ return `<path class="ant ${cls}" d="M${H[0]} ${H[1]} Q${H[0]-3} ${H[1]-L*.7} ${H[0]+3} ${H[1]-L}"/>`; }
+      const P0=H, P1=[H[0]-.35*L,H[1]-.95*L], P2=[H[0]+.62*L,H[1]-.82*L];
+      d=`M${f1(P0[0])} ${f1(P0[1])} Q${f1(P1[0])} ${f1(P1[1])} ${f1(P2[0])} ${f1(P2[1])}`;
+      if(stage>=4){ const p=qpt(P0,P1,P2,.1); d+=` M${f1(p[0])} ${f1(p[1])} l2 ${f1(-.18*L)}`; }
+      for(let i=0;i<n;i++){ const t=.35+.5*(n>1?i/(n-1):.5); const p=qpt(P0,P1,P2,t); const len=.4*L*(1-.1*i); d+=` M${f1(p[0])} ${f1(p[1])} q-1 ${f1(-len*.5)} 1 ${f1(-len)}`; }
+      if(stage===8){ const p=qpt(P0,P1,P2,.55); d+=` M${f1(p[0])} ${f1(p[1])} q2 ${f1(.12*L)} 1 ${f1(.22*L)}`; }
+      return `<path class="ant ${cls}" style="stroke-width:${f1(2.2+stage*.22)}" d="${d}"/>`;
+    }
+  };
+  return out(-7,2,'far')+out(0,0,'');
+}
+function spotsFor(kind){ return `<g class="calfspots">${[[70,70],[84,66],[98,68],[112,66],[78,80],[92,78],[106,78],[64,82],[120,74]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.6"/>`).join('')}</g>`; }
+function animalSVG(kind,stage){
+  const body = kind==='elk' ? (stage<=1? SIL.elkCalfBody : SIL.elkBody) : SIL.buckBody+(stage>=0?SIL.buckTail:'');
+  return `<g class="sil">${antlers(kind,stage)}${body}${stage===0?spotsFor(kind):''}</g>`;
+}
+/* Background scenes (drawn in a 360x150 box). Colors come from the theme. */
+function ridge(seed,y0,amp,h,w=360){ let s=seed, pts=[`0,${h}`]; let y=y0; for(let x=0;x<=w;x+=12){ s=(s*9301+49297)%233280; const r=s/233280; y=Math.max(y0-amp,Math.min(y0+amp*0.4,y+(r-0.5)*amp*0.7)); if(x%60===36) y-=amp*0.35; pts.push(`${x},${f1(y)}`); } pts.push(`${w},${h}`); return pts.join(' '); }
+function pines(xs,base,sz){ return xs.map((x,i)=>{ const s=sz*(0.75+((i*37)%10)/25); return `<path d="M${x} ${base-s} L${x+s*.28} ${base-s*.55} L${x+s*.16} ${base-s*.55} L${x+s*.36} ${base-s*.2} L${x+s*.2} ${base-s*.2} L${x+s*.42} ${base} L${x-s*.42} ${base} L${x-s*.2} ${base-s*.2} L${x-s*.36} ${base-s*.2} L${x-s*.16} ${base-s*.55} L${x-s*.28} ${base-s*.55}Z"/>`; }).join(''); }
+function sceneSVGOut(kind,opts={}){
+  const W=360,H=150;
+  let bg='', fg='';
+  const sun=`<circle class="sc-sun" cx="${opts.sunX||270}" cy="${opts.sunY||52}" r="22"/>`;
+  if(kind==='elk'){
+    bg=sun+`<polygon class="sc-far" points="${ridge(7,70,40,H)}"/><polygon class="sc-mid" points="${ridge(19,100,26,H)}"/><g class="sc-near">${pines([18,34,52,300,318,336,350],128,40)}<polygon points="${ridge(3,124,8,H)}"/></g>`;
+  } else if(kind==='buck'){
+    bg=`<circle class="sc-sun" cx="${opts.sunX||80}" cy="40" r="16"/><polygon class="sc-far" points="${ridge(11,96,14,H)}"/><g class="sc-mid">${[30,58,84,262,292,322,346].map((x,i)=>`<circle cx="${x}" cy="${96-(i%3)*4}" r="${16+(i%2)*6}"/><rect x="${x-2}" y="${100-(i%3)*4}" width="4" height="30"/>`).join('')}</g><polygon class="sc-near" points="${ridge(5,128,6,H)}"/>`;
+  } else if(kind==='marsh'){
+    bg=`<circle class="sc-sun" cx="300" cy="96" r="26"/><rect class="sc-water" x="0" y="112" width="${W}" height="38"/><g class="sc-near">${[14,22,30,322,330,338,348].map((x,i)=>`<path d="M${x} 150 Q${x+2} ${120-i%3*6} ${x+(i%2?4:-2)} ${96-i%3*8}" class="reed"/><rect x="${x+(i%2?2:-4)}" y="${92-i%3*8}" width="5" height="14" rx="2.5"/>`).join('')}</g>`;
+    fg=[[150,30,.42],[196,46,.34],[236,60,.28],[110,50,.3]].map(([x,y,s])=>`<g class="sil" transform="translate(${x} ${y}) scale(${s})">${SIL.duck}</g>`).join('');
+  } else if(kind==='river'){
+    bg=sun+`<polygon class="sc-far" points="${ridge(23,64,36,H)}"/><g class="sc-mid">${pines([10,26,44,312,330,348],112,34)}</g><path class="sc-water" d="M0 116 C80 108 140 124 220 116 C280 110 330 118 360 114 L360 150 L0 150Z"/>`;
+    fg=`<g class="sil" transform="translate(150 66) rotate(-24) scale(.62)">${SIL.trout}</g><path class="splash" d="M150 118 q6 -10 12 0 M196 118 q6 -8 12 0"/>`;
+  }
+  return {bg,fg};
+}
+/* ---------- Trophy progression ---------- */
+const TROPHY={
+  elk:{name:'Bull Elk',stages:['Calf','Yearling','Spike Bull','Raghorn','4×4 Bull','5×5 Bull','6×6 Bull','Herd Bull','Big Bull']},
+  buck:{name:'Whitetail',stages:['Fawn','Button Buck','Spike','4-Pointer','6-Pointer','8-Pointer','10-Pointer','Wall Hanger','Big Buck']},
+};
+const TR_PTS=[0,6,15,30,50,75,110,160,230];
+function trophyPoints(until){
+  const ws=workoutsSorted().filter(w=>until==null||w.start<=until); const goal=st.settings.goal||4;
+  const byWk={}; for(const w of ws){ const k=weekStart(w.start); byWk[k]=(byWk[k]||0)+1; }
+  let weeks=0; for(const k in byWk) if(byWk[k]>=goal) weeks++;
+  return {pts:ws.length+weeks*2, workouts:ws.length, weeks};
+}
+function trophyStage(pts){ let i=0; while(i+1<TR_PTS.length&&pts>=TR_PTS[i+1]) i++; return i; }
+function trophyKind(){ return st.settings.trophy==='buck'?'buck':'elk'; }
+function trophyArt(kind,stage,{scene=true}={}){
+  const sc = scene? sceneSVGOut(kind) : {bg:'',fg:''};
+  const s=.42+stage*.037; // grows every stage
+  const tx=180-100*s, ty=146-155*s;
+  return `<svg class="trophy-svg st${stage}" viewBox="${scene?'0 0 360 150':'92 4 176 148'}" aria-hidden="true">${stage===8?`<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 70 L${f1(180+200*Math.cos(i*Math.PI/6))} ${f1(70+200*Math.sin(i*Math.PI/6))} L${f1(180+200*Math.cos(i*Math.PI/6+.12))} ${f1(70+200*Math.sin(i*Math.PI/6+.12))}Z"/>`).join('')}</g>`:''}${sc.bg}<g transform="translate(${f1(tx)} ${f1(ty)}) scale(${f1(s)})">${animalSVG(kind,stage)}</g>${sc.fg}</svg>`;
+}
+function trophyCard(compact){
+  const kind=trophyKind(), T=TROPHY[kind]; const {pts,workouts,weeks}=trophyPoints(); const stg=trophyStage(pts);
+  const next=TR_PTS[stg+1]; const base=TR_PTS[stg]; const pct= next? Math.round((pts-base)/(next-base)*100) : 100;
+  return `<div class="card trophy">
+    <div class="tro-art">${trophyArt(kind,stg)}</div>
+    <div class="tro-h"><div><div class="eyebrow">${ic('target','sm')} Your ${T.name} · stage ${stg+1} of 9</div><h3>${T.stages[stg]}</h3></div>
+      <button class="iconbtn" data-a="trophyInfo" aria-label="How your trophy grows">${ic('more')}</button></div>
+    <div class="tro-bar"><i style="width:${pct}%"></i></div>
+    <p class="muted small">${next? `<b>${next-pts}</b> more point${next-pts===1?'':'s'} to <b>${T.stages[stg+1]}</b>. Each workout = 1 point, each week you hit your goal = 2 bonus.` : `Top of the mountain. You're a ${T.stages[8]}.`}</p>
+  </div>`;
+}
+
+function sceneKind(){ const v=st.settings.scene||'rotate'; if(v==='off') return null; if(v!=='rotate') return v; const k=['elk','buck','marsh','river']; return k[Math.floor(Date.now()/DAY)%4]; }
+function sceneBanner(){ const k=sceneKind(); if(!k) return ''; const sc=sceneSVGOut(k); const extra = (k==='elk'||k==='buck')? `<g transform="translate(${k==='elk'?222:214} ${k==='elk'?88:90}) scale(${k==='elk'?.3:.32})">${animalSVG(k,k==='elk'?6:6)}</g>`:''; return `<div class="scene-banner"><svg class="trophy-svg" viewBox="0 0 360 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${sc.bg}${extra}${sc.fg}</svg></div>`; }
+function packOut(lb){
+  if(lb<20) return '';
+  const elk=lb/700, buck=lb/200, duck=lb/2.75;
+  if(elk>=1) return `That's like packing out <b>${elk>=10?Math.round(elk):Math.round(elk*10)/10} bull elk</b>.`;
+  if(buck>=1) return `That's like dragging out <b>${Math.round(buck*10)/10} whitetail bucks</b>.`;
+  return `That's a <b>${Math.round(duck)}-mallard</b> limit... and then some.`;
+}
+const DUCK_MINI=`<svg class="duckmini" viewBox="10 8 104 88" aria-hidden="true"><g class="sil">${SIL.duck}</g></svg>`;
+
 /* ---------- Tabs ---------- */
 const TABS={
 home(){
@@ -2840,6 +3010,7 @@ home(){
      <div class="wkbar"><i style="width:${Math.min(100,thisWeek.length/goal*100)}%"></i></div>
      <div class="wkdays">${days}</div>
    </div>`;
+  body+=trophyCard();
   if(ws.length>=2) body+=coachCard(2);
   if(!ws.length&&Store.mode!=='cloud') body+=importCard('Bring your workout history over');
   if(!ws.length){
@@ -2894,6 +3065,7 @@ profile(){
      <div>${ic('scale','sm')}<span class="num">${fmtN(convW(totalLb,'lb',u))}</span><label>${u} lifted</label></div>
      <div>${ic('clock','sm')}<span class="num">${fmtN(totalSec/3600,0)}</span><label>Hours</label></div>
    </div>
+   ${trophyCard()}
    ${coachCard()}
    ${calendarCard(ws)}
    ${weeklyChart(ws)}
@@ -2989,11 +3161,12 @@ done(p){
   const dur=((w.end||w.start)-w.start)/1000;
   return {hdr:hdr('',{right:`<button class="btn sm" data-a="doneClose">Done</button>`}),
   body:`<section class="gut stack celebrate">
-    <div class="medal">${ic('trophy')}</div>
+    ${(()=>{ const kind=trophyKind(), T=TROPHY[kind]; const before=trophyStage(trophyPoints(w.start-1).pts), after=trophyStage(trophyPoints(w.start).pts);
+      return `<div class="done-trophy ${after>before?'levelup':''}">${trophyArt(kind,after)}${after>before?`<div class="lvl">${ic('bolt','sm')} Level up! You're now a <b>${T.stages[after]}</b></div>`:`<div class="lvl muted">${T.stages[after]} · keep stacking workouts to grow</div>`}</div>`; })()}
     <div class="eyebrow center">Workout #${nth} complete</div>
     <h2 class="center bigname">${esc(w.name)}</h2>
     <div class="liftbig"><span class="num">${fmtN(convW(vol,'lb',u))}</span><span class="unit">${u} lifted</span></div>
-    ${cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
+    ${packOut(vol)?`<p class="center lead">${packOut(vol)}</p>`:cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
     <div class="kv3"><div><label>Duration</label><b>${fmtDur(dur)}</b></div><div><label>Sets</label><b>${workoutSets(w)}</b></div><div><label>Streak</label><b>${streak} wk</b></div></div>
     ${prs.length?`<div class="card"><h3 class="gold-t">${ic('trophy','sm')} ${prs.length} new personal record${prs.length>1?'s':''}</h3><ul class="prlist">${prs.map(p=>`<li><span>${esc(getEx(p.exId).name)}</span><span class="muted small">${PR_LABEL[p.kind]}</span><b>${prValue(p)}</b></li>`).join('')}</ul></div>`:''}
     <button class="btn wide strava" data-a="strava" data-id="${esc(w.id)}">${ic('share')} Share to Strava</button>
@@ -3129,6 +3302,9 @@ settings(){
    <div class="field"><label>Mode</label>${seg('mode',[['auto','Auto'],['dark','Dark'],['light','Light']],s.mode||'auto')}</div>
    <div class="field"><label>Theme</label><div class="thms">${Object.keys(THEMES).map(themePreview).join('')}</div></div>
    <div class="field"><label>Accent color <span class="muted small">(Auto uses the theme's color)</span></label><div class="swatches">${sw.map(c=>`<button class="sw ${s.accent===c?'on':''}" style="${c?`--c:${c}`:''}" data-a="setAccent" data-v="${c}" aria-label="${c||'Default'}">${c?'':'Auto'}</button>`).join('')}<label class="sw custom" aria-label="Custom color"><input type="color" data-f="saccent" value="${s.accent||'#3D8BFF'}"></label></div></div>
+   </div><h2 class="sec">${ic('target')} Outdoors</h2><div class="card setcard">
+   <div class="field"><label>Trophy animal</label>${seg('trophy',[['elk','Bull Elk'],['buck','Whitetail']],s.trophy||'elk')}</div>
+   <div class="field"><label>Scenery on Home</label><div class="scenes">${[['rotate','Rotate daily'],['elk','Elk mountains'],['buck','Whitetail woods'],['marsh','Duck marsh'],['river','Trout river'],['off','Off']].map(([v,l])=>`<button class="scn ${ (s.scene||'rotate')===v?'on':''}" data-a="setS" data-k="scene" data-v="${v}">${v==='off'||v==='rotate'?`<span class="scn-ic">${ic(v==='off'?'x':'history')}</span>`:(()=>{const sc=sceneSVGOut(v); return `<svg class="trophy-svg" viewBox="0 0 360 150" aria-hidden="true">${sc.bg}${sc.fg}</svg>`;})()}<span>${l}</span></button>`).join('')}</div></div>
    </div><h2 class="sec">${ic('link')} Connected apps</h2>
    <div class="card conn"><div class="conn-h"><b>Strava</b><span class="badge">Share</span></div><p class="muted small">After each workout, tap <b>Share to Strava</b>. Work Harder writes the title and a full set breakdown for you to paste into Strava's manual activity form.</p></div>
    <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge off">Not available here</span></div><p class="muted small">Apple only lets native iPhone apps read and write Health data. This needs the installable iPhone version of Work Harder.</p></div>
@@ -3378,7 +3554,7 @@ function renderRest(){
   const left=Math.max(0,Math.ceil((r.end-Date.now())/1000));
   const pct = r.total? Math.max(0,Math.min(100,(left/r.total)*100)) : 0;
   el.className = left===0? 'restbar over':'restbar';
-  el.innerHTML=`<div class="rest-in gut"><div class="rest-fill" style="width:${pct}%"></div>
+  el.innerHTML=`<div class="rest-in gut"><div class="rest-fill" style="width:${pct}%">${left?DUCK_MINI:''}</div>
     <button class="btn sm" data-a="restAdj" data-v="-15">−15</button>
     <div class="rest-t"><span class="num" id="restnum">${left?fmtTime(left):'Rest over'}</span><span class="muted small">${left?'Rest':'Next set'}</span></div>
     <button class="btn sm" data-a="restAdj" data-v="15">+15</button><button class="btn primary sm" data-a="restSkip">${left?'Skip':'Close'}</button></div>`;
@@ -3391,7 +3567,8 @@ function renderSheet(){
   if(!s){ el.hidden=true; el.innerHTML=''; return; }
   el.hidden=false;
   let inner='';
-  if(s.kind==='menu'){
+  if(s.kind==='html'){ inner=`${s.title?`<h3 class="sh-title">${esc(s.title)}</h3>`:''}${s.html}`; }
+  else if(s.kind==='menu'){
     inner=`${s.title?`<h3 class="sh-title">${esc(s.title)}</h3>`:''}<div class="menu">${s.items.map((it,i)=>`<button class="menu-i ${it.danger?'danger-t':''}" data-a="menuPick" data-i="${i}">${it.icon?ic(it.icon):''}<span>${esc(it.label)}</span>${it.on?ic('check','sm'):''}</button>`).join('')}</div>`;
   } else if(s.kind==='confirm'){
     inner=`<h3 class="sh-title">${esc(s.title)}</h3>${s.text?`<p class="muted">${esc(s.text)}</p>`:''}<div class="row2"><button class="btn" data-a="sheetClose">Cancel</button><button class="btn ${s.danger?'danger':'primary'}" data-a="confirmOk">${esc(s.ok||'OK')}</button></div>`;
@@ -3851,6 +4028,11 @@ const A={
   stAdd:()=>{ const T=ui.stimer; if(T){ T.target+=15; renderSetTimer(); } },
   stDone:()=>{ const T=ui.stimer; if(!T) return; const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; } finishSetTimer(sec); },
   stCancel:()=>{ ui.stimer=null; renderSetTimer(); },
+  trophyInfo:()=>{ const kind=trophyKind(), T=TROPHY[kind]; const pts=trophyPoints().pts, cur=trophyStage(pts);
+    openSheet({kind:'html',title:`Grow your ${T.name}`,html:`<p class="muted small">Every workout you finish is 1 point. Every week you hit your goal of ${st.settings.goal||4} workouts adds 2 bonus points. You have <b>${pts}</b>.</p>
+      <div class="seg tro-pick">${[['elk','Bull Elk'],['buck','Whitetail']].map(([v,l])=>`<button data-a="setTrophy" data-v="${v}" aria-selected="${kind===v}">${l}</button>`).join('')}</div>
+      <ol class="tro-ladder">${T.stages.map((n,i)=>`<li class="${i<cur?'got':i===cur?'now':'lock'}">${trophyArt(kind,i,{scene:false})}<div><b>${n}</b><span class="muted small">${TR_PTS[i]} pts${i===cur?' · you are here':i<cur?' · earned':''}</span></div></li>`).join('')}</ol>`}); },
+  setTrophy:(d)=>{ st.settings.trophy=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   toggleSet:(d)=>{
     audio();
     const obj=curObj(); const e=obj.exercises[+d.e]; const s=e.sets[+d.s]; const ex=getEx(e.exId);
@@ -4020,7 +4202,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171403';
+window.WH_BUILD='202611171411';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
