@@ -3289,7 +3289,7 @@ Object.assign(I,{
   posture:'<circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M8 10l4-2 4 2M9.5 21l2.5-7 2.5 7"/>'
 });
 function badgeCtx(until){
-  const ws=workoutsSorted().filter(w=>until==null||w.start<=until).slice().reverse(); // oldest first
+  const ws=workoutsSorted().filter(w=>(until==null||w.start<=until)&&(st.settings.badgeImports||!w.imported)).slice().reverse(); // oldest first; imported history doesn't earn badges
   const c={n:ws.length,vol:0,maxVol:0,prs:0,dawn:0,night:0,knee:0,pack:0,hours:0,goalWeeks:0,maxStreak:0,ratio:0,stage:0};
   const byWk={};
   for(const w of ws){ const v=workoutVolumeLb(w); c.vol+=v; c.maxVol=Math.max(c.maxVol,v); c.prs+=(w.prs||[]).length; c.hours+=((w.end||w.start)-w.start)/3600000;
@@ -3397,7 +3397,7 @@ BADGES.push(
 const _badgeCtxBase=badgeCtx;
 badgeCtx=function(until){
   const c=_badgeCtxBase(until);
-  const ws=workoutsSorted().filter(w=>until==null||w.start<=until).slice().reverse();
+  const ws=workoutsSorted().filter(w=>(until==null||w.start<=until)&&(st.settings.badgeImports||!w.imported)).slice().reverse();
   Object.assign(c,{best:{},pullReps:0,pullW:0,pushReps:0,plank:0,hang:0,miles:0,cardioH:0,distinct:0,weekMus:0,sTier:0,maxWeek:0,dayRun:0,weekend:0,comebacks:0,yearSpan:0,longest:0,quick:0,sets:0,reps:0,rated:0,maxSets:0,supersets:0,timed:0,maxPRs:0});
   const seen=new Set(), musWk={}, perWk={}, days=new Set(); let prev=null;
   for(const w of ws){
@@ -4824,7 +4824,7 @@ const A={
   stDone:()=>{ const T=ui.stimer; if(!T) return; const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; } finishSetTimer(sec); },
   stCancel:()=>{ ui.stimer=null; renderSetTimer(); },
   allBadges:()=>{ const bs=badgeState(); const cats=['Milestones','Consistency','Strength','Bodyweight','Cardio','Volume','Effort','Records','Variety','Body','Hunter Ready'];
-    openSheet({kind:'html',title:`Badges · ${bs.filter(b=>b.got).length} of ${bs.length}`,html:cats.map(cat=>{ const list=bs.filter(b=>b.cat===cat); if(!list.length) return ''; return `<h4 class="bcat">${esc(cat)} <span class="muted small">${list.filter(b=>b.got).length}/${list.length}</span></h4><div class="patches big">${list.map(b=>patch(b,'big')).join('')}</div>`; }).join('')}); },
+    openSheet({kind:'html',title:`Badges · ${bs.filter(b=>b.got).length} of ${bs.length}`,html:`<p class="muted small">${st.settings.badgeImports?'Counting workouts imported from Hevy.':'Only workouts logged in Work Harder count. Imported Hevy history still feeds the coach.'} <button class="btn ghost sm" data-a="toggleBadgeImports">${st.settings.badgeImports?'Count app workouts only':'Count imported history too'}</button></p>`+cats.map(cat=>{ const list=bs.filter(b=>b.cat===cat); if(!list.length) return ''; return `<h4 class="bcat">${esc(cat)} <span class="muted small">${list.filter(b=>b.got).length}/${list.length}</span></h4><div class="patches big">${list.map(b=>patch(b,'big')).join('')}</div>`; }).join('')}); },
   trophyInfo:()=>{ const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'? TROPHY[kind] : WORLDS[wk]; const pts=trophyPoints().pts, cur=trophyStage(pts); const artOf=(i)=> wk==='hunt'? trophyArt(kind,i,{scene:false}) : T.art(i,{scene:false});
     const tp=trophyPoints(); const plans=[...new Set(workoutsSorted().map(planKeyOf).filter(Boolean).concat(folderNames()))];
     openSheet({kind:'html',title: wk==='hunt'?`Grow your ${T.name}`:`Your ${T.unit} path`,html:`<p class="muted small">Your ${wk==='hunt'?'animal':T.unit.toLowerCase()} grows with your current plan, <b>${esc(planName(tp.key))}</b> (week ${tp.week}). Points per plan workout:</p>
@@ -4839,6 +4839,7 @@ const A={
       <ol class="tro-ladder">${T.stages.map((n,i)=>`<li class="${i<cur?'got':i===cur?'now':'lock'}">${artOf(i)}<div><b>${n}</b><span class="muted small">${TR_PTS[i]} pts${i===cur?' · you are here':i<cur?' · earned':''}</span></div></li>`).join('')}</ol>`}); },
   setWorld:(d)=>{ st.settings.world=d.v; const W=WORLDS[d.v]; if(W&&W.theme){ st.settings.theme=W.theme; st.settings.accent=''; } Store.saveSettings(); applyTheme(); render(); toast(`${W.name} world on`); },
   setBranch:(d)=>{ st.settings.branch=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
+  toggleBadgeImports:()=>{ st.settings.badgeImports=!st.settings.badgeImports; Store.saveSettings(); render(); A.allBadges(); },
   setAcct:(d)=>{ st.settings.acct=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   setPlan:(d)=>{ st.settings.planKey=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   restartPlan:()=>{ const k=currentPlan(); if(!k) return; confirmSheet('Start this plan over?','Your animal goes back to the first stage and grows again from your next workout. Your workout history stays.','Start over',()=>{ st.settings.planStarts={...(st.settings.planStarts||{}),[k]:Date.now()}; st.settings.planKey=k; Store.saveSettings(); render(); toast('Plan restarted. Time to grow.'); },false); },
@@ -5182,7 +5183,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171443';
+window.WH_BUILD='202611171444';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
