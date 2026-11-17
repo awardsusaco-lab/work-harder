@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
 <link rel="icon" href="icon-192.png?v=3">
 <script>window.WH_STANDALONE=true;</script>
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 html [data-a^="ai"],html .card.ai{display:none!important}</style>
 </head>
 <body>
@@ -286,6 +286,38 @@ textarea{resize:vertical;line-height:1.4}
 .st-num small{color:var(--muted);font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
 .st-btns{display:flex;gap:10px;width:100%}
 .st-btns .btn{flex:1;min-height:52px;font-size:16px}
+
+/* ---- Full-screen phone layout: the app is pinned to every edge, safe areas padded inside ---- */
+#app{position:fixed;top:0;bottom:0;left:0;right:0;height:auto;margin:0 auto;width:100%}
+#hdr{padding-top:env(safe-area-inset-top,0px)}
+#nav{padding-bottom:env(safe-area-inset-bottom,0px)}
+#app:has(#nav[hidden]) #restbar:not([hidden]){padding-bottom:env(safe-area-inset-bottom,0px)}
+/* ---- Organized, icon-led UI ---- */
+.ic.xs{width:13px;height:13px;stroke-width:2.2}
+.sec{display:flex;align-items:center;gap:8px}
+.sec .ic{width:20px;height:20px;color:var(--accent)}
+.sub{display:flex;align-items:center;gap:6px}
+.sub .ic{color:var(--accent)}
+.hero{background:var(--surface);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:inset 0 3px 0 var(--accent)}
+.hero .eyebrow{display:flex;align-items:center;gap:6px;color:var(--accent)}
+.hero h3{font-family:var(--f-display);font-size:26px;line-height:1.05;text-transform:uppercase;letter-spacing:.02em;margin:0}
+.hero-meta{display:flex;gap:14px;color:var(--muted);font-size:13.5px}
+.hero-meta span{display:flex;align-items:center;gap:5px}
+.hero-mus{display:flex;flex-wrap:wrap;gap:6px}
+.hero-mus span{background:var(--surface2);border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600}
+.btn.big{min-height:54px;font-size:17px}
+.hero .row2 .btn{white-space:nowrap;font-size:15px;padding-inline:10px}
+.rmeta{display:flex;gap:14px;margin:-2px 0 2px}
+.rmeta span,.kv3 label{display:flex;align-items:center;gap:4px}
+.folder-h .ic:first-child{color:var(--accent)}
+.folder-h .ic.sm{order:3}
+.pstats>div{gap:2px}
+.pstats>div .ic{color:var(--accent);margin-bottom:4px}
+.filters3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.filters3 select{padding:8px 26px 8px 10px;text-overflow:ellipsis;font-size:16px}
+.setcard{display:flex;flex-direction:column;gap:14px}
+.setcard .field{margin:0}
+.coachcard .btn .ic{margin-left:2px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -505,9 +537,9 @@ details summary{cursor:pointer}
 html,body{overflow:hidden;overscroll-behavior:none}
 @supports (height:100dvh){ #app{height:100%} }
 /* bars reach the screen edges: the header under the status bar, the bottom bar under the home indicator */
-#hdr{padding-top:env(safe-area-inset-top,0px);margin-top:calc(-1 * env(safe-area-inset-top,0px))}
-#nav{padding-bottom:env(safe-area-inset-bottom,0px);margin-bottom:calc(-1 * env(safe-area-inset-bottom,0px))}
-#app:has(#nav[hidden]) #restbar:not([hidden]){padding-bottom:env(safe-area-inset-bottom,0px);margin-bottom:calc(-1 * env(safe-area-inset-bottom,0px))}
+
+
+
 #app:has(#nav[hidden]) #main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
 #nav button{min-height:52px;padding-top:7px}
 /* no zoom-on-focus, no double-tap zoom, no text selection on controls */
@@ -2561,7 +2593,7 @@ function coachCard(limit){
   const ico={good:'trophy',warn:'flame',info:'spark'};
   return `<div class="card coachcard"><div class="card-h"><h3>${ic('spark','sm')} Coach</h3><span class="muted small">Learns from every set you log</span></div>
    <ul class="insights">${ins.slice(0,limit||99).map(i=>`<li class="ins ${i.kind}">${ic(ico[i.kind]||'spark','sm')}<div><b>${esc(i.title)}</b><p>${esc(i.text)}</p>${i.id?`<button class="btn ghost sm" data-a="openEx" data-id="${esc(i.id)}">Open exercise</button>`:''}</div></li>`).join('')}</ul>
-   ${limit&&ins.length>limit?`<button class="btn ghost wide sm" data-a="tab" data-v="profile">See all ${ins.length} notes</button>`:''}</div>`;
+   ${limit&&ins.length>limit?`<button class="btn ghost wide sm" data-a="tab" data-v="profile">See all ${ins.length} coach notes ${ic('right','sm')}</button>`:''}</div>`;
 }
 /* ---------- Icons ---------- */
 const I = {
@@ -2575,12 +2607,20 @@ const I = {
   clock:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/>',
   trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8M9 18h6"/>',
   flame:'<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .5 2 1.5 3 2.5 3-1-3 0-6 0-8z"/>',
-  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>', gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>', gear:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
   spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
   x:'<path d="M6 6l12 12M18 6 6 18"/>', trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   play:'<path d="M7 4.5v15l12-7.5z"/>', share:'<path d="M12 15V3M7 8l5-5 5 5M5 13v7h14v-7"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V4h12"/>',
   up:'<path d="m6 15 6-6 6 6"/>', link:'<path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/>',
-  scale:'<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 9a5 5 0 0 1 8 0l-3 3"/>'
+  scale:'<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 9a5 5 0 0 1 8 0l-3 3"/>',
+  folder:'<path d="M3.5 6.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  palette:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 2-1 1.6-2.1-.5-1.2.3-2.4 1.6-2.4H17a3.5 3.5 0 0 0 3.5-3.5c0-5-3.8-9-8.5-9z"/><circle cx="7.5" cy="11" r="1.1"/><circle cx="10" cy="7.3" r="1.1"/><circle cx="14.5" cy="7.3" r="1.1"/>',
+  cal:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  download:'<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>', upload:'<path d="M12 16V5M7 9.5l5-5 5 5M5 20h14"/>',
+  ruler:'<rect x="2.5" y="8" width="19" height="8" rx="1.5"/><path d="M6.5 8v3.5M10 8v2.5M13.5 8v3.5M17 8v2.5"/>',
+  history:'<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5M12 8v4.5l3 2"/>',
+  target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+  bolt:'<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/>'
 };
 const ic=(n,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true">${I[n]||''}</svg>`;
 
@@ -2741,6 +2781,25 @@ function nextInFolder(f){
 function importCard(what){
   return `<div class="card importcard"><h3>${what}</h3><p class="muted small">This phone keeps its own copy of your data. Load the backup file once and your routines, history and PRs show up here.</p><label class="btn primary wide filebtn">${ic('share')} Import backup file<input type="file" data-f="importFile"></label><p class="muted small">Save <b>work-harder-backup-2026-10-18.json</b> to Files or iCloud Drive first, then pick it here.</p></div>`;
 }
+function upNext(){
+  const fs=folderNames(); for(const f of fs){ const r=nextInFolder(f); if(r) return {r,f}; }
+  const rs=routinesSorted(); return rs.length? {r:rs[0],f:''} : null;
+}
+function estMin(r){ let sec=0; for(const e of r.exercises||[]){ const rest=e.rest==null?st.settings.rest:e.rest; sec+=(e.sets||[]).length*(rest+40); } return Math.max(10,Math.round(sec/300)*5); }
+function heroCard(nx){
+  if(st.active) return `<div class="hero"><div class="eyebrow">${ic('bolt','sm')} In progress</div><h3>${esc(st.active.name||'Workout')}</h3><p class="muted small" data-clock="${st.active.start}">${fmtTime((Date.now()-st.active.start)/1000)}</p><button class="btn primary wide big" data-a="resume">${ic('play')} Resume workout</button></div>`;
+  if(!nx) return '';
+  const r=nx.r, n=(r.exercises||[]).length;
+  const mus=[...new Set((r.exercises||[]).flatMap(e=>getEx(e.exId).primary||[]))].slice(0,4);
+  return `<div class="hero">
+    <div class="eyebrow">${ic('cal','sm')} Up next${nx.f?` · ${esc(nx.f)}`:''}</div>
+    <button class="linkhead" data-a="openR" data-id="${esc(r.id)}"><h3>${esc(r.name)}</h3></button>
+    <div class="hero-meta"><span>${ic('list','sm')} ${n} exercises</span><span>${ic('clock','sm')} ~${estMin(r)} min</span></div>
+    ${mus.length?`<div class="hero-mus">${mus.map(m=>`<span>${esc(m)}</span>`).join('')}</div>`:''}
+    <button class="btn primary wide big" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} Start workout</button>
+    <div class="row2"><button class="btn" data-a="startEmpty">${ic('plus')} Empty workout</button><button class="btn" data-tab="routines">${ic('folder')} Routines</button></div>
+  </div>`;
+}
 /* ---------- Tabs ---------- */
 const TABS={
 home(){
@@ -2748,24 +2807,26 @@ home(){
   const wk=weekStart(Date.now()); const thisWeek=ws.filter(w=>w.start>=wk);
   const days=[0,1,2,3,4,5,6].map(i=>{ const d=wk+i*DAY; const has=thisWeek.some(w=>startOfDay(w.start)===d); const today=startOfDay(Date.now())===d; return `<span class="wkday ${has?'on':''} ${today?'today':''}"><b>${'MTWTFSS'[i]}</b></span>`; }).join('');
   const goal=st.settings.goal||4, streak=weekStreak();
-  let body=`<section class="gut stack">
+  const nx=upNext();
+  let body=`<section class="gut stack">${heroCard(nx)}
    <div class="weekcard">
      <div class="wk-top"><div><div class="eyebrow">This week</div><div class="wk-count"><span class="num">${thisWeek.length}</span><span class="of">/ ${goal} workouts</span></div></div>
      <div class="streak ${streak?'hot':''}">${ic('flame')}<div><b class="num">${streak}</b><span>week streak</span></div></div></div>
      <div class="wkbar"><i style="width:${Math.min(100,thisWeek.length/goal*100)}%"></i></div>
      <div class="wkdays">${days}</div>
    </div>`;
-  if(ws.length>=2) body+=coachCard(3);
+  if(ws.length>=2) body+=coachCard(2);
   if(!ws.length&&Store.mode!=='cloud') body+=importCard('Bring your workout history over');
   if(!ws.length){
     body+=`<div class="empty"><div class="empty-fig">${figSVG(BUILTIN.deadlift,{anim:'deadlift'})}</div><h2>Your first workout starts here</h2><p>Log sets, beat your numbers, and watch the pounds add up. Pick a routine or start empty.</p>
       <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-v="workout">Browse routines</button></div></div>`;
   } else {
-    body+=`<h2 class="sec">Recent workouts</h2>`+ws.slice(0,ui.feedN||15).map(feedCard).join('');
-    if(ws.length>(ui.feedN||15)) body+=`<button class="btn ghost wide" data-a="moreFeed">Show more</button>`;
+    const N=ui.feedN||3;
+    body+=`<h2 class="sec">${ic('history')} Recent workouts</h2>`+ws.slice(0,N).map(feedCard).join('');
+    if(ws.length>N) body+=`<button class="btn ghost wide" data-a="moreFeed">${ic('down','sm')} Show more</button>`;
   }
   body+='</section>';
-  return {hdr:hdr('Work Harder',{big:true,right:`<span id="syncdot" class="syncdot"></span>`}),body};
+  return {hdr:hdr('Work Harder',{big:true,right:`${Store.mode==='cloud'?'<span id="syncdot" class="syncdot"></span>':''}<button class="iconbtn" data-a="settings" aria-label="Settings">${ic('gear')}</button>`}),body};
 },
 workout(){
   const nexts=folderNames().map(f=>({f,r:nextInFolder(f)})).filter(x=>x.r);
@@ -2786,11 +2847,11 @@ routines(){
     <div class="row2"><button class="btn" data-a="newRoutine">${ic('plus')} New routine</button><button class="btn" data-a="aiRoutine">${ic('spark')} Build with Claude</button></div>
     ${!rs.length&&Store.mode!=='cloud'?importCard('Bring your routines over'):''}
     ${folders.map(f=>{ const list=rs.filter(r=>r.folder===f); const isOpen=open[f]!==false;
-      return `<div class="folder"><button class="folder-h" data-a="toggleFolder" data-v="${esc(f)}" aria-expanded="${isOpen}">${ic(isOpen?'down':'right','sm')}<b>${esc(f)}</b><span class="muted small">${list.length} routine${list.length===1?'':'s'}</span></button>
+      return `<div class="folder"><button class="folder-h" data-a="toggleFolder" data-v="${esc(f)}" aria-expanded="${isOpen}">${ic('folder')}<b>${esc(f)}</b>${ic(isOpen?'down':'right','sm')}<span class="muted small">${list.length} routine${list.length===1?'':'s'}</span></button>
         ${isOpen?list.map(r=>routineCard(r,false)).join(''):''}</div>`; }).join('')}
     ${loose.length?`<h3 class="sub">${folders.length?'Other routines':'My routines'} (${loose.length})</h3>${loose.map(r=>routineCard(r,false)).join('')}`:''}
     ${!rs.length?`<p class="muted small">No routines yet. Make one, have Claude build one, or save a starter below.</p>`:''}
-    <h3 class="sub">Starter routines</h3>
+    <h3 class="sub">${ic('spark','sm')} Starter routines</h3>
     ${TEMPLATES.map(r=>routineCard(r,true)).join('')}
   </section>`;
   return {hdr:hdr('Routines'),body};
@@ -2804,9 +2865,9 @@ profile(){
   const totalSec=ws.reduce((a,w)=>a+((w.end||w.start)-w.start)/1000,0);
   let body=`<section class="gut stack">
    <div class="pstats">
-     <div><span class="num">${fmtN(ws.length)}</span><label>Workouts</label></div>
-     <div><span class="num">${fmtN(convW(totalLb,'lb',u))}</span><label>${u} lifted</label></div>
-     <div><span class="num">${fmtN(totalSec/3600,0)}</span><label>Hours</label></div>
+     <div>${ic('dumbbell','sm')}<span class="num">${fmtN(ws.length)}</span><label>Workouts</label></div>
+     <div>${ic('scale','sm')}<span class="num">${fmtN(convW(totalLb,'lb',u))}</span><label>${u} lifted</label></div>
+     <div>${ic('clock','sm')}<span class="num">${fmtN(totalSec/3600,0)}</span><label>Hours</label></div>
    </div>
    ${coachCard()}
    ${calendarCard(ws)}
@@ -2815,7 +2876,7 @@ profile(){
    ${bodyCard()}
    ${recordsCard()}
   </section>`;
-  return {hdr:hdr('Profile',{right:`<span id="syncdot" class="syncdot"></span><button class="iconbtn" data-a="settings" aria-label="Settings">${ic('gear')}</button>`}),body};
+  return {hdr:hdr('Profile',{right:`${Store.mode==='cloud'?'<span id="syncdot" class="syncdot"></span>':''}<button class="iconbtn" data-a="settings" aria-label="Settings">${ic('gear')}</button>`}),body};
 }
 };
 
@@ -2825,7 +2886,7 @@ function feedCard(w){
   const ex=(w.exercises||[]);
   return `<article class="card feed" data-a="openW" data-id="${esc(w.id)}" tabindex="0">
     <div class="feed-h"><div><h3>${esc(w.name||'Workout')}</h3><div class="muted small">${esc(fmtWhen(w.start))}</div></div>${ic('right','dim')}</div>
-    <div class="kv3"><div><label>Time</label><b>${fmtDur(dur)}</b></div><div><label>Volume</label><b>${fmtN(convW(vol,'lb',u))} ${u}</b></div>${prs?`<div class="gold"><label>Records</label><b>${ic('trophy','sm')} ${prs}</b></div>`:`<div><label>Sets</label><b>${workoutSets(w)}</b></div>`}</div>
+    <div class="kv3"><div><label>${ic('clock','xs')} Time</label><b>${fmtDur(dur)}</b></div><div><label>${ic('dumbbell','xs')} Volume</label><b>${fmtN(convW(vol,'lb',u))} ${u}</b></div>${prs?`<div class="gold"><label>${ic('trophy','xs')} Records</label><b>${prs}</b></div>`:`<div><label>${ic('list','xs')} Sets</label><b>${workoutSets(w)}</b></div>`}</div>
     <ul class="feed-ex">${ex.slice(0,4).map(e=>{const X=getEx(e.exId);return `<li>${thumb(X,'sm')}<span>${(e.sets||[]).length} sets ${esc(X.name)}</span></li>`}).join('')}</ul>
     ${ex.length>4?`<div class="muted small">+ ${ex.length-4} more exercise${ex.length-4>1?'s':''}</div>`:''}
   </article>`;
@@ -2835,7 +2896,8 @@ function routineCard(r,tpl){
   return `<article class="card routine">
     <div class="feed-h"><button class="minw linkhead" data-a="openR" data-id="${esc(r.id)}" data-tpl="${tpl?1:''}"><h3>${esc(r.name)}</h3><p class="muted small clamp2">${esc(names.join(', '))}</p></button>
     <button class="iconbtn" data-a="routineMenu" data-id="${esc(r.id)}" data-tpl="${tpl?1:''}" aria-label="Routine options">${ic('more')}</button></div>
-    <div class="row2">${tpl?`<button class="btn" data-a="saveTpl" data-id="${esc(r.id)}">Save to my routines</button>`:''}<button class="btn primary" data-a="startRoutine" data-id="${esc(r.id)}" data-tpl="${tpl?1:''}">Start routine</button></div>
+    <div class="rmeta muted small"><span>${ic('list','xs')} ${(r.exercises||[]).length} exercises</span><span>${ic('clock','xs')} ~${estMin(r)} min</span></div>
+    <div class="row2">${tpl?`<button class="btn" data-a="saveTpl" data-id="${esc(r.id)}">${ic('plus')} Save</button>`:''}<button class="btn primary" data-a="startRoutine" data-id="${esc(r.id)}" data-tpl="${tpl?1:''}">${ic('play')} Start</button></div>
   </article>`;
 }
 
@@ -2849,11 +2911,12 @@ function exerciseBrowser(pick){
   const rows=list.map(e=>`<li><button class="exrow ${sel.includes(e.id)?'sel':''}" data-a="${pick?'pickToggle':'openEx'}" data-id="${esc(e.id)}">${thumb(e)}<span class="exrow-t"><b>${esc(e.name)}</b><span class="muted small">${esc((e.primary||[]).join(', '))}${e.custom&&!BUILTIN[e.id]?' · Custom':''}</span></span>${nipBadge(e,q.muscle)}${pick?`<span class="tick">${sel.includes(e.id)?sel.indexOf(e.id)+1:''}</span>`:ic('right','dim')}</button></li>`).join('');
   return `<div class="gut stack">
    <label class="search">${ic('search')}<input id="exq" data-f="exq" type="search" placeholder="Search ${allEx().length} exercises" value="${esc(q.q)}" autocomplete="off"></label>
-   <div class="row2">
-    <select id="exmus" data-f="exmuscle" aria-label="Muscle"><option value="">All muscles</option>${MUSCLES.map(m=>`<option ${q.muscle===m?'selected':''}>${m}</option>`).join('')}</select>
-    <select id="exeq" data-f="exequip" aria-label="Equipment"><option value="">All equipment</option>${EQUIP.map(m=>`<option ${q.equip===m?'selected':''}>${m}</option>`).join('')}</select>
+   <div class="filters3">
+    <select id="exmus" data-f="exmuscle" aria-label="Muscle"><option value="">Muscle</option>${MUSCLES.map(m=>`<option ${q.muscle===m?'selected':''}>${m}</option>`).join('')}</select>
+    <select id="exeq" data-f="exequip" aria-label="Equipment"><option value="">Gear</option>${EQUIP.map(m=>`<option ${q.equip===m?'selected':''}>${m}</option>`).join('')}</select>
+    <select id="excol" data-f="excol" aria-label="Collection"><option value="">List</option><option value="nip" ${q.col==='nip'?'selected':''}>Jeff Nippard: all ranked, best first</option><option value="nipS" ${q.col==='nipS'?'selected':''}>Jeff Nippard: S and A tier only</option><option value="top" ${q.col==='top'?'selected':''}>Jeff Nippard: top pick per muscle</option><option value="gem" ${q.col==='gem'?'selected':''}>Jeff Nippard: underrated picks</option><option value="custom" ${q.col==='custom'?'selected':''}>My exercises</option></select>
    </div>
-   <select id="excol" data-f="excol" aria-label="Collection"><option value="">All exercises</option><option value="nip" ${q.col==='nip'?'selected':''}>Jeff Nippard: all ranked, best first</option><option value="nipS" ${q.col==='nipS'?'selected':''}>Jeff Nippard: S and A tier only</option><option value="top" ${q.col==='top'?'selected':''}>Jeff Nippard: top pick per muscle</option><option value="gem" ${q.col==='gem'?'selected':''}>Jeff Nippard: underrated picks</option><option value="custom" ${q.col==='custom'?'selected':''}>My exercises</option></select>
+   
    ${pick?`<div class="row2"><button class="btn" data-a="newEx" data-from="picker">${ic('plus')} Create exercise</button><button class="btn" data-a="aiSuggest">${ic('spark')} Ask Claude</button></div>`:''}
    <ul class="exlist" id="exlist">${rows}${q.q.trim()?`<li class="pad"><button class="btn wide" data-a="aiCreateNamed" data-from="${pick?'picker':''}">${ic('spark')} ${rows?'Not it? ':''}Have Claude add "${esc(q.q.trim())}"</button></li>`:''}${!rows&&!q.q.trim()?`<li class="muted pad">Nothing matches these filters.</li>`:''}</ul>
   </div>`;
@@ -3029,27 +3092,27 @@ settings(){
   const seg=(f,opts,val)=>`<div class="seg">${opts.map(([v,l])=>`<button data-a="setS" data-k="${f}" data-v="${v}" aria-selected="${String(val)===String(v)}">${l}</button>`).join('')}</div>`;
   return {hdr:hdr('Settings',{left:backBtn}),
   body:`<section class="gut stack">
-   <h2 class="sec">Units</h2>
+   <h2 class="sec">${ic('ruler')} Units</h2><div class="card setcard">
    <div class="field"><label>Weight</label>${seg('unit',[['lb','Pounds (lb)'],['kg','Kilograms (kg)']],s.unit)}</div>
    <div class="field"><label>Distance</label>${seg('dist',[['mi','Miles'],['km','Kilometers']],s.dist)}</div>
-   <h2 class="sec">Workouts</h2>
+   </div><h2 class="sec">${ic('dumbbell')} Workouts</h2><div class="card setcard">
    <div class="field"><label for="srest">Default rest timer</label><select id="srest" data-f="srest">${[0,30,45,60,75,90,120,150,180,240,300].map(v=>`<option value="${v}" ${s.rest==v?'selected':''}>${fmtRest(v)}</option>`).join('')}</select></div>
    <div class="field"><label>Weekly goal</label>${seg('goal',[[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6']],s.goal)}</div>
    <label class="toggle"><input type="checkbox" data-f="ssound" ${s.sound?'checked':''}><span>Beep when rest is over</span></label>
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
-   <h2 class="sec">Color scheme</h2>
+   </div><h2 class="sec">${ic('palette')} Color scheme</h2><div class="card setcard">
    <div class="field"><label>Mode</label>${seg('mode',[['auto','Auto'],['dark','Dark'],['light','Light']],s.mode||'auto')}</div>
    <div class="field"><label>Theme</label><div class="thms">${Object.keys(THEMES).map(themePreview).join('')}</div></div>
    <div class="field"><label>Accent color <span class="muted small">(Auto uses the theme's color)</span></label><div class="swatches">${sw.map(c=>`<button class="sw ${s.accent===c?'on':''}" style="${c?`--c:${c}`:''}" data-a="setAccent" data-v="${c}" aria-label="${c||'Default'}">${c?'':'Auto'}</button>`).join('')}<label class="sw custom" aria-label="Custom color"><input type="color" data-f="saccent" value="${s.accent||'#3D8BFF'}"></label></div></div>
-   <h2 class="sec">Connected apps</h2>
+   </div><h2 class="sec">${ic('link')} Connected apps</h2>
    <div class="card conn"><div class="conn-h"><b>Strava</b><span class="badge">Share</span></div><p class="muted small">After each workout, tap <b>Share to Strava</b>. Work Harder writes the title and a full set breakdown for you to paste into Strava's manual activity form.</p></div>
    <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge off">Not available here</span></div><p class="muted small">Apple only lets native iPhone apps read and write Health data. This needs the installable iPhone version of Work Harder.</p></div>
    <div class="card conn"><div class="conn-h"><b>Garmin Connect</b><span class="badge off">Not available here</span></div><p class="muted small">Garmin's activity upload is limited to approved developer apps, so it also needs a standalone version.</p></div>
-   <h2 class="sec">Your data</h2>
+   <h2 class="sec">${ic('download')} Your data</h2><div class="card setcard">
    <p class="muted small">${Store.mode==='cloud'?'Synced to your Claude account, so the same workouts show on your phone and your computer.':window.WH_STANDALONE?'Saved on this phone. Export a backup every few weeks and keep it somewhere safe, like iCloud Drive.':'Saved on this device only. Open Work Harder from the Claude app while signed in to sync across devices.'}</p>
-   <div class="row2"><button class="btn" data-a="exportJSON">Export backup</button><button class="btn" data-a="exportCSV">Export CSV</button></div>
-   <label class="btn wide filebtn">Import backup or Hevy CSV<input type="file" data-f="importFile"></label>
-   <p class="muted small">From Hevy: Profile → Settings → Export & Import Data → Export Workouts, then import that CSV here.</p>
+   <div class="row2"><button class="btn" data-a="exportJSON">${ic('download')} Export backup</button><button class="btn" data-a="exportCSV">${ic('download')} Export CSV</button></div>
+   <label class="btn wide filebtn">${ic('upload')} Import backup or Hevy CSV<input type="file" data-f="importFile"></label>
+   <p class="muted small">From Hevy: Profile → Settings → Export & Import Data → Export Workouts, then import that CSV here.</p></div>
   </section>`};
 }
 };
@@ -3062,7 +3125,7 @@ function loggerPage(obj,mode){
   if(mode==='active'){
     const done=obj.exercises.reduce((n,e)=>n+e.sets.filter(s=>s.done).length,0);
     const vol=workoutVolumeLb({...obj,saved:false});
-    head=hdr('Log workout',{left:`<button class="iconbtn" data-a="minimize" aria-label="Minimize">${ic('down')}</button>`,right:`<button class="btn primary sm" data-a="finish">Finish</button>`})
+    head=hdr('Log workout',{left:`<button class="iconbtn" data-a="minimize" aria-label="Minimize">${ic('down')}</button>`,right:`<button class="btn primary sm" data-a="finish">${ic('check','sm')} Finish</button>`})
       +`<div class="statbar gut"><div><label>Duration</label><b data-clock="${obj.start}">${fmtTime((Date.now()-obj.start)/1000)}</b></div><div><label>Volume</label><b id="livevol">${fmtN(convW(vol,'lb',u))} ${u}</b></div><div><label>Sets</label><b id="livesets">${done}</b></div></div>`;
   } else if(mode==='edit'){
     head=hdr('Edit workout',{left:backBtn,right:`<button class="btn primary sm" data-a="editSave">Save</button>`});
@@ -3627,7 +3690,7 @@ async function importText(name,text){
 /* ---------- Click actions ---------- */
 const A={
   tab:(d)=>setTab(d.v), back:()=>pop(),
-  moreFeed:()=>{ ui.feedN=(ui.feedN||15)+20; render(); },
+  moreFeed:()=>{ ui.feedN=(ui.feedN||3)+10; render(); },
   settings:()=>push({name:'settings'}),
   startEmpty:()=>startWorkout(null),
   resume:()=>{ if(!st.active) return; ui.stack=[{name:'active'}]; render(); wake(true); },
@@ -3931,7 +3994,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611170831';
+window.WH_BUILD='202611171400';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
