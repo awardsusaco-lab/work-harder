@@ -419,6 +419,7 @@ textarea{resize:vertical;line-height:1.4}
 .patch.got .p-ic{stroke:var(--on-accent,#fff)}
 .patch.got b{color:var(--fg)}
 .patches.big{grid-template-columns:repeat(3,1fr)}
+.bcat{margin:16px 0 8px;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.04em;font-size:16px;display:flex;justify-content:space-between;align-items:baseline}
 .patches.big .patch span{font-size:11px}
 .newbadges .patches{grid-template-columns:repeat(4,1fr)}
 .newbadges .patch.got svg{animation:lvlpop .9s cubic-bezier(.2,1.4,.4,1)}
@@ -3258,6 +3259,98 @@ function badgesCard(){
     <button class="btn ghost wide sm" data-a="allBadges">See all badges ${ic('right','sm')}</button></div>`;
 }
 
+/* ---------- More achievements across every part of fitness ---------- */
+const BADGE_CAT={first:'Milestones',w10:'Milestones',w25:'Milestones',w50:'Milestones',w100:'Milestones',w250:'Milestones',v100k:'Volume',v500k:'Volume',v1m:'Volume',v5m:'Volume',heavy:'Volume',s4:'Consistency',s12:'Consistency',s26:'Consistency',tag:'Consistency',pr10:'Records',pr50:'Records',dawn:'Consistency',night:'Consistency',knees:'Hunter Ready',pack:'Hunter Ready',posture:'Hunter Ready',h50:'Milestones',trophy:'Milestones'};
+BADGES.push(
+  ['bench135','Plate Bench','Bench press 135 lb','dumbbell',c=>[c.best.bench_bb||0,135],'Strength'],
+  ['bench225','Two-Plate Bench','Bench press 225 lb','dumbbell',c=>[c.best.bench_bb||0,225],'Strength'],
+  ['bench315','Three-Plate Bench','Bench press 315 lb','dumbbell',c=>[c.best.bench_bb||0,315],'Strength'],
+  ['squat225','Two-Plate Squat','Squat 225 lb','dumbbell',c=>[c.best.squat_bb||0,225],'Strength'],
+  ['squat315','Three-Plate Squat','Squat 315 lb','dumbbell',c=>[c.best.squat_bb||0,315],'Strength'],
+  ['squat405','Four-Plate Squat','Squat 405 lb','dumbbell',c=>[c.best.squat_bb||0,405],'Strength'],
+  ['dl315','Three-Plate Pull','Deadlift 315 lb','dumbbell',c=>[Math.max(c.best.deadlift||0,c.best.trapbar_dl||0),315],'Strength'],
+  ['dl405','Four-Plate Pull','Deadlift 405 lb','dumbbell',c=>[Math.max(c.best.deadlift||0,c.best.trapbar_dl||0),405],'Strength'],
+  ['dl495','Five-Plate Pull','Deadlift 495 lb','dumbbell',c=>[Math.max(c.best.deadlift||0,c.best.trapbar_dl||0),495],'Strength'],
+  ['ohp135','Overhead Plate','Overhead press 135 lb','dumbbell',c=>[c.best.ohp||0,135],'Strength'],
+  ['club1000','1,000-lb Club','Squat + bench + deadlift total 1,000 lb','trophy',c=>[(c.best.squat_bb||0)+(c.best.bench_bb||0)+Math.max(c.best.deadlift||0,c.best.trapbar_dl||0),1000],'Strength'],
+  ['pull10','Ten Strict Pull-Ups','10 pull-ups in one set','posture',c=>[c.pullReps,10],'Bodyweight'],
+  ['wpull45','Weighted Pull-Up','Pull-up with 45 lb added','posture',c=>[c.pullW,45],'Bodyweight'],
+  ['push100','Century Push-Ups','100 push-ups in one workout','posture',c=>[c.pushReps,100],'Bodyweight'],
+  ['plank2','Iron Core','Hold a plank 2 minutes','clock',c=>[c.plank,120],'Bodyweight'],
+  ['hang2','Hang Tough','Dead hang 2 minutes','clock',c=>[c.hang,120],'Bodyweight'],
+  ['mi10','10 Miles','Log 10 miles of cardio','bolt',c=>[c.miles,10],'Cardio'],
+  ['mi50','50 Miles','Log 50 miles of cardio','bolt',c=>[c.miles,50],'Cardio'],
+  ['mi100','100 Miles','Log 100 miles of cardio','bolt',c=>[c.miles,100],'Cardio'],
+  ['cardio10','Engine Builder','10 hours of cardio','flame',c=>[c.cardioH,10],'Cardio'],
+  ['ex25','Explorer','Try 25 different exercises','list',c=>[c.distinct,25],'Variety'],
+  ['ex50','Well Rounded','Try 50 different exercises','list',c=>[c.distinct,50],'Variety'],
+  ['ex100','Encyclopedia','Try 100 different exercises','list',c=>[c.distinct,100],'Variety'],
+  ['allmus','Head to Toe','Train 13 muscle groups in one week','posture',c=>[c.weekMus,13],'Variety'],
+  ['stier','S-Tier Session','4+ S-tier exercises in one workout','trophy',c=>[c.sTier,4],'Variety'],
+  ['inventor','Inventor','Create your own exercise','plus',c=>[c.customEx,1],'Variety'],
+  ['builder','Program Builder','Build 3 routines','folder',c=>[c.routines,3],'Variety'],
+  ['five','Five-a-Week','5 workouts in one week','cal',c=>[c.maxWeek,5],'Consistency'],
+  ['three','Three-Day Run','Train 3 days in a row','cal',c=>[c.dayRun,3],'Consistency'],
+  ['weekend','Weekend Warrior','10 weekend workouts','sun',c=>[c.weekend,10],'Consistency'],
+  ['comeback','Comeback Kid','Return after 2+ weeks off','history',c=>[c.comebacks,1],'Consistency'],
+  ['oneyear','One Year Strong','Still training a year after your first workout','cal',c=>[c.yearSpan,365],'Consistency'],
+  ['long','Marathon Session','A 90-minute workout','clock',c=>[c.longest,90],'Effort'],
+  ['quick','Quick Hit','10 workouts under 35 minutes','bolt',c=>[c.quick,10],'Effort'],
+  ['sets1k','1,000 Sets','Log 1,000 sets','list',c=>[c.sets,1000],'Effort'],
+  ['sets5k','5,000 Sets','Log 5,000 sets','list',c=>[c.sets,5000],'Effort'],
+  ['reps10k','10,000 Reps','Log 10,000 reps','list',c=>[c.reps,10000],'Effort'],
+  ['reps50k','50,000 Reps','Log 50,000 reps','list',c=>[c.reps,50000],'Effort'],
+  ['rate100','Honest Effort','Rate 100 sets','target',c=>[c.rated,100],'Effort'],
+  ['max10','All Out','10 sets rated Max','flame',c=>[c.maxSets,10],'Effort'],
+  ['super25','Superset Pro','25 supersets','bolt',c=>[c.supersets,25],'Effort'],
+  ['timed25','On the Clock','25 timed sets','clock',c=>[c.timed,25],'Effort'],
+  ['triple','Triple Crown','3 PRs in one workout','trophy',c=>[c.maxPRs,3],'Records'],
+  ['pr100','Record Breaker','100 personal records','trophy',c=>[c.prs,100],'Records'],
+  ['log10','Weigh-In Habit','10 body weight entries','scale',c=>[c.bodyLogs,10],'Body'],
+  ['down5','Down 5','Down 5 lb from your first weigh-in','scale',c=>[c.down,5],'Body'],
+  ['down10','Down 10','Down 10 lb from your first weigh-in','scale',c=>[c.down,10],'Body'],
+  ['down20','Down 20','Down 20 lb from your first weigh-in','scale',c=>[c.down,20],'Body'],
+);
+const _badgeCtxBase=badgeCtx;
+badgeCtx=function(until){
+  const c=_badgeCtxBase(until);
+  const ws=workoutsSorted().filter(w=>until==null||w.start<=until).slice().reverse();
+  Object.assign(c,{best:{},pullReps:0,pullW:0,pushReps:0,plank:0,hang:0,miles:0,cardioH:0,distinct:0,weekMus:0,sTier:0,maxWeek:0,dayRun:0,weekend:0,comebacks:0,yearSpan:0,longest:0,quick:0,sets:0,reps:0,rated:0,maxSets:0,supersets:0,timed:0,maxPRs:0});
+  const seen=new Set(), musWk={}, perWk={}, days=new Set(); let prev=null;
+  for(const w of ws){
+    const u=w.unit||'lb'; const min=((w.end||w.start)-w.start)/60000; c.longest=Math.max(c.longest,min); if(w.end&&min<35) c.quick++;
+    const dow=new Date(w.start).getDay(); if(dow===0||dow===6) c.weekend++;
+    if(prev&&w.start-prev>=14*DAY) c.comebacks++; prev=w.start; days.add(startOfDay(w.start));
+    c.maxPRs=Math.max(c.maxPRs,(w.prs||[]).length);
+    const wk=weekStart(w.start); perWk[wk]=(perWk[wk]||0)+1; musWk[wk]=musWk[wk]||new Set();
+    let push=0, sT=0;
+    for(const e of w.exercises||[]){
+      const X=getEx(e.exId); seen.add(e.exId); (X.primary||[]).forEach(m=>musWk[wk].add(m));
+      if(X.nip&&X.nip.best==='S') sT++; if(e.ss) c.supersets++;
+      for(const s of e.sets||[]){
+        c.sets++; const r=num(s.r)||0, ww=toLb(num(s.w)||0,u), t=num(s.t)||0, d=num(s.d)||0; c.reps+=r;
+        if(s.eff){ c.rated++; if(s.eff==='max') c.maxSets++; }
+        if(t&&X.type!=='cardio') c.timed++;
+        if(s.type!=='w'&&ww&&['wr'].includes(X.type)) c.best[e.exId]=Math.max(c.best[e.exId]||0,ww);
+        if(['pullup','chinup'].includes(e.exId)){ if(!ww) c.pullReps=Math.max(c.pullReps,r); c.pullW=Math.max(c.pullW,ww); }
+        if(/pushup/.test(e.exId)) push+=r;
+        if(e.exId==='plank') c.plank=Math.max(c.plank,t);
+        if(e.exId==='dead_hang') c.hang=Math.max(c.hang,t);
+        if(X.type==='cardio'){ c.miles+= (w.dunit==='km'? d*0.621 : d); c.cardioH+=t/3600; }
+      }
+    }
+    c.pushReps=Math.max(c.pushReps,push); c.sTier=Math.max(c.sTier,sT);
+  }
+  c.distinct=seen.size; c.maxWeek=Math.max(0,...Object.values(perWk)); c.weekMus=Math.max(0,...Object.values(musWk).map(s=>[...s].filter(m=>m!=='Full Body'&&m!=='Cardio').length));
+  const ds=[...days].sort((a,b)=>a-b); let run=0; for(let i=0;i<ds.length;i++){ run= i&&Math.round((ds[i]-ds[i-1])/DAY)===1? run+1 : 1; c.dayRun=Math.max(c.dayRun,run); }
+  if(ws.length){ const last=ws[ws.length-1].start; if((until??Date.now())-last<21*DAY) c.yearSpan=Math.floor((last-ws[0].start)/DAY); }
+  c.customEx=Object.keys(st.custom||{}).filter(k=>!BUILTIN[k]).length; c.routines=Object.keys(st.routines||{}).length;
+  const en=(st.body&&st.body.entries||[]).filter(e=>e&&e.w&&(until==null||e.t<=until)).sort((a,b)=>a.t-b.t);
+  c.bodyLogs=en.length; c.down= en.length>1? Math.max(0,toLb(en[0].w,en[0].u||'lb')-toLb(en[en.length-1].w,en[en.length-1].u||'lb')) : 0;
+  return c;
+};
+badgeState=function(until){ const c=badgeCtx(until); const nm=BADGE_NAMES[worldKey()]; return BADGES.map((b,i)=>{ const [id,name,desc,icon,f,cat]=b; const [v,g]=f(c); return {id,name:(nm&&i<24)?nm[i]:name,desc,icon,v,g,got:v>=g,cat:cat||BADGE_CAT[id]||'Milestones'}; }); };
+
 /* Mythical creatures: a different cryptid at every stage, from a tiny Snipe to the Yeti */
 const MYTH=[
  /* Snipe */ `<ellipse cx="96" cy="128" rx="20" ry="15"/><circle cx="114" cy="116" r="9"/><path d="M121 115 L152 112 L121 119Z"/><path d="M90 140 L88 155 M100 141 L102 155" class="leg"/><path d="M76 124 L64 118 L74 132Z"/><circle class="eye" cx="116" cy="114" r="1.8"/>`,
@@ -4417,7 +4510,8 @@ const A={
   stAdd:()=>{ const T=ui.stimer; if(T){ T.target+=15; renderSetTimer(); } },
   stDone:()=>{ const T=ui.stimer; if(!T) return; const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; } finishSetTimer(sec); },
   stCancel:()=>{ ui.stimer=null; renderSetTimer(); },
-  allBadges:()=>{ const bs=badgeState(); openSheet({kind:'html',title:`Badges · ${bs.filter(b=>b.got).length} of ${bs.length}`,html:`<div class="patches big">${bs.map(b=>patch(b,'big')).join('')}</div>`}); },
+  allBadges:()=>{ const bs=badgeState(); const cats=['Milestones','Consistency','Strength','Bodyweight','Cardio','Volume','Effort','Records','Variety','Body','Hunter Ready'];
+    openSheet({kind:'html',title:`Badges · ${bs.filter(b=>b.got).length} of ${bs.length}`,html:cats.map(cat=>{ const list=bs.filter(b=>b.cat===cat); if(!list.length) return ''; return `<h4 class="bcat">${esc(cat)} <span class="muted small">${list.filter(b=>b.got).length}/${list.length}</span></h4><div class="patches big">${list.map(b=>patch(b,'big')).join('')}</div>`; }).join('')}); },
   trophyInfo:()=>{ const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'? TROPHY[kind] : WORLDS[wk]; const pts=trophyPoints().pts, cur=trophyStage(pts); const artOf=(i)=> wk==='hunt'? trophyArt(kind,i,{scene:false}) : T.art(i,{scene:false});
     const tp=trophyPoints(); const plans=[...new Set(workoutsSorted().map(planKeyOf).filter(Boolean).concat(folderNames()))];
     openSheet({kind:'html',title: wk==='hunt'?`Grow your ${T.name}`:`Your ${T.unit} path`,html:`<p class="muted small">Your ${wk==='hunt'?'animal':T.unit.toLowerCase()} grows with your current plan, <b>${esc(planName(tp.key))}</b> (week ${tp.week}). Points per plan workout:</p>
@@ -4604,7 +4698,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171423';
+window.WH_BUILD='202611171425';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
