@@ -196,7 +196,7 @@ button{cursor:pointer}
 /* exercise list */
 .search{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:var(--r-sm);padding:0 12px;min-height:46px;color:var(--muted)}
 .search input{flex:1;border:0;background:transparent;outline:0;min-width:0;color:var(--fg);font-size:16px}
-select,input:not([type]),input[type="text"],input[type="search"],textarea,.title-in{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);min-height:44px;padding:8px 12px;width:100%;color:var(--fg);font-size:16px}
+select,input:not([type]),input[type="text"],input[type="search"],input[type="email"],input[type="password"],textarea,.title-in{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);min-height:44px;padding:8px 12px;width:100%;color:var(--fg);font-size:16px}
 textarea{resize:vertical;line-height:1.4}
 .title-in{font-family:var(--f-display);font-weight:800;font-size:26px;letter-spacing:.01em;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding-inline:0}
 .exlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -539,6 +539,30 @@ textarea{resize:vertical;line-height:1.4}
 .world-mil.br-spaceforce .w-medal{fill:#06080A}
 .world-mil .w-delta{fill:#C9D2DC;stroke:#4F5B67;stroke-width:1.5}
 .world-mil.br-marines .w-chev{fill:#E5C66A;stroke:#8B1E24;stroke-width:2}
+
+/* ---- Friends ---- */
+.avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none;background:var(--surface2);display:inline-grid;place-items:center;font-weight:800;color:var(--accent);font-size:18px;border:2px solid var(--surface)}
+.avatar.lg{width:58px;height:58px;font-size:24px}.avatar.xl{width:110px;height:110px;font-size:42px}
+.fcard{padding:0;overflow:hidden}
+.fc-art .trophy-svg{display:block}
+.fc-h{display:flex;gap:12px;align-items:flex-start;padding:12px 14px 6px;margin-top:-26px;position:relative}
+.fc-h .avatar{box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.fc-h h3{margin:16px 0 2px;font-size:17px}
+.fc-h .iconbtn{margin-left:auto;margin-top:12px}
+.motto{margin:4px 0 0;font-style:italic;color:var(--muted)}
+.flist{list-style:none;margin:0;padding:0 14px 12px;display:flex;flex-direction:column;gap:8px}
+.frow{background:var(--surface2);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.frow>div:first-child{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.fstats{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted)}
+.fstats span{display:flex;align-items:center;gap:4px}
+.codebox{display:flex;justify-content:space-between;align-items:center;margin:4px 14px 14px;padding:10px 12px;border-radius:12px;background:var(--surface2)}
+.codebox .code{display:block;font-family:var(--f-display);font-size:26px;letter-spacing:.18em}
+.addf{display:flex;flex-direction:column;gap:8px}
+.addf input{text-transform:uppercase;letter-spacing:.15em;font-weight:700}
+.authcard{display:flex;flex-direction:column;gap:10px}
+.auth-art{margin:-16px -16px 4px;border-radius:var(--r) var(--r) 0 0;overflow:hidden}
+.pe-photo{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0}
+.pad{padding:12px 14px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -796,7 +820,7 @@ button,.chip,.slab,#nav,.exhead,.folder-h{-webkit-user-select:none;user-select:n
   <div id="restbar" class="restbar" hidden></div>
   <nav id="nav" aria-label="Sections">
     <button data-tab="home"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/></svg>Home</button>
-    <button data-tab="workout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Workout</button>
+    <button data-tab="friends"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.6-5.5 6.5-5.5s5.5 2 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M15.5 14.6c2.6.2 4.6 2 5.5 5"/></svg>Friends</button>
     <button data-tab="routines"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Routines</button>
     <button data-tab="exercises"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>Exercises</button>
     <button data-tab="profile"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Profile</button>
@@ -3643,6 +3667,86 @@ WORLDS.mil.art=milArt;
 Object.defineProperty(WORLDS.mil,'stages',{get(){ return BRANCHES[branchKey()].ranks; }});
 Object.defineProperty(WORLDS.mil,'tag',{get(){ return `Earn ${BRANCHES[branchKey()].name} ranks from ${BRANCHES[branchKey()].ranks[0]} up`; }});
 
+/* ---------- Rank insignia v2: metallic, embroidered-patch look ---------- */
+const INS_DEFS=`<defs>
+<linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF0A6"/><stop offset=".35" stop-color="#E8BE4A"/><stop offset=".7" stop-color="#B8862A"/><stop offset="1" stop-color="#7A5512"/></linearGradient>
+<linearGradient id="gSilver" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#D3DAE2"/><stop offset=".8" stop-color="#9AA5B1"/><stop offset="1" stop-color="#6C7783"/></linearGradient>
+<linearGradient id="gRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0525A"/><stop offset=".6" stop-color="#C21F2B"/><stop offset="1" stop-color="#7E0F17"/></linearGradient>
+<linearGradient id="gWhite" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#D7DCE2"/></linearGradient>
+<radialGradient id="gPatch" cx="50%" cy="35%" r="75%"><stop offset="0" stop-color="#ffffff" stop-opacity=".14"/><stop offset="1" stop-color="#000000" stop-opacity=".25"/></radialGradient>
+<filter id="fSh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.6" flood-color="#000" flood-opacity=".45"/></filter>
+</defs>`;
+const BR_STYLE={
+  army:{patch:'#24301F',metal:'gGold',edge:'#5E4512',stitch:'#C9A445'},
+  marines:{patch:'#9E1C26',metal:'gGold',edge:'#5E1015',stitch:'#E8C766'},
+  navy:{patch:'#0F1E3B',metal:'gRed',edge:'#4A0A10',stitch:'#9AA8C4'},
+  airforce:{patch:'#1A3366',metal:'gSilver',edge:'#2C3E63',stitch:'#9DB2D8'},
+  spaceforce:{patch:'#0B0E12',metal:'gSilver',edge:'#2F3843',stitch:'#7C8896'},
+  coastguard:{patch:'#13305C',metal:'gWhite',edge:'#5B6B80',stitch:'#9AA8C4'},
+};
+function chevPath(y,w=34,h=24,t=9){ // classic pointed chevron with slight curve
+  return `M${-w} ${y+h} Q${-w*.55} ${y+h*.45} 0 ${y} Q${w*.55} ${y+h*.45} ${w} ${y+h} L${w} ${y+h+t} Q${w*.55} ${y+h*.45+t} 0 ${y+t} Q${-w*.55} ${y+h*.45+t} ${-w} ${y+h+t}Z`;
+}
+function chevDown(y,w=34,h=24,t=9){ return `M${-w} ${y-h} Q${-w*.55} ${y-h*.45} 0 ${y} Q${w*.55} ${y-h*.45} ${w} ${y-h} L${w} ${y-h-t} Q${w*.55} ${y-h*.45-t} 0 ${y-t} Q${-w*.55} ${y-h*.45-t} ${-w} ${y-h-t}Z`; }
+function rockerPath(y,w=34,t=9){ return `M${-w} ${y} Q0 ${y+20} ${w} ${y} L${w} ${y+t} Q0 ${y+20+t} ${-w} ${y+t}Z`; }
+function starPath(x,y,r){ let d=''; for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.4:r; d+=(i?'L':'M')+f1(x+rr*Math.cos(a))+' '+f1(y+rr*Math.sin(a)); } return d+'Z'; }
+const EAGLE=`M-4 -6 C-8 -8 -12 -7 -14 -5 L-18 -6 L-14 -3 C-12 -1 -9 0 -6 0 C-10 2 -14 4 -18 4 C-14 7 -8 7 -4 5 L-2 12 L0 9 L2 12 L4 5 C8 7 14 6 18 3 C12 2 8 0 6 -2 C10 -4 16 -10 26 -20 C20 -18 16 -16 13 -14 L16 -20 C12 -16 9 -13 6 -10 L7 -17 C4 -13 2 -10 0 -8 C-2 -10 -2 -12 -4 -14 Z M-26 -20 C-20 -14 -14 -10 -8 -8 L-10 -13 C-14 -15 -18 -17 -26 -20Z`;
+function anchorSVG(stars,letters,shield,metal){
+  let s=`<g filter="url(#fSh)"><rect x="-3.5" y="-34" width="7" height="64" rx="3.5" fill="url(#gGold)" stroke="#7A5512" stroke-width=".8"/><rect x="-17" y="-27" width="34" height="6" rx="3" fill="url(#gGold)" stroke="#7A5512" stroke-width=".8"/><circle cx="0" cy="-38" r="5.5" fill="none" stroke="#D9AE3E" stroke-width="3"/>
+    <path d="M-26 8 Q-24 30 0 32 Q24 30 26 8" fill="none" stroke="#D9AE3E" stroke-width="6" stroke-linecap="round"/><path d="M-25 9 Q-23 28 0 30" fill="none" stroke="#FFF0A6" stroke-width="1.4" opacity=".7"/><path d="M-30 4 L-26 14 L-20 6Z M30 4 L26 14 L20 6Z" fill="url(#gGold)"/>
+    <path d="M4 -36 C18 -30 -14 -16 6 -8 C20 -2 -12 8 8 18" fill="none" stroke="#E9D9A8" stroke-width="2" stroke-dasharray="3 2"/></g>`;
+  if(letters) s+=`<text x="0" y="6" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="${letters.length>3?11:13}" fill="url(#gSilver)" stroke="#555" stroke-width=".5" letter-spacing="1">${letters}</text>`;
+  if(shield) s+=`<path d="M-7 -10 L7 -10 L7 -1 Q0 6 -7 -1Z" fill="#fff" stroke="#13305C" stroke-width="1"/><path d="M-4 -10 L-4 -1 M0 -10 L0 2 M4 -10 L4 -1" stroke="#C8433A" stroke-width="1.5"/>`;
+  for(let i=0;i<stars;i++) s+=`<path d="${starPath(stars===1?0:(i?13:-13),-54,7.5)}" fill="url(#gSilver)" stroke="#555" stroke-width=".6"/>`;
+  return s;
+}
+function insignia2(spec,bk,stage){
+  const S=BR_STYLE[bk]; const [k,a=0,b=0,c]=spec;
+  const metal=`url(#${S.metal})`;
+  const chev=(y,dir=1)=>`<path d="${dir>0?chevPath(y):chevDown(y)}" fill="${metal}" stroke="${S.edge}" stroke-width="1.4"/><path d="${dir>0?chevPath(y+3.2,30.5,21.6,2.6):chevDown(y-3.2,30.5,21.6,2.6)}" fill="none" stroke="${S.stitch}" stroke-width=".6" stroke-dasharray="1.6 1.4" opacity=".75"/>`;
+  const rock=y=>`<path d="${rockerPath(y)}" fill="${metal}" stroke="${S.edge}" stroke-width="1.4"/>`;
+  let g='';
+  if(k==='tags') return `<g filter="url(#fSh)"><rect x="-20" y="-28" width="30" height="44" rx="9" fill="url(#gSilver)" stroke="#5D6670" transform="rotate(-10)"/><rect x="-6" y="-24" width="30" height="44" rx="9" fill="url(#gSilver)" stroke="#5D6670" transform="rotate(8)"/><path d="M-6 -12 L10 -12 M-4 -6 L12 -6 M-2 0 L8 0" stroke="#6C7783" stroke-width="1.6" transform="rotate(8)"/><path d="M-14 -40 Q0 -62 14 -40" fill="none" stroke="#C9D2DC" stroke-width="1.6" stroke-dasharray="2.5 1.5"/></g>`;
+  if(k==='chev'){
+    const n=a, top=-((n*13+b*12+(c==='star'||c==='rifles'?14:0))/2)-6;
+    for(let i=0;i<n;i++) g+=chev(top+i*13);
+    const yb=top+n*13+18; for(let i=0;i<b;i++) g+=rock(yb+i*12);
+    const mid=top+n*13+20+(b?((b-1)*12)/2:0)-(b?6:0);
+    if(c==='star') g+=`<path d="${starPath(0,b?mid+2:top+n*13+18,8)}" fill="${metal}" stroke="${S.edge}" stroke-width="1"/>`;
+    if(c==='rifles'){ const y=b?mid+2:top+n*13+18; g+=`<g stroke="${S.edge}" stroke-width=".8" fill="${metal}"><path d="M-17 ${y-10} L15 ${y+12} L13 ${y+15} L-19 ${y-7}Z"/><path d="M17 ${y-10} L-15 ${y+12} L-13 ${y+15} L19 ${y-7}Z"/><path d="M11 ${y+10} L19 ${y+16} L16 ${y+19} Z M-11 ${y+10} L-19 ${y+16} L-16 ${y+19}Z"/></g>`; }
+    return `<g filter="url(#fSh)">${g}</g>`;
+  }
+  if(k==='stripes'){ for(let i=0;i<a;i++){ const x=(i-(a-1)/2)*16; g+=`<path d="M${x-14} 24 L${x+2} -24 L${x+12} -24 L${x-4} 24Z" fill="url(#gWhite)" stroke="#7A8899" stroke-width="1"/>`; } return `<g filter="url(#fSh)">${g}</g>`; }
+  if(k==='po'){ g+=`<g transform="translate(0 -24) scale(1.15)"><path d="${EAGLE}" fill="url(#gWhite)" stroke="#5B6470" stroke-width=".8"/></g>`;
+    if(b==='shield') g+=`<path d="M-6 -6 L6 -6 L6 2 Q0 8 -6 2Z" fill="#fff" stroke="#13305C"/><path d="M-3 -6 L-3 2 M0 -6 L0 4 M3 -6 L3 2" stroke="#C8433A" stroke-width="1.3"/>`;
+    for(let i=0;i<a;i++) g+=chev(2+i*11); return `<g filter="url(#fSh)" transform="translate(0 ${-(a-1)*5}) scale(${a>2?.92:1})">${g}</g>`; }
+  if(k==='anchor') return `<g transform="translate(0 6) scale(.88)">${anchorSVG(a,bk==='coastguard'?'':'USN',b==='shield'||bk==='coastguard',metal)}</g>`;
+  if(k==='af'){ const n=a, up=b; const base=up?10:4;
+    for(let i=0;i<n;i++) g+=`<path d="${chevDown(base+6+i*11,36,20,8)}" fill="url(#gSilver)" stroke="#2C3E63" stroke-width="1.2"/>`;
+    for(let i=0;i<up;i++) g+=`<path d="${chevPath(base-30-i*11,36,20,8)}" fill="url(#gSilver)" stroke="#2C3E63" stroke-width="1.2"/>`;
+    g+=`<circle cx="0" cy="${base-8}" r="12" fill="#2B4C8C" stroke="url(#gSilver)" stroke-width="2.4"/><path d="${starPath(0,base-8,8.5)}" fill="url(#gSilver)"/>`;
+    if(n===5&&up===3) g+=`<path d="${starPath(0,base-72,6)}" fill="url(#gSilver)"/>`;
+    return `<g filter="url(#fSh)" transform="translate(0 ${up?8:0}) scale(${up?.88:1})">${g}</g>`; }
+  if(k==='delta'){ g+=`<path d="M0 -40 L28 26 L0 12 L-28 26Z" fill="url(#gSilver)" stroke="#2F3843" stroke-width="1.4"/><path d="M0 -30 L18 12 L0 4 L-18 12Z" fill="#1A2028" opacity=".55"/><path d="M0 -40 L0 12" stroke="#fff" stroke-width=".8" opacity=".5"/>`;
+    for(let i=0;i<a;i++) g+=`<path d="${chevPath(30+i*9,30,12,5)}" fill="url(#gSilver)" stroke="#2F3843" stroke-width="1"/>`;
+    for(let i=0;i<b;i++) g+=`<path d="${chevDown(-44-i*9,30,12,5)}" fill="url(#gSilver)" stroke="#2F3843" stroke-width="1"/>`;
+    return `<g filter="url(#fSh)" transform="translate(0 ${b*4-a*4+4}) scale(${a+b>5?.72:a>3?.8:.9})">${g}</g>`; }
+  return '';
+}
+milArt=function(stage,{scene=true}={}){
+  const bk=branchKey(), B=BRANCHES[bk], S=BR_STYLE[bk];
+  const bgs={army:['#4F5A38','#66704A','#3A4329','#7C7350'],marines:['#5C6340','#7A6F4C','#3C432C','#2F3523'],navy:['#13294B','#1C3A66','#0E1F3A','#24467A'],airforce:['#1D3E73','#2B5394','#14305C','#3A64A8'],spaceforce:['#101418','#1C232B','#0A0D10','#2A333D'],coastguard:['#163A6B','#1E4C86','#0F2C55','#E8743B']}[bk];
+  let bg=`<rect width="360" height="150" fill="${bgs[0]}"/>`;
+  if(bk==='army'||bk==='marines') bg+=[[30,30,40],[120,110,50],[300,40,46],[220,130,36],[340,120,30],[70,120,26],[200,20,30],[260,80,24]].map(([x,y,r],i)=>`<ellipse fill="${bgs[1+i%3]}" cx="${x}" cy="${y}" rx="${r}" ry="${r*.6}" transform="rotate(${i*37} ${x} ${y})"/>`).join('');
+  else if(bk==='coastguard') bg+=`<path d="M250 0 L290 0 L190 150 L150 150Z" fill="#E8743B"/><path d="M296 0 L308 0 L208 150 L196 150Z" fill="#2E6FB7"/>`;
+  else if(bk==='spaceforce') bg+=stars(50,7);
+  else bg+=`<path d="M0 120 Q90 100 180 120 T360 120 L360 150 L0 150Z" fill="${bgs[2]}" opacity=".7"/>`;
+  const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 75 L${f1(180+220*Math.cos(i*Math.PI/6))} ${f1(75+220*Math.sin(i*Math.PI/6))} L${f1(180+220*Math.cos(i*Math.PI/6+.1))} ${f1(75+220*Math.sin(i*Math.PI/6+.1))}Z"/>`).join('')}</g>`:'';
+  const patch=`<g filter="url(#fSh)"><rect x="128" y="10" width="104" height="130" rx="18" fill="${S.patch}"/><rect x="128" y="10" width="104" height="130" rx="18" fill="url(#gPatch)"/><rect x="133" y="15" width="94" height="120" rx="14" fill="none" stroke="${S.stitch}" stroke-width="1.2" stroke-dasharray="3 2.2" opacity=".8"/></g>`;
+  return `<svg class="trophy-svg world-mil br-${bk}" viewBox="${scene?'0 0 360 150':'118 4 124 142'}" aria-hidden="true">${INS_DEFS}${scene?bg:`<rect width="360" height="150" fill="${bgs[0]}"/>`}${rays}${patch}<g transform="translate(180 76) scale(${.92+stage*.012})">${insignia2(B.ins[stage],bk,stage)}</g></svg>`;
+};
+WORLDS.mil.art=milArt;
+
 function worldKey(){ return WORLDS[st.settings.world]? st.settings.world : 'hunt'; }
 const BADGE_NAMES={
   space:['Ignition','Cadet','Pilot','Commander','Captain','Space Legend','Payload 100K','Heavy Lift','Million-Pound Launch','Saturn V','Max Thrust','Four Orbits','12-Week Mission','Six-Month Voyage','Mission Accomplished','New Frontier','Hall of Astronauts','Sunrise Launch','Night Shift','Landing Gear','Cargo Bay','Steady Spine','50 Hours in Orbit','Reach Deep Space'],
@@ -3696,7 +3800,7 @@ home(){
   if(!ws.length&&Store.mode!=='cloud') body+=importCard('Bring your workout history over');
   if(!ws.length){
     body+=`<div class="empty"><div class="empty-fig">${figSVG(BUILTIN.deadlift,{anim:'deadlift'})}</div><h2>Your first workout starts here</h2><p>Log sets, beat your numbers, and watch the pounds add up. Pick a routine or start empty.</p>
-      <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-v="workout">Browse routines</button></div></div>`;
+      <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-tab="routines">Browse routines</button></div></div>`;
   } else {
     const N=ui.feedN||3;
     body+=`<h2 class="sec">${ic('history')} Recent workouts</h2>`+ws.slice(0,N).map(feedCard).join('');
@@ -4006,6 +4110,7 @@ settings(){
   </section>`};
 }
 };
+
 
 /* ---------- Logger (live / edit / routine) ---------- */
 function loggerPage(obj,mode){
@@ -4768,7 +4873,7 @@ const A={
     push({name:'save'}); },
   checkAll:()=>{ for(const e of st.active.exercises) for(const s of e.sets){ const ex=getEx(e.exId); for(const c of colsFor(ex)) if((s[c]===''||s[c]==null)&&s['p'+c]!=null&&s['p'+c]!=='') s[c]=s['p'+c]; if(colsFor(ex).some(c=>s[c]!==''&&s[c]!=null)) s.done=true; } changed(true); },
   discard:()=>confirmSheet('Discard this workout?','Nothing from this session will be saved.','Discard',()=>A.doDiscard()),
-  doDiscard:()=>{ st.active=null; Store.saveActive(true); ui.rest=null; wake(false); ui.stack=[]; ui.tab='workout'; render(); },
+  doDiscard:()=>{ st.active=null; Store.saveActive(true); ui.rest=null; wake(false); ui.stack=[]; ui.tab='home'; render(); },
   saveWorkout:()=>{
     const a=clone(st.active); const n=$('#wname'); if(n&&n.value.trim()) a.name=n.value.trim(); const nt=$('#wnotes'); if(nt) a.notes=nt.value;
     a.end=Date.now();
@@ -4782,6 +4887,7 @@ const A={
     Store.put('workouts',a.id,a);
     st.active=null; Store.saveActive(true); ui.rest=null; wake(false);
     ui.tab='home'; ui.stack=[{name:'done',id:a.id}]; render(); $('#main').scrollTop=0;
+    if(Social.user) Social.syncAll();
   },
   doneClose:()=>{ ui.stack=[]; ui.tab='home'; render(); },
   editSave:()=>{ const p=cur(); const o=clone(p.obj); normalizeSets(o,true); o.saved=true; if(!o.name) o.name='Workout'; o.prs=computePRs(o); Store.put('workouts',o.id,o); ui.stack.pop(); toast('Workout updated'); render(); },
@@ -4905,6 +5011,170 @@ document.addEventListener('change',e=>onField(e,true));
 document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ const a=document.activeElement; if(!(a&&a.matches&&a.matches('input,textarea,select'))){ ui.dirtyRender=false; softRender(); } },50); } });
 
 /* ---------- Boot ---------- */
+/* ---------- Accounts & Friends ----------
+ Backend: Firebase (Auth email/password + Firestore). Paste the project's web config into FB_CONFIG.
+ Data: users/{uid} profile · users/{uid}/feed/{workoutId} · users/{uid}/friends/{friendUid} · codes/{CODE} → {uid}
+ Friends are mutual: adding a code writes both sides, and the security rules let you read a profile only if they've linked with you. */
+const FB_CONFIG = null; // ← filled in once the Firebase project exists
+const FBV='10.12.2';
+const Social={
+  ready:false, user:null, profile:null, friends:[], loading:false, err:'', api:null,
+  configured(){ return !!(window.WH_MOCK_FB || FB_CONFIG); },
+  async init(){
+    if(this.api||!this.configured()) return;
+    if(window.WH_MOCK_FB){ this.api=window.WH_MOCK_FB; }
+    else {
+      const [app,auth,fs]=await Promise.all([import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-firestore.js`)]);
+      const a=app.initializeApp(FB_CONFIG); const au=auth.getAuth(a); const db=fs.initializeFirestore(a,{localCache:fs.persistentLocalCache()});
+      try{ await auth.setPersistence(au,auth.browserLocalPersistence); }catch(e){}
+      const D=(...p)=>fs.doc(db,...p), C=(...p)=>fs.collection(db,...p);
+      this.api={
+        onAuth:cb=>auth.onAuthStateChanged(au,u=>cb(u?{uid:u.uid,email:u.email}:null)),
+        signUp:(e,p)=>auth.createUserWithEmailAndPassword(au,e,p),
+        signIn:(e,p)=>auth.signInWithEmailAndPassword(au,e,p),
+        reset:e=>auth.sendPasswordResetEmail(au,e),
+        signOut:()=>auth.signOut(au),
+        getProfile:async uid=>{ const s=await fs.getDoc(D('users',uid)); return s.exists()?s.data():null; },
+        setProfile:(uid,data)=>fs.setDoc(D('users',uid),data,{merge:true}),
+        putFeed:(uid,id,item)=>fs.setDoc(D('users',uid,'feed',id),item),
+        listFeed:async (uid,n=20)=>{ const q=fs.query(C('users',uid,'feed'),fs.orderBy('start','desc'),fs.limit(n)); const s=await fs.getDocs(q); return s.docs.map(d=>d.data()); },
+        claimCode:(code,uid)=>fs.setDoc(D('codes',code),{uid}),
+        lookupCode:async code=>{ const s=await fs.getDoc(D('codes',code)); return s.exists()?s.data().uid:null; },
+        link:async (me,them)=>{ const b=fs.writeBatch(db); b.set(D('users',me,'friends',them),{since:Date.now()}); b.set(D('users',them,'friends',me),{since:Date.now()}); await b.commit(); },
+        unlink:async (me,them)=>{ const b=fs.writeBatch(db); b.delete(D('users',me,'friends',them)); b.delete(D('users',them,'friends',me)); await b.commit(); },
+        listFriends:async me=>{ const s=await fs.getDocs(C('users',me,'friends')); return s.docs.map(d=>d.id); },
+      };
+    }
+    this.api.onAuth(async u=>{ this.user=u; this.ready=true; if(u){ await this.loadMe(); this.syncAll(); this.loadFriends(); } else { this.profile=null; this.friends=[]; } softRender(true); });
+  },
+  async loadMe(){ try{ this.profile=await this.api.getProfile(this.user.uid); if(!this.profile||!this.profile.code){ await this.ensureCode(); } }catch(e){ this.err=e.message; } },
+  async ensureCode(){
+    const abc='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    for(let i=0;i<6;i++){ let c=''; for(let k=0;k<6;k++) c+=abc[Math.floor(Math.random()*abc.length)];
+      try{ const taken=await this.api.lookupCode(c); if(taken) continue; await this.api.claimCode(c,this.user.uid); await this.api.setProfile(this.user.uid,{code:c}); this.profile={...(this.profile||{}),code:c}; return; }catch(e){ this.err=e.message; } }
+  },
+  myStatus(){
+    const wk=worldKey(); const tp=trophyPoints(); const stg=trophyStage(tp.pts);
+    const kind= wk==='hunt'? trophyKind() : wk==='mil'? branchKey() : wk;
+    const names= wk==='hunt'? TROPHY[trophyKind()].stages : wk==='mil'? BRANCHES[branchKey()].ranks : WORLDS[wk].stages;
+    return {world:wk,kind,stage:stg,stageName:names[stg],pts:tp.pts,theme:st.settings.theme||'steel'};
+  },
+  async syncAll(){
+    if(!this.user) return;
+    try{
+      const me={...this.myStatus(),name:(this.profile&&this.profile.name)||'',updatedAt:Date.now()};
+      await this.api.setProfile(this.user.uid,me); this.profile={...(this.profile||{}),...me};
+      const ws=workoutsSorted().slice(0,10);
+      for(const w of ws){ await this.api.putFeed(this.user.uid,w.id,this.feedItem(w)); }
+    }catch(e){ this.err=e.message; }
+  },
+  feedItem(w){
+    const before=trophyPoints(w.start-1).pts, after=trophyPoints(w.start).pts;
+    return {name:w.name||'Workout',start:w.start,min:Math.round(((w.end||w.start)-w.start)/60000),lb:Math.round(workoutVolumeLb(w)),ex:(w.exercises||[]).length,pts:Math.max(0,after-before),stage:trophyStage(after)};
+  },
+  async loadFriends(){
+    if(!this.user) return; this.loading=true;
+    try{ const ids=await this.api.listFriends(this.user.uid); const out=[];
+      for(const id of ids){ try{ const p=await this.api.getProfile(id); if(!p) continue; const feed=await this.api.listFeed(id,8); out.push({uid:id,...p,feed}); }catch(e){} }
+      this.friends=out.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); }
+    catch(e){ this.err=e.message; }
+    this.loading=false; softRender(true);
+  },
+};
+/* Render any person's world art from their saved status, without touching your own settings */
+function artFor(p,opts){
+  const prev={world:st.settings.world,trophy:st.settings.trophy,branch:st.settings.branch};
+  try{
+    st.settings.world=p.world||'hunt';
+    if(p.world==='hunt'||!p.world){ st.settings.trophy=p.kind||'elk'; return trophyArt(p.kind||'elk',p.stage||0,opts); }
+    if(p.world==='mil'){ st.settings.branch=p.kind||'army'; return milArt(p.stage||0,opts); }
+    return WORLDS[p.world].art(p.stage||0,opts);
+  } finally { Object.assign(st.settings,prev); }
+}
+function worldLabel(p){ if(p.world==='hunt'||!p.world) return (TROPHY[p.kind]||TROPHY.elk).name; if(p.world==='mil') return (BRANCHES[p.kind]||BRANCHES.army).name; return WORLDS[p.world].name; }
+function avatar(p,size=''){ return p&&p.photo? `<img class="avatar ${size}" src="${esc(p.photo)}" alt="">` : `<span class="avatar ${size} ph">${esc(((p&&p.name)||'?').trim().slice(0,1).toUpperCase())}</span>`; }
+function feedRow(f){ return `<li class="frow"><div><b>${esc(f.name)}</b><span class="muted small">${esc(fmtWhen(f.start))}</span></div><div class="fstats"><span>${ic('target','xs')} +${f.pts} pts</span><span>${ic('dumbbell','xs')} ${fmtN(convW(f.lb,'lb',st.settings.unit))} ${st.settings.unit}</span><span>${ic('clock','xs')} ${f.min} min</span><span>${ic('list','xs')} ${f.ex} ex</span></div></li>`; }
+function friendCard(f,full){
+  return `<article class="card fcard" ${full?'':`data-a="openFriend" data-id="${esc(f.uid)}" tabindex="0"`}>
+    <div class="fc-art">${artFor(f)}</div>
+    <div class="fc-h">${avatar(f)}<div class="minw"><h3>${esc(f.name||'Friend')}</h3><span class="muted small">${esc(worldLabel(f))} · <b>${esc(f.stageName||'')}</b> · ${fmtN(f.pts||0)} pts</span>${f.motto?`<p class="small motto">“${esc(f.motto)}”</p>`:''}</div></div>
+    ${(f.feed||[]).length?`<ul class="flist">${(full?f.feed:f.feed.slice(0,2)).map(feedRow).join('')}</ul>`:'<p class="muted small pad">No workouts shared yet.</p>'}
+  </article>`;
+}
+TABS.friends=function(){
+  let body='<section class="gut stack">';
+  if(!Social.configured()){
+    body+=`<div class="card"><h3>${ic('user','sm')} Friends is almost ready</h3><p class="muted small">Sign-in and friends need a free Firebase project. Once it's connected, you'll make a profile with a photo, share your code, and watch your friends' animals, rockets, ranks and trees grow alongside yours.</p></div>`;
+  } else if(!Social.ready){ Social.init(); body+=`<p class="muted center pad">Connecting…</p>`; }
+  else if(!Social.user){
+    const m=ui.authMode||'in';
+    body+=`<div class="card authcard"><div class="auth-art">${artFor(Social.myStatus())}</div><h3>${m==='up'?'Create your account':'Sign in'}</h3><p class="muted small">Your workouts stay on this phone. Signing in shares only your profile, stage, and a short summary of each workout with friends you add.</p>
+      <input id="aemail" type="email" autocomplete="email" placeholder="Email" inputmode="email">
+      <input id="apass" type="password" autocomplete="${m==='up'?'new-password':'current-password'}" placeholder="Password (6+ characters)">
+      ${m==='up'?`<input id="aname" type="text" autocomplete="nickname" placeholder="Name your friends will see">`:''}
+      ${Social.err?`<p class="small neg">${esc(Social.err)}</p>`:''}
+      <button class="btn primary wide big" data-a="authGo">${ic(m==='up'?'plus':'user')} ${m==='up'?'Create account':'Sign in'}</button>
+      <button class="btn ghost wide sm" data-a="authMode" data-v="${m==='up'?'in':'up'}">${m==='up'?'Already have an account? Sign in':'New here? Create an account'}</button>
+      ${m==='in'?`<button class="btn ghost wide sm" data-a="authReset">Forgot password</button>`:''}</div>`;
+  } else {
+    const me={...(Social.profile||{}),...Social.myStatus()};
+    body+=`<div class="card fcard me"><div class="fc-art">${artFor(me)}</div>
+      <div class="fc-h">${avatar(me,'lg')}<div class="minw"><h3>${esc(me.name||'Set your name')}</h3><span class="muted small">${esc(worldLabel(me))} · <b>${esc(me.stageName)}</b> · ${fmtN(me.pts)} pts</span>${me.motto?`<p class="small motto">“${esc(me.motto)}”</p>`:''}</div>
+      <button class="iconbtn" data-a="editProfile" aria-label="Edit profile">${ic('edit')}</button></div>
+      <div class="codebox"><div><span class="muted small">Your friend code</span><b class="code">${esc(me.code||'······')}</b></div><button class="btn sm" data-a="shareCode">${ic('share','sm')} Share</button></div></div>
+    <div class="card addf"><label for="fcode"><b>${ic('plus','sm')} Add a friend</b></label><div class="row2"><input id="fcode" placeholder="Their 6-letter code" autocapitalize="characters" autocomplete="off" maxlength="6"><button class="btn primary" data-a="addFriend">Add</button></div>${Social.err?`<p class="small neg">${esc(Social.err)}</p>`:''}</div>
+    <h2 class="sec">${ic('user')} Friends <span class="muted small">${Social.friends.length}</span></h2>
+    ${Social.loading&&!Social.friends.length?'<p class="muted pad">Loading friends…</p>':''}
+    ${!Social.loading&&!Social.friends.length?'<p class="muted small">No friends yet. Send someone your code and add theirs.</p>':''}
+    ${Social.friends.map(f=>friendCard(f)).join('')}
+    <button class="btn ghost wide sm" data-a="refreshFriends">${ic('history','sm')} Refresh</button>
+    <button class="btn ghost wide sm danger-t" data-a="signOut">Sign out</button>`;
+  }
+  body+='</section>';
+  return {hdr:hdr('Friends',{right: Social.user?`<button class="iconbtn" data-a="refreshFriends" aria-label="Refresh">${ic('history')}</button>`:''}),body};
+};
+PAGES.friend=function(p){
+  const f=Social.friends.find(x=>x.uid===p.id); if(!f) return PAGES.missing();
+  return {hdr:hdr(f.name||'Friend',{left:backBtn,right:`<button class="iconbtn" data-a="friendMenu" data-id="${esc(f.uid)}" aria-label="Options">${ic('more')}</button>`}),body:`<section class="gut stack">${friendCard(f,true)}</section>`};
+};
+PAGES.profileEdit=function(){
+  const me=Social.profile||{};
+  return {hdr:hdr('Your profile',{left:backBtn,right:`<button class="btn primary sm" data-a="saveProfile">Save</button>`}),body:`<section class="gut stack">
+    <div class="pe-photo">${avatar({...me,photo:ui.newPhoto||me.photo},'xl')}<label class="btn sm filebtn">${ic('upload','sm')} Choose photo<input type="file" accept="image/*" data-f="photoFile"></label>${(ui.newPhoto||me.photo)?`<button class="btn ghost sm" data-a="clearPhoto">Remove</button>`:''}</div>
+    <div class="field"><label for="pname">Name</label><input id="pname" maxlength="40" value="${esc(me.name||'')}"></div>
+    <div class="field"><label for="pmotto">Motto or bio</label><input id="pmotto" maxlength="90" value="${esc(me.motto||'')}" placeholder="Pack it out. Every rep counts."></div>
+    <div class="field"><label for="phome">Hometown (optional)</label><input id="phome" maxlength="40" value="${esc(me.home||'')}" placeholder="City or state"></div>
+    <p class="muted small">Friends see your name, photo, motto, hometown, your world and stage, points, and for each workout: points earned, weight lifted, time, and number of exercises.</p>
+  </section>`};
+};
+async function resizePhoto(file){
+  const url=URL.createObjectURL(file); const img=new Image(); img.src=url; await img.decode();
+  const S=192, c=document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d');
+  const m=Math.min(img.width,img.height); x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,S,S); URL.revokeObjectURL(url);
+  return c.toDataURL('image/jpeg',.82);
+}
+Object.assign(A,{
+  authMode:(d)=>{ ui.authMode=d.v; Social.err=''; render(); },
+  authGo:async()=>{ const e=$('#aemail').value.trim(), p=$('#apass').value, n=$('#aname')&&$('#aname').value.trim(); Social.err='';
+    try{ if(ui.authMode==='up'){ const r=await Social.api.signUp(e,p); const uid=(r&&r.user&&r.user.uid)||(Social.user&&Social.user.uid); if(n&&uid){ await Social.api.setProfile(uid,{name:n}); Social.profile={...(Social.profile||{}),name:n}; } } else await Social.api.signIn(e,p); toast('Signed in'); }
+    catch(err){ Social.err=(err&&err.code||err.message||'Something went wrong').replace('auth/','').replace(/-/g,' '); render(); } },
+  authReset:async()=>{ const e=$('#aemail').value.trim(); if(!e){ toast('Type your email first'); return; } try{ await Social.api.reset(e); toast('Reset email sent'); }catch(err){ toast('Could not send reset email'); } },
+  signOut:()=>{ confirmSheet('Sign out?','Your workouts stay on this phone. You can sign back in anytime.','Sign out',async()=>{ await Social.api.signOut(); },false); },
+  shareCode:async()=>{ const c=Social.profile&&Social.profile.code; const txt=`Add me on Work Harder! My friend code is ${c}. Get the app: https://awardsusaco-lab.github.io/work-harder/`; try{ if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); toast('Copied'); } }catch(e){} },
+  addFriend:async()=>{ const c=($('#fcode').value||'').trim().toUpperCase(); Social.err=''; if(c.length!==6){ toast('Codes are 6 letters'); return; }
+    if(Social.profile&&c===Social.profile.code){ toast("That's your code"); return; }
+    try{ const uid=await Social.api.lookupCode(c); if(!uid){ Social.err='No one has that code. Double-check it.'; render(); return; } await Social.api.link(Social.user.uid,uid); toast('Friend added'); await Social.loadFriends(); }
+    catch(e){ Social.err=e.message; render(); } },
+  refreshFriends:async()=>{ await Social.syncAll(); await Social.loadFriends(); toast('Up to date'); },
+  openFriend:(d)=>push({name:'friend',id:d.id}),
+  friendMenu:(d)=>menu('',[{label:'Remove friend',icon:'trash',danger:true,fn:()=>confirmSheet('Remove this friend?','You will stop seeing each other\'s progress.','Remove',async()=>{ await Social.api.unlink(Social.user.uid,d.id); Social.friends=Social.friends.filter(f=>f.uid!==d.id); pop(); })}]),
+  editProfile:()=>{ ui.newPhoto=null; push({name:'profileEdit'}); },
+  clearPhoto:()=>{ ui.newPhoto=''; render(); },
+  saveProfile:async()=>{ const data={name:$('#pname').value.trim(),motto:$('#pmotto').value.trim(),home:$('#phome').value.trim()}; if(ui.newPhoto!=null) data.photo=ui.newPhoto;
+    try{ await Social.api.setProfile(Social.user.uid,data); Social.profile={...(Social.profile||{}),...data}; toast('Profile saved'); pop(); }catch(e){ toast('Could not save. Try again.'); } },
+});
+document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&ev.target.matches('[data-f=photoFile]')){ const f=ev.target.files[0]; if(!f) return; try{ ui.newPhoto=await resizePhoto(f); render(); }catch(e){ toast('Could not read that photo'); } } });
+
 (function boot(){
   render();
   Store.init().then(()=>{ render(); if(st.active) wake(true); });
@@ -4912,7 +5182,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171434';
+window.WH_BUILD='202611171443';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
