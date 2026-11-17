@@ -247,6 +247,9 @@ textarea{resize:vertical;line-height:1.4}
 .rrow.head{font-size:11px;letter-spacing:.07em;color:var(--muted);font-weight:700}
 .rrow .slab{width:26px;height:26px;font-size:13px}
 .card-h select{width:auto;min-height:34px;padding:4px 8px;font-size:14px}
+/* comeback */
+.cbcard{box-shadow:inset 3px 0 0 var(--good);gap:6px} .cbcard p{margin:0} .cbcard b{display:flex;align-items:center;gap:6px}
+.coachchip.k-cb{background:color-mix(in srgb,var(--good) 12%,transparent)} .coachchip.k-cb .ic{color:var(--good)}
 /* coach */
 .coachchip{margin:0;display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.35;border-radius:8px;padding:8px 10px;background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .coachchip .ic{color:var(--accent);margin-top:1px}
@@ -1792,22 +1795,90 @@ function isMainLift(a,idx){
   return i===idx;
 }
 function recentPosts(){ return workoutsSorted().slice(0,3).map(w=>w.post).filter(Boolean); }
+/* ---------- Comeback mode: easing back in after 2+ weeks off ---------- */
+const CB_GAP=14*DAY, CB_SESSIONS=4, CB_WINDOW=42*DAY;
+function comebackState(now=Date.now()){
+  const ws=workoutsSorted().slice().reverse(); // oldest first
+  if(!ws.length) return null;
+  const last=ws[ws.length-1];
+  if(now-last.start>=CB_GAP) return {stage:0,light:true,gapStart:last.start+1,gapDays:Math.round((now-last.start)/DAY)};
+  for(let i=ws.length-1;i>0;i--){
+    if(ws[i].start-ws[i-1].start>=CB_GAP){
+      const back=ws.length-i; if(now-ws[i].start>CB_WINDOW) return null;
+      return {stage:back,light:back<CB_SESSIONS,gapStart:ws[i].start,gapDays:Math.round((ws[i].start-ws[i-1].start)/DAY)};
+    }
+  }
+  return null;
+}
+function cbStartFactor(gapDays){ return gapDays>=56?0.6 : gapDays>=28?0.7 : 0.8; }
+function comebackPlan(exId,note,cb,unit){
+  const ex=getEx(exId); const all=stats().byEx[exId]||[];
+  const pre=all.find(x=>x.w.start<cb.gapStart), since=all.filter(x=>x.w.start>=cb.gapStart);
+  const tag= cb.light? `Comeback session ${cb.stage+1} of ${CB_SESSIONS}` : 'Ramping back';
+  if(!pre) return {msg:`${tag}: new lift. Go light and learn the movement; leave 3–4 reps in the tank.`,kind:'new'};
+  const preT=topOf(pre.e,pre.w.unit,unit); if(!preT) return null;
+  const [lo,hi]=repRange(note,ex);
+  if(ex.type==='cardio') return null;
+  if(ex.type==='time'||ex.type==='wtime'){ const best=Math.max(...preT.all.map(s=>num(s.t)||0)); const t=Math.round(best*0.75/5)*5||best; return {t,w:ex.type==='wtime'?roundTo(preT.W*0.8,weightStep(ex,unit,preT.W)):undefined,msg:`${tag}: about 75% of your old time (${fmtTime(t)}).`,kind:'cb'}; }
+  if(ex.type==='wdist'){ const d=Math.max(...preT.all.map(s=>num(s.d)||0)); const w=roundTo(preT.W*0.8,weightStep(ex,unit,preT.W)*2); return {w,d,msg:`${tag}: ${fw(w)} instead of ${fw(preT.W)}. Same distance.`,kind:'cb'}; }
+  if(ex.type==='reps'){ const r=Math.max(1,Math.round(Math.min(...preT.all.map(s=>num(s.r)||0))*0.7)); return {r,msg:`${tag}: about 70% of your old reps. Stop well short of failure.`,kind:'cb'}; }
+  const step=weightStep(ex,unit,preT.W); const target=Math.min(hi,lo+1);
+  if(ex.type==='wreps' && !since.length){
+    const r=Math.max(3,Math.round(Math.min(...preT.reps)*0.7));
+    return {w:0,r,msg:`${tag}: bodyweight only, about ${r} reps a set (70% of your old reps). Stop with 2–3 left; the belt weight comes back once these feel easy.`,kind:'cb'};
+  }
+  if(!since.length){
+    const f=cbStartFactor(cb.gapDays); const w=roundTo(preT.W*f,step);
+    return {w,r:target,msg:`${tag}: ${Math.round(f*100)}% of your pre-break ${fw(preT.W)} ${unit} → ${fw(w)} × ${target}. Stop with 3–4 reps left.`,kind:'cb'};
+  }
+  const lastT=topOf(since[0].e,since[0].w.unit,unit);
+  if(!cb.light && lastT.W>=preT.W) return null; // fully back: normal coaching
+  if(ex.type==='wreps' && lastT.W<=0){
+    const m=Math.min(...lastT.reps); const eff0=since[0].e.effort||'';
+    if(m>=lo && eff0!=='hard' && eff0!=='max') return cb.light? {w:0,r:Math.min(hi,m+1),msg:`${tag}: bodyweight, aim for ${Math.min(hi,m+1)} reps. Belt weight returns next week.`,kind:'cb'} : null;
+    const r=Math.min(lo,m+(eff0==='easy'?2:1));
+    return {w:0,r,msg:`${tag}: bodyweight only, aim for ${r} reps a set. Once you get ${lo}+ on every set, the belt weight comes back.`,kind:'cb'};
+  }
+  const eff=since[0].e.effort||''; const hitAll=lastT.reps.every(r=>r>=target);
+  let bump=0, why;
+  if(!hitAll||eff==='hard'||eff==='max'){ bump=0; why=hitAll?'it felt hard last time, so we hold':'you came up short last time, so we hold'; }
+  else if(eff==='easy'){ bump=0.10; why='it felt easy, so +10%'; }
+  else { bump=0.05; why=`you got your reps${eff==='medium'?' at Medium effort':''}, so +5%`; }
+  let w=roundTo(lastT.W*(1+bump),step); if(bump>0&&w<=lastT.W) w=lastT.W+step;
+  if(w>=preT.W){ w=preT.W; return {w,r:target,msg:`${tag}: back to your pre-break ${fw(w)} ${unit} (${why}).${cb.light?' Still leave 2–3 reps in the tank this week.':' Normal coaching from here.'}`,kind:'cb'}; }
+  return {w,r:target,msg:`${tag}: ${fw(w)} ${unit} (${why}). Pre-break was ${fw(preT.W)}.`,kind:'cb'};
+}
 /* Apply plans to an active workout's exercises that have no completed sets yet. */
 function applyCoach(a,force){
   const posts=recentPosts(); const drained=posts.filter(p=>p==='drained').length>=2, more=posts.filter(p=>p==='more').length>=2;
+  if(a.comeback===undefined){ const cb=comebackState(a.start); a.comeback=cb||null; }
+  const cb= a.comebackOff? null : a.comeback; const light=cb&&cb.light;
   a.exercises.forEach((e,idx)=>{
     if(e.sets.some(s=>s.done)) return;
     const X=getEx(e.exId);
-    e.push=pushTarget(e,idx,a);
-    // push set on the main lift
+    e.push= light? (['cardio'].includes(X.type)?'Easy pace.':'Medium: stop every set with 3–4 good reps left. No sets to failure this week.') : pushTarget(e,idx,a);
     const work=e.sets.filter(s=>s.type!=='w'); work.forEach(s=>delete s.amrap);
+    // comeback: one fewer set on the first two sessions back; restore when turned off
+    if(light && cb.stage<2 && !e.cbRemoved && work.length>=3 && X.type!=='cardio'){ const rm=work[work.length-1]; e.sets.splice(e.sets.lastIndexOf(rm),1); e.cbRemoved=rm; work.pop(); }
+    if(!light){ for(const s of e.sets){ if(s.pwBase!=null){ s.pw=s.pwBase; delete s.pwBase; } } }
+    if(!light && e.cbRemoved){ e.sets.push(e.cbRemoved); work.push(e.cbRemoved); delete e.cbRemoved; }
+    if(light){
+      const plan=comebackPlan(e.exId,e.cue||e.note,cb,a.unit);
+      e.coach=plan? {msg:plan.msg+(e.cbRemoved?' One fewer set today.':''),kind:plan.kind==='new'?'new':'cb'} : null;
+      if(plan&&plan.kind==='new'){ const f=cbStartFactor(cb.gapDays); let scaled=false; for(const s of e.sets){ if(s.type==='w'||s.pw===''||s.pw==null) continue; if(s.pwBase==null) s.pwBase=num(s.pw); s.pw=round1(roundTo(s.pwBase*f,weightStep(X,a.unit,s.pwBase))); scaled=true; } if(scaled) e.coach.msg+=` Starting at ${Math.round(f*100)}% of the planned weight.`; }
+      if(!plan||plan.kind==='new') return;
+      for(const s of e.sets){ if(s.type==='w') continue; if(plan.w!=null) s.pw=round1(plan.w); if(plan.r!=null) s.pr=plan.r; if(plan.t!=null) s.pt=plan.t; if(plan.d!=null) s.pd=plan.d; if(force){ s.w=''; s.r=''; s.t=''; s.d=''; } }
+      return;
+    }
+    // push set on the main lift
     if(isMainLift(a,idx)&&work.length) work[work.length-1].amrap=true;
     // volume from how you felt after recent workouts
     if(!e.volAdj){
       if(drained && !isMainLift(a,idx) && work.length>2 && ['wr','wreps','reps'].includes(X.type)){ e.sets.splice(e.sets.lastIndexOf(work[work.length-1]),1); e.volAdj=-1; }
       else if(more && isMainLift(a,idx)){ const last=work[work.length-1]; delete last.amrap; e.sets.push({...last,done:false,amrap:true}); e.volAdj=1; }
     }
-    const plan=coachPlan(e.exId,e.cue||e.note,{feel:a.feel,knees:a.knees},a.unit);
+    const ramp= cb&&!light&&['wr','wreps'].includes(X.type)? comebackPlan(e.exId,e.cue||e.note,cb,a.unit) : null;
+    const plan= (ramp&&ramp.kind!=='new')? ramp : coachPlan(e.exId,e.cue||e.note,{feel:a.feel,knees:a.knees},a.unit);
     e.coach=plan? {msg:plan.msg+(e.volAdj===-1?' You felt drained after recent workouts, so 1 fewer set today.':e.volAdj===1?' You said you could do more lately, so +1 set.':''),kind:plan.kind} : null;
     if(plan&&plan.kind==='stall'){ const alt=alternativesFor(X).find(x=>!a.exercises.some(y=>y.exId===x.e.id)); if(alt){ e.coach.swap={id:alt.e.id,name:alt.e.name,t:alt.t}; e.coach.msg+=' Or swap in a fresh S-tier exercise for your next block (it updates the routine too):'; } }
     if(!plan||plan.kind==='new') return;
@@ -1865,6 +1936,7 @@ function coachInsights(){
   if(posts.length>=3){ const d=posts.filter(p=>p==='drained').length, m=posts.filter(p=>p==='more').length;
     if(d>=3) out.push({kind:'warn',title:`Drained after ${d} of your last ${posts.length} workouts`,text:'The coach is trimming accessory sets. Check sleep and food; an easy week may help.'});
     else if(m>=3) out.push({kind:'good',title:`Felt like you had more ${m} of the last ${posts.length} times`,text:'The coach is adding a set to your main lifts. Keep rating honestly.'}); }
+  const cbs=comebackState(); if(cbs&&cbs.light) out.unshift({kind:'info',title:`Comeback mode: session ${cbs.stage+1} of ${CB_SESSIONS}`,text:cbs.stage===0?`${cbs.gapDays} days off. Your next workouts start lighter and climb based on how each lift feels.`:'Weights are climbing back based on your effort ratings. Keep rating every lift.'});
   // 7) Consistency
   const last4=ws.filter(w=>w.start>now-28*DAY).length, goal=(st.settings.goal||4)*4;
   out.push({kind:last4>=goal*0.8?'good':'info',title:`${last4} workouts in the last 4 weeks`,text:last4>=goal*0.8?'Right on your goal. Consistency is what makes the rest work.':`Goal is about ${goal}. The plan works best when the weeks are full.`});
@@ -2352,6 +2424,12 @@ function loggerPage(obj,mode){
   if(mode==='edit') top=`<input id="ename" class="title-in" data-f="ename" value="${esc(obj.name)}"><textarea id="enotes" data-f="enotes" rows="2" placeholder="Description">${esc(obj.notes||'')}</textarea>`;
   const cards=obj.exercises.map((e,i)=>exCard(obj,e,i,mode)).join('');
   const empty = obj.exercises.length? '' : `<div class="empty small-empty"><div class="empty-fig">${figSVG(BUILTIN.bench_bb,{anim:'bench_bb'})}</div><h2>${mode==='routine'?'Add exercises to this routine':'Get started'}</h2><p>Add an exercise to start logging.</p></div>`;
+  if(mode==='active'&&obj.comeback&&obj.comeback.light){
+    const c=obj.comeback;
+    top+= obj.comebackOff
+      ? `<div class="card cbcard"><b>Comeback mode is off</b><p class="muted small">Back to normal targets. Tap to ease in again.</p><button class="btn sm" data-a="comebackToggle">Turn comeback mode on</button></div>`
+      : `<div class="card cbcard"><b>${ic('spark','sm')} Comeback mode · session ${c.stage+1} of ${CB_SESSIONS}</b><p class="small">${c.stage===0?`${c.gapDays} days since your last workout, so the coach starts you at ${Math.round(cbStartFactor(c.gapDays)*100)}% of your old weights with one fewer set.`:`Each lift climbs from how your last session went: Easy +10%, Medium +5%, Hard holds.`} Rate each lift so it knows how much you can handle. Full targets return after ${CB_SESSIONS} sessions or sooner if you're ready.</p><button class="btn ghost sm" data-a="comebackToggle">I'm ready, turn it off</button></div>`;
+  }
   if(mode==='active'&&obj.routineId){
     const opt=(k,v,l)=>`<button class="chip ${obj[k]===v?'on':''}" data-a="checkin" data-k="${k}" data-v="${v}" aria-pressed="${obj[k]===v}">${l}</button>`;
     top+=`<div class="card checkin"><b>Quick check-in</b><p class="muted small">The coach sets today's targets from your last sessions and this.</p>
@@ -2935,6 +3013,7 @@ const A={
     menu('Set type',[T('w','Warm-up set'),T('n','Normal set'),T('d','Drop set'),T('f','Failure set'),{label:'Remove set',icon:'trash',danger:true,fn:()=>{ e.sets.splice(+d.s,1); changed(true); }}]); },
   usePrev:(d)=>{ const obj=curObj(); const e=obj.exercises[+d.e]; const s=e.sets[+d.s]; const prev=prevSetsFor(e.exId,cur().name==='wedit'?obj.start:null); const ps=prev&&prev.sets[+d.s]; if(!ps) return;
     if(ps.w!=null) s.w=round1(convW(num(ps.w),prev.unit,obj.unit)); if(ps.r!=null) s.r=ps.r; if(ps.t!=null) s.t=ps.t; if(ps.d!=null) s.d=ps.d; changed(true); },
+  comebackToggle:()=>{ const a=st.active; if(!a) return; a.comebackOff=!a.comebackOff; applyCoach(a); changed(true); toast(a.comebackOff?'Normal targets restored':'Comeback mode on: lighter targets'); },
   checkin:(d)=>{ const a=st.active; if(!a) return; a[d.k]=d.v; applyCoach(a); changed(true); toast(d.k==='knees'&&d.v==='achy'?'Knee-heavy lifts lightened for today':d.v==='rundown'?'No increases today. Match last time.':'Targets updated'); },
   postfeel:(d)=>{ const a=st.active; if(!a) return; a.post= a.post===d.v? '' : d.v; Store.saveActive(); render(); },
   coachSwap:(d)=>{ const a=st.active; const i=+d.e; const e=a.exercises[i]; const old=getEx(e.exId).name;
