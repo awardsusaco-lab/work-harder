@@ -12,8 +12,33 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
 <link rel="icon" href="icon-192.png?v=3">
-<script>window.WH_STANDALONE=true;</script>
-<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+<script>window.WH_STANDALONE=true;
+/* Fill the whole screen on every phone. iPhone home-screen apps sometimes report a viewport shorter than the screen,
+   which leaves a strip at the bottom. On iPhone we size the app to the physical screen instead. */
+(function(){
+  var d=document.documentElement;
+  var iOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  var standalone=(window.navigator.standalone===true)||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  var maxH=0;
+  function fit(){
+    var portrait=window.innerHeight>=window.innerWidth;
+    var scr=portrait?Math.max(screen.height,screen.width):Math.min(screen.height,screen.width);
+    var h=window.innerHeight;
+    if(iOS&&standalone){ h=Math.max(h,scr); }
+    if(h>maxH||!iOS) maxH=h;
+    d.style.setProperty('--app-h',(iOS&&standalone?Math.max(h,maxH):h)+'px');
+    d.classList.toggle('wh-ios',iOS); d.classList.toggle('wh-standalone',standalone);
+    window.WH_FIT={inner:window.innerHeight,screen:scr,used:h,iOS:iOS,standalone:standalone};
+  }
+  fit();
+  addEventListener('resize',fit); addEventListener('orientationchange',function(){ maxH=0; setTimeout(fit,250); });
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) setTimeout(fit,100); });
+  document.addEventListener('focusout',function(){ setTimeout(fit,150); });
+})();
+</script>
+<style>html,body{margin:0}
+html.wh-standalone,html.wh-standalone body{height:var(--app-h,100%);min-height:var(--app-h,100%);overflow:hidden}
+html.wh-standalone #app{position:absolute!important;top:0!important;left:0;right:0;bottom:auto!important;height:var(--app-h,100%)!important}img{max-width:100%}[hidden]{display:none!important}
 html [data-a^="ai"],html .card.ai{display:none!important}</style>
 </head>
 <body>
@@ -3113,6 +3138,7 @@ settings(){
    <div class="row2"><button class="btn" data-a="exportJSON">${ic('download')} Export backup</button><button class="btn" data-a="exportCSV">${ic('download')} Export CSV</button></div>
    <label class="btn wide filebtn">${ic('upload')} Import backup or Hevy CSV<input type="file" data-f="importFile"></label>
    <p class="muted small">From Hevy: Profile → Settings → Export & Import Data → Export Workouts, then import that CSV here.</p></div>
+   ${window.WH_FIT?`<p class="muted small dispinfo">Screen check: ${window.WH_FIT.screen}px screen · ${window.WH_FIT.inner}px reported · using ${window.WH_FIT.used}px${window.WH_FIT.standalone?' · home-screen app':''}${window.WH_FIT.iOS?' · iPhone':''}</p>`:''}
   </section>`};
 }
 };
@@ -3994,7 +4020,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171400';
+window.WH_BUILD='202611171403';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
