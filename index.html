@@ -409,6 +409,13 @@ details summary{cursor:pointer}
 .toggle{display:flex;align-items:center;gap:12px;min-height:44px}
 .toggle input{width:22px;height:22px;accent-color:var(--accent)}
 .swatches{display:flex;flex-wrap:wrap;gap:10px}
+.thms{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.thm{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600}
+.thm-v{width:100%;aspect-ratio:3/4;border-radius:12px;background:var(--tb);border:2px solid var(--line);display:flex;flex-direction:column;gap:5px;padding:8px 7px;position:relative;box-sizing:border-box}
+.thm-v i{display:block;height:18%;border-radius:5px;background:var(--ts)}
+.thm-v i+i{background:var(--ts2);height:12%}
+.thm-v b{position:absolute;left:7px;right:7px;bottom:8px;height:16%;border-radius:6px;background:var(--ta)}
+.thm.on{color:var(--fg)} .thm.on .thm-v{border-color:var(--accent);box-shadow:0 0 0 2px var(--bg) inset}
 .sw{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);background:var(--c,var(--surface2));font-size:10px;font-weight:700;color:var(--muted);display:grid;place-items:center;position:relative;overflow:hidden}
 .sw.on{border-color:var(--fg);box-shadow:0 0 0 2px var(--bg) inset}
 .sw.custom{background:conic-gradient(#f0564a,#f2b630,#2fbf71,#16b8c4,#3d8bff,#b06cff,#f0564a)}
@@ -1555,7 +1562,7 @@ function e1rm(w,r){ if(!w||!r) return 0; return r===1? w : w*(1+r/30); }
 function norm(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'')}
 
 /* ---------- State ---------- */
-const DEF_SETTINGS={unit:'lb',dist:'mi',rest:90,goal:4,accent:'',sound:true,wake:true,prevMode:'last'};
+const DEF_SETTINGS={unit:'lb',dist:'mi',rest:90,goal:4,accent:'',theme:'steel',mode:'auto',sound:true,wake:true,prevMode:'last'};
 const st={settings:{...DEF_SETTINGS},custom:{},routines:{},workouts:{},body:{entries:[]},active:null};
 const ui={tab:'home',stack:[],sheet:null,exq:{q:'',muscle:'',equip:'',col:''},scroll:{},rest:null,profileMetric:'volume',toastT:0};
 
@@ -2025,7 +2032,40 @@ function softRender(force){ // re-render unless the person is typing in the logg
   if(!force && a && a.matches && a.matches('input,textarea,select') && $('#main').contains(a)){ ui.dirtyRender=true; return; }
   cancelAnimationFrame(_rq); _rq=requestAnimationFrame(()=>{ const m=$('#main'); const y=m?m.scrollTop:0; render(); if(m) $('#main').scrollTop=y; });
 }
-function applyAccent(){ const r=document.documentElement; if(st.settings.accent) r.style.setProperty('--accent',st.settings.accent); else r.style.removeProperty('--accent'); }
+/* Color schemes: each theme has a dark and a light palette; Mode picks Auto (follow phone), Dark or Light. */
+const THEMES={
+  steel:{name:'Steel',dark:{},light:{}},
+  blackout:{name:'Blackout',dark:{bg:'#000000',surface:'#0E1012',surface2:'#171A1D',line:'#24282C',accent:'#3D8BFF'},
+            light:{bg:'#FFFFFF',surface:'#F4F5F6',surface2:'#E8EAEC',line:'#D5D9DD',accent:'#111111','on-accent':'#FFFFFF'}},
+  hunter:{name:'Blaze',dark:{bg:'#0E120D',surface:'#161C14',surface2:'#20281C',line:'#2E3928',accent:'#FF7A1F',muted:'#93A08A'},
+          light:{bg:'#EEF0E7',surface:'#FFFFFF',surface2:'#E2E6D8',line:'#CBD2BD',accent:'#D9600F',muted:'#5F6A55'}},
+  timber:{name:'Bull Elk',dark:{bg:'#14100C',surface:'#1D1813',surface2:'#28211A',line:'#3A3025',accent:'#D9A441',muted:'#A0927F','on-accent':'#1A130B'},
+          light:{bg:'#F3EEE6',surface:'#FFFFFF',surface2:'#E8E0D3',line:'#D6CAB7',accent:'#9C6A16',muted:'#6E604C'}},
+  ember:{name:'Ember',dark:{bg:'#120C0C',surface:'#1C1414',surface2:'#271B1B',line:'#3A2727',accent:'#FF4B3E',muted:'#A69190'},
+         light:{bg:'#F7F0EF',surface:'#FFFFFF',surface2:'#EEE2E0',line:'#DECBC8',accent:'#D3271A',muted:'#6F5C5A'}},
+  glacier:{name:'Glacier',dark:{bg:'#0A1117',surface:'#101B24',surface2:'#172733',line:'#223746',accent:'#2CC8E8',muted:'#86A0B2','on-accent':'#05212A'},
+           light:{bg:'#EDF4F8',surface:'#FFFFFF',surface2:'#DEEAF1',line:'#C6D8E3',accent:'#0A8DB0',muted:'#557080'}},
+  royal:{name:'Royal',dark:{bg:'#100E17',surface:'#191623',surface2:'#221E30',line:'#332D45',accent:'#9D6BFF',muted:'#9A93AE'},
+         light:{bg:'#F3F1F8',surface:'#FFFFFF',surface2:'#E7E3F1',line:'#D3CDE3',accent:'#6C3BE0',muted:'#625B76'}},
+  forest:{name:'Timberline',dark:{bg:'#0B130F',surface:'#111D17',surface2:'#182820',line:'#22382C',accent:'#34C77B',muted:'#86A293','on-accent':'#04200F'},
+          light:{bg:'#ECF4EF',surface:'#FFFFFF',surface2:'#DCEAE1',line:'#C3D9CB',accent:'#16884A',muted:'#557062'}}
+};
+const THEME_KEYS=['bg','surface','surface2','line','accent','on-accent','muted'];
+function effMode(){ const m=st.settings.mode||'auto'; if(m!=='auto') return m; return window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'; }
+function applyTheme(){
+  const r=document.documentElement, mode=effMode(), th=THEMES[st.settings.theme]||THEMES.steel, pal=th[mode]||{};
+  if((st.settings.mode||'auto')==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme',mode);
+  THEME_KEYS.forEach(k=>{ if(pal[k]) r.style.setProperty('--'+k,pal[k]); else r.style.removeProperty('--'+k); });
+  if(st.settings.accent) r.style.setProperty('--accent',st.settings.accent);
+  const bg=getComputedStyle(r).getPropertyValue('--bg').trim();
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.setAttribute('content',bg));
+  r.style.colorScheme=mode;
+}
+const applyAccent=applyTheme;
+if(window.matchMedia){ try{ matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{ if((st.settings.mode||'auto')==='auto') applyTheme(); }); }catch(e){} }
+function themePreview(key){ const th=THEMES[key]; const d=Object.assign({bg:'#0E1114',surface:'#161B20',surface2:'#1E252C',accent:'#3D8BFF'},th.dark), l=Object.assign({bg:'#F2F4F6',surface:'#FFFFFF',surface2:'#E9EDF1',accent:'#1E6FE8'},th.light);
+  const p=effMode()==='light'?l:d;
+  return `<button class="thm ${ (st.settings.theme||'steel')===key?'on':''}" data-a="setS" data-k="theme" data-v="${key}" style="--tb:${p.bg};--ts:${p.surface};--ts2:${p.surface2};--ta:${p.accent}"><span class="thm-v"><i></i><i></i><b></b></span><span class="thm-n">${th.name}</span></button>`; }
 
 function render(){
   applyAccent();
@@ -2431,8 +2471,10 @@ settings(){
    <div class="field"><label>Weekly goal</label>${seg('goal',[[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6']],s.goal)}</div>
    <label class="toggle"><input type="checkbox" data-f="ssound" ${s.sound?'checked':''}><span>Beep when rest is over</span></label>
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
-   <h2 class="sec">Look</h2>
-   <div class="field"><label>Accent color</label><div class="swatches">${sw.map(c=>`<button class="sw ${s.accent===c?'on':''}" style="${c?`--c:${c}`:''}" data-a="setAccent" data-v="${c}" aria-label="${c||'Default'}">${c?'':'Auto'}</button>`).join('')}<label class="sw custom" aria-label="Custom color"><input type="color" data-f="saccent" value="${s.accent||'#3D8BFF'}"></label></div></div>
+   <h2 class="sec">Color scheme</h2>
+   <div class="field"><label>Mode</label>${seg('mode',[['auto','Auto'],['dark','Dark'],['light','Light']],s.mode||'auto')}</div>
+   <div class="field"><label>Theme</label><div class="thms">${Object.keys(THEMES).map(themePreview).join('')}</div></div>
+   <div class="field"><label>Accent color <span class="muted small">(Auto uses the theme's color)</span></label><div class="swatches">${sw.map(c=>`<button class="sw ${s.accent===c?'on':''}" style="${c?`--c:${c}`:''}" data-a="setAccent" data-v="${c}" aria-label="${c||'Default'}">${c?'':'Auto'}</button>`).join('')}<label class="sw custom" aria-label="Custom color"><input type="color" data-f="saccent" value="${s.accent||'#3D8BFF'}"></label></div></div>
    <h2 class="sec">Connected apps</h2>
    <div class="card conn"><div class="conn-h"><b>Strava</b><span class="badge">Share</span></div><p class="muted small">After each workout, tap <b>Share to Strava</b>. Work Harder writes the title and a full set breakdown for you to paste into Strava's manual activity form.</p></div>
    <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge off">Not available here</span></div><p class="muted small">Apple only lets native iPhone apps read and write Health data. This needs the installable iPhone version of Work Harder.</p></div>
@@ -3234,7 +3276,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611170725';
+window.WH_BUILD='202611170727';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
