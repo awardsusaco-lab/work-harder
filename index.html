@@ -349,6 +349,14 @@ textarea{resize:vertical;line-height:1.4}
 .trophy-svg .sil,.trophy-svg .sil path{fill:color-mix(in srgb,var(--fg) 88%,var(--accent))}
 .trophy-svg .sil .ant{fill:none;stroke:color-mix(in srgb,var(--fg) 88%,var(--accent));stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .trophy-svg .sil .far{opacity:.5}
+.trophy-svg .sil .horn{stroke:color-mix(in srgb,var(--accent) 45%,#C9B79A);stroke-linecap:round}
+.trophy-svg .sil .palm{fill:color-mix(in srgb,var(--fg) 70%,#C9B79A)}
+.trophy-svg .sil .palm.far{opacity:.45}
+.trophy-svg .sil .fanbg{fill:color-mix(in srgb,var(--fg) 75%,var(--accent))}
+.trophy-svg .sil .fan{stroke:var(--surface);stroke-width:1.2;opacity:.5}
+.trophy-svg .sil .snood{fill:none;stroke:#C8433A;stroke-width:3;stroke-linecap:round}
+.trophy-svg .sil .beard{fill:none;stroke:color-mix(in srgb,var(--fg) 88%,var(--accent));stroke-width:2.5;stroke-linecap:round}
+.trophy-svg .sil .eye{fill:var(--surface)}
 .trophy-svg .tail{fill:var(--surface)!important;stroke:color-mix(in srgb,var(--fg) 88%,var(--accent));stroke-width:1.2}
 .trophy-svg .calfspots circle{fill:var(--surface);opacity:.85}
 .trophy-svg .spots circle{fill:var(--surface)}
@@ -395,6 +403,31 @@ textarea{resize:vertical;line-height:1.4}
 .duckmini{position:absolute;right:-14px;top:50%;width:26px;height:22px;transform:translateY(-55%)}
 .duckmini .sil,.duckmini .sil path{fill:var(--accent)}
 .duckmini .far{opacity:.5}
+
+.animals{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.animals .scn svg{aspect-ratio:176/148}
+.patches{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 6px}
+.patch{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;font-size:11.5px;line-height:1.15}
+.patch svg{width:100%;max-width:74px;aspect-ratio:1}
+.patch .p-bg{fill:var(--surface2)}
+.patch .p-st{fill:none;stroke:var(--line);stroke-width:1.6;stroke-dasharray:3 3}
+.patch .p-pr{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;opacity:.55}
+.patch .p-ic{fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.patch b{font-weight:700;color:var(--muted)}
+.patch.got .p-bg{fill:var(--accent)}
+.patch.got .p-st{stroke:color-mix(in srgb,var(--on-accent,#fff) 70%,transparent)}
+.patch.got .p-ic{stroke:var(--on-accent,#fff)}
+.patch.got b{color:var(--fg)}
+.patches.big{grid-template-columns:repeat(3,1fr)}
+.patches.big .patch span{font-size:11px}
+.newbadges .patches{grid-template-columns:repeat(4,1fr)}
+.newbadges .patch.got svg{animation:lvlpop .9s cubic-bezier(.2,1.4,.4,1)}
+.coachchip.k-dl{background:color-mix(in srgb,#5FA8C8 14%,transparent)} .coachchip.k-dl .ic{color:#3E89AB}
+.dlcard{box-shadow:inset 3px 0 0 #5FA8C8}
+.ptlist{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ptlist li{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center;background:var(--surface2);border-radius:10px;padding:8px 10px;font-size:14px}
+.ptlist li .ic{color:var(--accent)}
+.ptlist b{color:var(--accent)}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2576,6 +2609,7 @@ function applyCoach(a,force){
   const posts=recentPosts(); const drained=posts.filter(p=>p==='drained').length>=2, more=posts.filter(p=>p==='more').length>=2;
   if(a.comeback===undefined){ const cb=comebackState(a.start); a.comeback=cb||null; }
   const cb= a.comebackOff? null : a.comeback; const light=cb&&cb.light;
+  const dl= light? null : deloadState(a); a.deload=dl||null;
   a.exercises.forEach((e,idx)=>{
     if(e.sets.some(s=>s.done)) return;
     const X=getEx(e.exId);
@@ -2613,7 +2647,23 @@ function applyCoach(a,force){
       if(plan.d!=null) s.pd=plan.d;
       if(force){ s.w=''; s.r=''; s.t=''; s.d=''; }
     }
+    if(dl && ['wr','wreps','wtime'].includes(X.type)){
+      for(const s of e.sets){ if(s.type==='w'||s.pw===''||s.pw==null) continue; s.pw=round1(roundTo(num(s.pw)*0.85,weightStep(X,a.unit,num(s.pw)))); }
+      work.forEach(s=>delete s.amrap);
+      e.push='Medium: easy, crisp reps. Leave 3–4 in the tank.';
+      if(e.coach) e.coach={...e.coach,msg:'Deload: 15% lighter this week. '+e.coach.msg,kind:'dl'};
+    }
   });
+}
+/* Deload: every 6th week of a plan, or when you've felt drained after 3 of your last 4 workouts. */
+function deloadState(a){
+  if(a.deloadOff) return null;
+  const key=planKeyOf(a); if(!key) return null;
+  const from=planStart(key); const wk=Math.floor((a.start-weekStart(from))/(7*DAY))+1;
+  const posts=workoutsSorted().slice(0,4).map(w=>w.post).filter(Boolean);
+  if(wk>1 && wk%6===0) return {wk,why:`Week ${wk} of your plan. Every 6th week runs lighter so your joints and nervous system catch up, then you come back stronger.`};
+  if(posts.filter(p=>p==='drained').length>=3) return {wk,why:'You felt drained after 3 of your last 4 workouts, so the coach is pulling back this session.'};
+  return null;
 }
 /* ---------- Insights: what the coach has learned ---------- */
 function e1rmSession(e,unit,start){ const X=getEx(e.exId); const bw=X.type==='wreps'?bodyweightAt(start||Date.now()):0; let b=0; for(const s of workingSets(e)){ const v=e1rm(toLb(num(s.w)||0,unit)+bw,num(s.r)||0); if(v>b) b=v; } return b; }
@@ -2957,12 +3007,24 @@ const TROPHY={
   elk:{name:'Bull Elk',stages:['Calf','Yearling','Spike Bull','Raghorn','4×4 Bull','5×5 Bull','6×6 Bull','Herd Bull','Big Bull']},
   buck:{name:'Whitetail',stages:['Fawn','Button Buck','Spike','4-Pointer','6-Pointer','8-Pointer','10-Pointer','Wall Hanger','Big Buck']},
 };
-const TR_PTS=[0,6,15,30,50,75,110,160,230];
+const TR_PTS=[0,4,9,15,22,30,40,52,66];
+/* The trophy grows with your CURRENT plan (a routine folder like "Hunting", or a single routine). */
+function planKeyOf(w){ const r=w&&w.routineId&&st.routines[w.routineId]; if(r) return r.folder||('r:'+r.id); return null; }
+function planName(key){ if(!key) return 'Any workout'; if(key.startsWith('r:')){ const r=st.routines[key.slice(2)]; return r?r.name:'Routine'; } return key; }
+function currentPlan(){
+  if(st.settings.planKey) return st.settings.planKey;
+  for(const w of workoutsSorted()){ const k=planKeyOf(w); if(k) return k; }
+  const nx=upNext(); return nx? (nx.r.folder||('r:'+nx.r.id)) : null;
+}
+function planStart(key){ const ps=st.settings.planStarts||{}; if(ps[key]) return ps[key]; const ws=workoutsSorted().filter(w=>planKeyOf(w)===key); return ws.length? ws[ws.length-1].start : Date.now(); }
 function trophyPoints(until){
-  const ws=workoutsSorted().filter(w=>until==null||w.start<=until); const goal=st.settings.goal||4;
-  const byWk={}; for(const w of ws){ const k=weekStart(w.start); byWk[k]=(byWk[k]||0)+1; }
+  const key=currentPlan(); const from=planStart(key); const goal=st.settings.goal||4;
+  const ws=workoutsSorted().filter(w=>w.start>=from&&(until==null||w.start<=until)&&(!key||planKeyOf(w)===key));
+  let pts=0, hits=0, prs=0; const byWk={};
+  for(const w of ws){ pts+=1; if(w.hit){ pts+=1; hits++; } const p=Math.min(2,(w.prs||[]).length); pts+=p; prs+=p; const k=weekStart(w.start); byWk[k]=(byWk[k]||0)+1; }
   let weeks=0; for(const k in byWk) if(byWk[k]>=goal) weeks++;
-  return {pts:ws.length+weeks*2, workouts:ws.length, weeks};
+  pts+=weeks*2;
+  return {pts, workouts:ws.length, weeks, hits, prs, key, from, week:Math.floor(((until??Date.now())-weekStart(from))/(7*DAY))+1};
 }
 function trophyStage(pts){ let i=0; while(i+1<TR_PTS.length&&pts>=TR_PTS[i+1]) i++; return i; }
 function trophyKind(){ return st.settings.trophy==='buck'?'buck':'elk'; }
@@ -2973,15 +3035,158 @@ function trophyArt(kind,stage,{scene=true}={}){
   return `<svg class="trophy-svg st${stage}" viewBox="${scene?'0 0 360 150':'92 4 176 148'}" aria-hidden="true">${stage===8?`<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 70 L${f1(180+200*Math.cos(i*Math.PI/6))} ${f1(70+200*Math.sin(i*Math.PI/6))} L${f1(180+200*Math.cos(i*Math.PI/6+.12))} ${f1(70+200*Math.sin(i*Math.PI/6+.12))}Z"/>`).join('')}</g>`:''}${sc.bg}<g transform="translate(${f1(tx)} ${f1(ty)}) scale(${f1(s)})">${animalSVG(kind,stage)}</g>${sc.fg}</svg>`;
 }
 function trophyCard(compact){
-  const kind=trophyKind(), T=TROPHY[kind]; const {pts,workouts,weeks}=trophyPoints(); const stg=trophyStage(pts);
+  const kind=trophyKind(), T=TROPHY[kind]; const tp=trophyPoints(); const {pts}=tp; const stg=trophyStage(pts);
   const next=TR_PTS[stg+1]; const base=TR_PTS[stg]; const pct= next? Math.round((pts-base)/(next-base)*100) : 100;
   return `<div class="card trophy">
     <div class="tro-art">${trophyArt(kind,stg)}</div>
     <div class="tro-h"><div><div class="eyebrow">${ic('target','sm')} Your ${T.name} · stage ${stg+1} of 9</div><h3>${T.stages[stg]}</h3></div>
       <button class="iconbtn" data-a="trophyInfo" aria-label="How your trophy grows">${ic('more')}</button></div>
     <div class="tro-bar"><i style="width:${pct}%"></i></div>
-    <p class="muted small">${next? `<b>${next-pts}</b> more point${next-pts===1?'':'s'} to <b>${T.stages[stg+1]}</b>. Each workout = 1 point, each week you hit your goal = 2 bonus.` : `Top of the mountain. You're a ${T.stages[8]}.`}</p>
+    <p class="muted small">${ic('folder','xs')} <b>${esc(planName(tp.key))}</b> plan · week ${tp.week} · ${tp.workouts} workout${tp.workouts===1?'':'s'}<br>${next? `<b>${next-pts}</b> more point${next-pts===1?'':'s'} to <b>${T.stages[stg+1]}</b>.` : `Top of the mountain. You're a ${T.stages[8]}.`}</p>
   </div>`;
+}
+
+/* ---- More trophy animals (all drawn in the same box: ground at y=155, facing right) ---- */
+SIL.mooseBody=`<path d="M178 74 C180 68 178 62 172 58 C166 54 160 48 156 42 C152 38 146 38 142 42 C136 46 130 44 124 38 C118 32 104 32 92 38 C76 44 56 46 44 48 C34 50 28 56 28 66 C28 78 32 88 38 92 C56 96 96 96 118 94 C126 92 132 88 136 84 C142 78 148 76 154 76 C160 78 166 80 172 80 C176 80 178 78 178 74Z"/><path d="M154 78 C151 88 149 96 151 104 C156 97 158 88 158 80Z M146 41 L135 34 L142 47Z"/><path d="M124 90 L134 92 L132 122 L131 140 L132 155 L125 156 L125 140 L124 122Z M112 92 L121 94 L119 122 L118 140 L119 155 L112 156 L112 140 L111 122Z M36 86 L54 90 L52 110 L46 127 L48 155 L41 156 L40 128 L35 108Z M56 92 L66 93 L63 112 L60 127 L62 155 L55 156 L54 127 L54 110Z"/>`;
+SIL.ramBody=`<path d="M172 62 C172 66 168 68 164 67 L158 66 C156 72 152 78 148 82 C144 90 138 98 132 102 C126 108 118 110 110 110 C92 112 70 112 56 109 C46 108 40 106 36 102 C30 96 29 86 31 78 C33 70 38 64 46 62 C64 58 92 58 110 58 C118 58 124 54 130 48 C136 42 142 40 148 40 C156 40 162 46 166 52 C169 56 172 58 172 62Z"/><path d="M33 70 L27 76 L32 77Z"/><path d="M124 104 L134 105 L132 122 L131 138 L132 155 L125 156 L125 138 L123 120Z M112 106 L121 107 L119 123 L118 138 L119 155 L112 156 L112 138 L111 121Z M38 98 L58 102 L55 116 L49 130 L51 155 L44 156 L43 131 L38 114Z M58 105 L68 107 L65 119 L62 131 L63 155 L56 156 L56 131 L56 118Z"/>`;
+SIL.bearBody=`<path d="M178 96 C178 91 174 87 168 85 C162 79 156 74 148 72 L144 64 L139 70 C131 69 123 65 113 59 C97 53 71 53 55 57 C41 61 31 71 29 85 C27 99 31 111 37 117 L39 141 C39 147 35 153 37 155 L51 155 C51 148 53 140 55 132 C71 134 101 134 117 132 L119 155 L133 155 C131 146 133 134 135 124 C141 114 147 106 153 102 C161 100 169 100 177 99 C178 98 178 97 178 96Z"/><path d="M58 128 L60 155 L72 155 L70 132Z M104 134 L105 155 L114 155 L113 133Z"/><circle class="eye" cx="160" cy="84" r="1.6"/>`;
+SIL.muleBody=SIL.buckBody;
+SIL.muleEars=`<path d="M146 40 L128 28 C132 36 136 42 142 46Z"/>`;
+SIL.muleTail=`<path d="M38 70 C34 74 33 80 35 86 L38 85 C37 80 38 75 40 72Z"/>`;
+function mooseAntlers(stage){
+  const B=[146,40]; const W=[0,0,14,22,32,42,52,60,68][stage]; if(!W){ return stage===1?`<path class="ant" d="M146 40 l-2 -4"/>`:''; }
+  if(stage<=3){ return `<path class="ant" style="stroke-width:3.2" d="M146 40 Q${146-W*.3} ${40-W*.5} ${146-W*.55} ${40-W*.95}${stage===3?` M${146-W*.2} ${40-W*.4} L${146+W*.15} ${40-W*.8}`:''}"/>`; }
+  const n=[0,0,0,0,4,5,6,7,8][stage];
+  const top=[]; for(let i=0;i<=n;i++){ const t=i/n; const x=B[0]-1.05*W+t*1.0*W, y=B[1]-.3*W-Math.sin(t*Math.PI*.9)*.24*W; top.push([x,y]); }
+  let d=`M${B[0]} ${B[1]} L${f1(B[0]-.18*W)} ${f1(B[1]-.12*W)} L${f1(B[0]-1.0*W)} ${f1(B[1]-.16*W)}`;
+  top.forEach((p,i)=>{ d+=` L${f1(p[0])} ${f1(p[1])}`; if(i<top.length-1){ const q=top[i+1]; const m=[(p[0]+q[0])/2,(p[1]+q[1])/2]; d+=` L${f1(m[0]-.03*W)} ${f1(m[1]-.15*W)}`; } });
+  d+=` L${f1(B[0]-.02*W)} ${f1(B[1]-.2*W)} Z`;
+  return `<path class="palm far" transform="translate(-8 3)" d="${d}"/><path class="palm" d="${d}"/>`;
+}
+function ramHorns(stage){
+  const c=[0,.08,.2,.35,.55,.72,.92,.98,1.1][stage]; if(!c) return '';
+  const O=[134,48]; let d='', segs=[]; const N=Math.max(4,Math.round(c*40)); const th0=-70*Math.PI/180;
+  for(let i=0;i<=N;i++){ const u=i/N; const th=th0-u*c*2*Math.PI; const r=8+u*c*15; segs.push([O[0]+r*Math.cos(th)*1.05,O[1]+r*Math.sin(th)]); }
+  let out=''; for(let i=0;i<N;i++){ const w=(8+stage*.9)*(1-.55*i/N); out+=`<path class="ant horn" style="stroke-width:${f1(w)}" d="M${f1(segs[i][0])} ${f1(segs[i][1])} L${f1(segs[i+1][0])} ${f1(segs[i+1][1])}"/>`; }
+  return out;
+}
+function muleAntlers(stage){
+  const out=(dx,dy,cls)=>{
+    const H=[148+dx,37+dy]; const L=[0,0,22,30,36,42,46,50,56][stage]; if(stage===1) return `<path class="ant ${cls}" d="M${H[0]} ${H[1]} l1 -4"/>`; if(!L) return '';
+    const F=[H[0]-.05*L,H[1]-.55*L]; let d=`M${H[0]} ${H[1]} Q${H[0]-.2*L} ${H[1]-.3*L} ${f1(F[0])} ${f1(F[1])}`;
+    const back=[F[0]-.32*L,F[1]-.5*L], front=[F[0]+.3*L,F[1]-.48*L];
+    d+=` Q${f1(F[0]-.25*L)} ${f1(F[1]-.15*L)} ${f1(back[0])} ${f1(back[1])} M${f1(F[0])} ${f1(F[1])} Q${f1(F[0]+.2*L)} ${f1(F[1]-.12*L)} ${f1(front[0])} ${f1(front[1])}`;
+    const fork=(P,dir)=>` M${f1(P[0]-dir*.04*L)} ${f1(P[1]+.14*L)} L${f1(P[0]+dir*.16*L)} ${f1(P[1]-.12*L)}`;
+    if(stage>=4) d+=fork(front,1);
+    if(stage>=5) d+=fork(back,-1)+` M${H[0]-1} ${H[1]-4} l3 -7`;
+    if(stage>=7) d+=` M${f1(F[0]-.1*L)} ${f1(F[1]-.15*L)} l-6 2`;
+    return `<path class="ant ${cls}" style="stroke-width:${f1(2.4+stage*.25)}" d="${d}"/>`;
+  };
+  return out(-6,2,'far')+out(0,0,'');
+}
+function turkeySVG(stage){
+  const strut=stage>=6; const beard=[0,0,0,4,7,10,12,14,16][stage]; let s='';
+  if(strut){ const R=34+stage*3; let f=''; for(let i=0;i<=12;i++){ const a=Math.PI*(1.05+i/12*.9); f+=`<path class="fan" d="M70 92 L${f1(70+R*Math.cos(a)*1.1)} ${f1(92+R*Math.sin(a)*1.25)}"/>`; } s+=`<path class="fanbg" d="M70 92 L${f1(70-R*1.15)} ${f1(92-R*.35)} A${R*1.1} ${R*1.25} 0 0 1 ${f1(70+R*.5)} ${f1(92-R*1.2)}Z"/>${f}`; }
+  else s+=`<path d="M48 96 L26 ${stage<=1?100:108} L30 ${stage<=1?92:98}Z"/>`;
+  s+=`<ellipse cx="88" cy="${strut?96:98}" rx="${strut?46:42}" ry="${strut?34:28}"/>`;
+  s+= strut? `<path d="M120 86 C126 78 128 70 126 62 C124 58 128 54 132 56 C136 58 138 62 136 66 C134 74 132 82 128 90Z"/><circle cx="131" cy="58" r="6"/>` : `<path d="M118 90 C126 78 132 62 134 46 C134 40 140 38 144 42 C146 46 144 52 142 56 C138 68 134 82 128 94Z"/><circle cx="141" cy="42" r="6"/><path d="M146 42 L154 44 L146 46Z"/>`;
+  s+=`<path class="snood" d="${strut?'M134 58 q4 6 2 12':'M144 44 q4 6 2 12'}"/>`;
+  if(beard) s+=`<path class="beard" d="M${strut?122:124} ${strut?100:102} l${beard*.15} ${beard*1.6}"/>`;
+  s+=`<path class="ant" style="stroke-width:3" d="M84 124 L82 155 M98 124 L100 155${stage>=4?' M82 146 l-4 1 M100 146 l-4 1':''}"/>`;
+  return s;
+}
+const TROPHY_MORE={
+  mule:{name:'Mule Deer',scene:'elk',stages:['Fawn','Button Buck','Forkhorn','2×2','3×3','4×4','Heavy 4×4','Wide 4×4','Giant Muley'],lo:.42,hi:.74,
+    draw:st=>muleAntlers(st)+SIL.buckBody+SIL.muleEars+SIL.muleTail+(st===0?spotsFor('buck'):'')},
+  moose:{name:'Moose',scene:'river',stages:['Calf','Yearling','Spike','Forkhorn','Small Paddles','Paddler','Wide Paddles','Big Shiras','Giant Bull'],lo:.42,hi:.74,
+    draw:st=>mooseAntlers(st)+SIL.mooseBody+(st===0?spotsFor('elk').replace(/r="2.6"/g,'r="0"'):'')},
+  ram:{name:'Bighorn Ram',scene:'elk',stages:['Lamb','Yearling','Quarter Curl','Half Curl','Three-Quarter','Seven-Eighths','Full Curl','Broomed Ram','Full-Curl Monarch'],lo:.46,hi:.76,
+    draw:st=>SIL.ramBody+ramHorns(st)},
+  bear:{name:'Black Bear',scene:'buck',stages:['Cub','Yearling','Young Bear','Small Boar','200-lb Boar','250-lb Boar','300-lb Boar','Big Boar','Monster Bruin'],lo:.34,hi:.8,
+    draw:st=>SIL.bearBody},
+  turkey:{name:'Wild Turkey',scene:'buck',stages:['Poult','Jenny','Jake','Two-Year Tom','Gobbler','Longbeard','Strutting Tom','Boss Gobbler','Limb-Hanger'],lo:.4,hi:.78,
+    draw:st=>turkeySVG(st)},
+  trout:{name:'Rainbow Trout',scene:'river',stages:['Fingerling','Stocker','10-Incher','12-Incher','14-Incher','16-Incher','18-Incher','20-Incher','Trophy Hog'],lo:.5,hi:1.6,
+    draw:st=>`<g transform="translate(40 80)">${SIL.trout}</g>`},
+};
+Object.assign(TROPHY,{elk:{...TROPHY.elk,scene:'elk',lo:.42,hi:.72},buck:{...TROPHY.buck,scene:'buck',lo:.42,hi:.72}},TROPHY_MORE);
+function trophyKind(){ return TROPHY[st.settings.trophy]? st.settings.trophy : 'elk'; }
+animalSVG=function(kind,stage){
+  if(kind==='elk'||kind==='buck'){ const body = kind==='elk' ? (stage<=1? SIL.elkCalfBody : SIL.elkBody) : SIL.buckBody+SIL.buckTail; return `<g class="sil">${antlers(kind,stage)}${body}${stage===0?spotsFor(kind):''}</g>`; }
+  return `<g class="sil k-${kind}">${TROPHY[kind].draw(stage)}</g>`;
+};
+trophyArt=function(kind,stage,{scene=true}={}){
+  const T=TROPHY[kind]; const sc= scene? sceneSVGOut(T.scene||kind) : {bg:'',fg:''};
+  const s=T.lo+stage*(T.hi-T.lo)/8;
+  let tx=180-100*s, ty=146-155*s;
+  if(kind==='trout'){ tx=180-115*s; ty=(scene?78:84)-130*s; }
+  const rays= stage===8? `<g class="rays">${Array.from({length:12},(_,i)=>`<path d="M180 70 L${f1(180+200*Math.cos(i*Math.PI/6))} ${f1(70+200*Math.sin(i*Math.PI/6))} L${f1(180+200*Math.cos(i*Math.PI/6+.12))} ${f1(70+200*Math.sin(i*Math.PI/6+.12))}Z"/>`).join('')}</g>`:'';
+  const fg = '';
+  return `<svg class="trophy-svg st${stage}" viewBox="${scene?'0 0 360 150':'92 4 176 148'}" aria-hidden="true">${rays}${sc.bg}<g transform="translate(${f1(tx)} ${f1(ty)}) scale(${f1(s)})">${animalSVG(kind,stage)}</g>${fg}</svg>`;
+};
+
+/* ---------- Badges: a patch collection that fills in as you train ---------- */
+Object.assign(I,{
+  mountain:'<path d="M2.5 19.5 9 8.5l4 6.5 2.5-3.5 6 8z"/><path d="M7.4 11.2 9 12.6l1.6-1.4"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
+  moon:'<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
+  shield:'<path d="M12 3 19.5 6v6c0 4.5-3.2 7.8-7.5 9-4.3-1.2-7.5-4.5-7.5-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+  pack:'<rect x="6" y="6" width="12" height="15" rx="3"/><path d="M9 6V4.5a3 3 0 0 1 6 0V6M6 13h12M10 16h4"/>',
+  antler:'<path d="M12 21v-6M12 15c-3 0-6-2-6.5-6M12 15c3 0 6-2 6.5-6M8.2 12.3 5 10M15.8 12.3 19 10M6 9 4.5 5M18 9l1.5-4M7.3 10.6 8 6M16.7 10.6 16 6"/>',
+  posture:'<circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M8 10l4-2 4 2M9.5 21l2.5-7 2.5 7"/>'
+});
+function badgeCtx(until){
+  const ws=workoutsSorted().filter(w=>until==null||w.start<=until).slice().reverse(); // oldest first
+  const c={n:ws.length,vol:0,maxVol:0,prs:0,dawn:0,night:0,knee:0,pack:0,hours:0,goalWeeks:0,maxStreak:0,ratio:0,stage:0};
+  const byWk={};
+  for(const w of ws){ const v=workoutVolumeLb(w); c.vol+=v; c.maxVol=Math.max(c.maxVol,v); c.prs+=(w.prs||[]).length; c.hours+=((w.end||w.start)-w.start)/3600000;
+    const h=new Date(w.start).getHours(); if(h<6) c.dawn++; if(h>=20) c.night++;
+    const pats=(w.exercises||[]).map(e=>getEx(e.exId).pattern||''); const ids=(w.exercises||[]).map(e=>e.exId);
+    if(pats.some(p=>KNEE_PATTERNS.has(p))||ids.some(i=>['spanish_squat','tib_raise','sled_drag','copenhagen','stepup','bss'].includes(i))) c.knee++;
+    if(pats.some(p=>['carry','sled','walk'].includes(p))||ids.some(i=>/carry|ruck|sled|farmers|yoke|incline_walk/.test(i))) c.pack++;
+    const k=weekStart(w.start); byWk[k]=(byWk[k]||0)+1; }
+  const goal=st.settings.goal||4; for(const k in byWk) if(byWk[k]>=goal) c.goalWeeks++;
+  const wks=Object.keys(byWk).map(Number).sort((a,b)=>a-b); let run=0, prev=null; for(const k of wks){ run= prev!=null && Math.round((k-prev)/(7*DAY))===1 ? run+1 : 1; c.maxStreak=Math.max(c.maxStreak,run); prev=k; }
+  const end=until??Date.now(); const sets={}; for(const w of ws.filter(w=>w.start>end-30*DAY)) for(const e of w.exercises||[]){ const X=getEx(e.exId); const n=workingSets(e).length; for(const m of X.primary||[]) sets[m]=(sets[m]||0)+n; }
+  const pull=(sets['Lats']||0)+(sets['Upper Back']||0), push=(sets['Chest']||0); c.pull=pull; c.ratio= push? pull/push : (pull>0?99:0);
+  c.stage=trophyStage(trophyPoints(until).pts);
+  return c;
+}
+const BADGES=[
+  ['first','First Tracks','Finish your first workout','mountain',c=>[c.n,1]],
+  ['w10','Spike Camp','10 workouts','mountain',c=>[c.n,10]],
+  ['w25','Base Camp','25 workouts','mountain',c=>[c.n,25]],
+  ['w50','High Camp','50 workouts','mountain',c=>[c.n,50]],
+  ['w100','Summit','100 workouts','mountain',c=>[c.n,100]],
+  ['w250','Living Legend','250 workouts','mountain',c=>[c.n,250]],
+  ['v100k','Pack Mule','100,000 lb lifted','dumbbell',c=>[c.vol,1e5]],
+  ['v500k','Meat Hauler','500,000 lb lifted','dumbbell',c=>[c.vol,5e5]],
+  ['v1m','Million-Pound Club','1,000,000 lb lifted','dumbbell',c=>[c.vol,1e6]],
+  ['v5m','Freight Train','5,000,000 lb lifted','dumbbell',c=>[c.vol,5e6]],
+  ['heavy','Heavy Haul','20,000 lb in one workout','bolt',c=>[c.maxVol,2e4]],
+  ['s4','Four-Week Run','Train 4 weeks in a row','flame',c=>[c.maxStreak,4]],
+  ['s12','Full Season','Train 12 weeks in a row','flame',c=>[c.maxStreak,12]],
+  ['s26','Half-Year Grind','Train 26 weeks in a row','flame',c=>[c.maxStreak,26]],
+  ['tag','Tag Filled','Hit your weekly goal 10 times','target',c=>[c.goalWeeks,10]],
+  ['pr10','Record Book','Set 10 personal records','trophy',c=>[c.prs,10]],
+  ['pr50','Boone & Crockett','Set 50 personal records','trophy',c=>[c.prs,50]],
+  ['dawn','Dawn Patrol','5 workouts before 6 am','sun',c=>[c.dawn,5]],
+  ['night','Night Hunter','5 workouts after 8 pm','moon',c=>[c.night,5]],
+  ['knees','Bulletproof Knees','15 workouts with knee work','shield',c=>[c.knee,15]],
+  ['pack','Pack Out','10 workouts with carries, sleds or rucks','pack',c=>[c.pack,10]],
+  ['posture','Posture Fixer','2 back sets for every chest set (last 30 days, 20+ back sets)','posture',c=>[c.pull>=20?Math.min(c.ratio,2):0,2]],
+  ['h50','50 Hours','50 hours of training','clock',c=>[c.hours,50]],
+  ['trophy','Big Game','Grow your trophy animal to its final stage','antler',c=>[c.stage,8]],
+];
+function badgeState(until){ const c=badgeCtx(until); return BADGES.map(([id,name,desc,icon,f])=>{ const [v,g]=f(c); return {id,name,desc,icon,v,g,got:v>=g}; }); }
+function patch(b,size){ const pct=Math.max(0,Math.min(1,b.v/b.g)); const R=30, C=2*Math.PI*R;
+  return `<div class="patch ${b.got?'got':''} ${size||''}" title="${esc(b.desc)}"><svg viewBox="0 0 80 80" aria-hidden="true"><circle class="p-bg" cx="40" cy="40" r="36"/><circle class="p-st" cx="40" cy="40" r="32"/>${b.got?'':`<circle class="p-pr" cx="40" cy="40" r="${R}" stroke-dasharray="${f1(C)}" stroke-dashoffset="${f1(C*(1-pct))}" transform="rotate(-90 40 40)"/>`}<g transform="translate(22 22) scale(1.5)" class="p-ic">${I[b.icon]||''}</g></svg><b>${esc(b.name)}</b>${size==='big'?`<span class="muted small">${esc(b.desc)}${b.got?'':` · ${fmtN(Math.min(b.v,b.g),b.g<5?1:0)} / ${fmtN(b.g)}`}</span>`:''}</div>`; }
+function badgesCard(){
+  const bs=badgeState(); const got=bs.filter(b=>b.got);
+  const show=[...got.slice(-5).reverse(), ...bs.filter(b=>!b.got).sort((a,b)=>b.v/b.g-a.v/a.g).slice(0,Math.max(3,8-Math.min(5,got.length)))].slice(0,8);
+  return `<div class="card badges"><div class="card-h"><h3>${ic('shield','sm')} Badges</h3><span class="muted small">${got.length} of ${bs.length} earned</span></div>
+    <div class="patches">${show.map(b=>patch(b)).join('')}</div>
+    <button class="btn ghost wide sm" data-a="allBadges">See all badges ${ic('right','sm')}</button></div>`;
 }
 
 function sceneKind(){ const v=st.settings.scene||'rotate'; if(v==='off') return null; if(v!=='rotate') return v; const k=['elk','buck','marsh','river']; return k[Math.floor(Date.now()/DAY)%4]; }
@@ -3066,6 +3271,7 @@ profile(){
      <div>${ic('clock','sm')}<span class="num">${fmtN(totalSec/3600,0)}</span><label>Hours</label></div>
    </div>
    ${trophyCard()}
+   ${badgesCard()}
    ${coachCard()}
    ${calendarCard(ws)}
    ${weeklyChart(ws)}
@@ -3163,12 +3369,14 @@ done(p){
   body:`<section class="gut stack celebrate">
     ${(()=>{ const kind=trophyKind(), T=TROPHY[kind]; const before=trophyStage(trophyPoints(w.start-1).pts), after=trophyStage(trophyPoints(w.start).pts);
       return `<div class="done-trophy ${after>before?'levelup':''}">${trophyArt(kind,after)}${after>before?`<div class="lvl">${ic('bolt','sm')} Level up! You're now a <b>${T.stages[after]}</b></div>`:`<div class="lvl muted">${T.stages[after]} · keep stacking workouts to grow</div>`}</div>`; })()}
+    ${(()=>{ const a=badgeState(w.start-1), b=badgeState(w.start); const nw=b.filter((x,i)=>x.got&&!a[i].got); return nw.length?`<div class="card newbadges"><h3>${ic('shield','sm')} New badge${nw.length>1?'s':''} earned</h3><div class="patches">${nw.map(x=>patch(x)).join('')}</div></div>`:''; })()}
     <div class="eyebrow center">Workout #${nth} complete</div>
     <h2 class="center bigname">${esc(w.name)}</h2>
     <div class="liftbig"><span class="num">${fmtN(convW(vol,'lb',u))}</span><span class="unit">${u} lifted</span></div>
     ${packOut(vol)?`<p class="center lead">${packOut(vol)}</p>`:cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
     <div class="kv3"><div><label>Duration</label><b>${fmtDur(dur)}</b></div><div><label>Sets</label><b>${workoutSets(w)}</b></div><div><label>Streak</label><b>${streak} wk</b></div></div>
     ${prs.length?`<div class="card"><h3 class="gold-t">${ic('trophy','sm')} ${prs.length} new personal record${prs.length>1?'s':''}</h3><ul class="prlist">${prs.map(p=>`<li><span>${esc(getEx(p.exId).name)}</span><span class="muted small">${PR_LABEL[p.kind]}</span><b>${prValue(p)}</b></li>`).join('')}</ul></div>`:''}
+    ${w.routineUpdated?`<p class="muted small center">${ic('spark','sm')} The coach saved today's weights into <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> and will set next session's targets from them.</p>`:''}
     <button class="btn wide strava" data-a="strava" data-id="${esc(w.id)}">${ic('share')} Share to Strava</button>
     <button class="btn primary wide" data-a="doneClose">Done</button>
   </section>`};
@@ -3303,7 +3511,7 @@ settings(){
    <div class="field"><label>Theme</label><div class="thms">${Object.keys(THEMES).map(themePreview).join('')}</div></div>
    <div class="field"><label>Accent color <span class="muted small">(Auto uses the theme's color)</span></label><div class="swatches">${sw.map(c=>`<button class="sw ${s.accent===c?'on':''}" style="${c?`--c:${c}`:''}" data-a="setAccent" data-v="${c}" aria-label="${c||'Default'}">${c?'':'Auto'}</button>`).join('')}<label class="sw custom" aria-label="Custom color"><input type="color" data-f="saccent" value="${s.accent||'#3D8BFF'}"></label></div></div>
    </div><h2 class="sec">${ic('target')} Outdoors</h2><div class="card setcard">
-   <div class="field"><label>Trophy animal</label>${seg('trophy',[['elk','Bull Elk'],['buck','Whitetail']],s.trophy||'elk')}</div>
+   <div class="field"><label>Trophy animal</label><div class="animals">${Object.keys(TROPHY).map(k=>`<button class="scn ${trophyKind()===k?'on':''}" data-a="setS" data-k="trophy" data-v="${k}">${trophyArt(k,6,{scene:false})}<span>${esc(TROPHY[k].name)}</span></button>`).join('')}</div></div>
    <div class="field"><label>Scenery on Home</label><div class="scenes">${[['rotate','Rotate daily'],['elk','Elk mountains'],['buck','Whitetail woods'],['marsh','Duck marsh'],['river','Trout river'],['off','Off']].map(([v,l])=>`<button class="scn ${ (s.scene||'rotate')===v?'on':''}" data-a="setS" data-k="scene" data-v="${v}">${v==='off'||v==='rotate'?`<span class="scn-ic">${ic(v==='off'?'x':'history')}</span>`:(()=>{const sc=sceneSVGOut(v); return `<svg class="trophy-svg" viewBox="0 0 360 150" aria-hidden="true">${sc.bg}${sc.fg}</svg>`;})()}<span>${l}</span></button>`).join('')}</div></div>
    </div><h2 class="sec">${ic('link')} Connected apps</h2>
    <div class="card conn"><div class="conn-h"><b>Strava</b><span class="badge">Share</span></div><p class="muted small">After each workout, tap <b>Share to Strava</b>. Work Harder writes the title and a full set breakdown for you to paste into Strava's manual activity form.</p></div>
@@ -3345,6 +3553,7 @@ function loggerPage(obj,mode){
       ? `<div class="card cbcard"><b>Comeback mode is off</b><p class="muted small">Back to normal targets. Tap to ease in again.</p><button class="btn sm" data-a="comebackToggle">Turn comeback mode on</button></div>`
       : `<div class="card cbcard"><b>${ic('spark','sm')} Comeback mode · session ${c.stage+1} of ${CB_SESSIONS}</b><p class="small">${c.stage===0?`${c.gapDays} days off: weights start at ${Math.round(cbStartFactor(c.gapDays)*100)}% with one fewer set.`:`Lifts climb from your ratings: Easy +10%, Medium +5%, Hard holds.`} Rate each set as you go.</p><button class="btn ghost sm cboff" data-a="comebackToggle">I'm ready, turn it off</button></div>`;
   }
+  if(mode==='active'&&obj.deload){ top+=`<div class="card cbcard dlcard"><b>${ic('history','sm')} Deload week</b><p class="small">${esc(obj.deload.why)}</p><button class="btn ghost sm cboff" data-a="deloadSkip">Skip the deload, go full</button></div>`; }
   if(mode==='active'&&obj.routineId){
     const opt=(k,v,l)=>`<button class="chip ${obj[k]===v?'on':''}" data-a="checkin" data-k="${k}" data-v="${v}" aria-pressed="${obj[k]===v}">${l}</button>`;
     top+=`<div class="card checkin">
@@ -4011,6 +4220,7 @@ const A={
     if(ps.w!=null) s.w=round1(convW(num(ps.w),prev.unit,obj.unit)); if(ps.r!=null) s.r=ps.r; if(ps.t!=null) s.t=ps.t; if(ps.d!=null) s.d=ps.d; changed(true); },
   comebackToggle:()=>{ const a=st.active; if(!a) return; a.comebackOff=!a.comebackOff; applyCoach(a); changed(true); toast(a.comebackOff?'Normal targets restored':'Comeback mode on: lighter targets'); },
   checkin:(d)=>{ const a=st.active; if(!a) return; a[d.k]=d.v; applyCoach(a); changed(true); toast(d.k==='knees'&&d.v==='achy'?'Knee-heavy lifts lightened for today':d.v==='rundown'?'No increases today. Match last time.':'Targets updated'); },
+  deloadSkip:()=>{ const a=st.active; if(!a) return; a.deloadOff=true; applyCoach(a); changed(true); toast('Full targets back on.'); },
   postfeel:(d)=>{ const a=st.active; if(!a) return; a.post= a.post===d.v? '' : d.v; Store.saveActive(); render(); },
   coachSwap:(d)=>{ const a=st.active; const i=+d.e; const e=a.exercises[i]; const old=getEx(e.exId).name;
     a.exercises[i]={exId:d.id,rest:e.rest,cue:e.cue,ss:e.ss,note:'',sets:e.sets.map(s=>({type:s.type||'n',w:'',r:'',t:'',d:'',done:false,pr:s.pr}))};
@@ -4028,10 +4238,18 @@ const A={
   stAdd:()=>{ const T=ui.stimer; if(T){ T.target+=15; renderSetTimer(); } },
   stDone:()=>{ const T=ui.stimer; if(!T) return; const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; } finishSetTimer(sec); },
   stCancel:()=>{ ui.stimer=null; renderSetTimer(); },
+  allBadges:()=>{ const bs=badgeState(); openSheet({kind:'html',title:`Badges · ${bs.filter(b=>b.got).length} of ${bs.length}`,html:`<div class="patches big">${bs.map(b=>patch(b,'big')).join('')}</div>`}); },
   trophyInfo:()=>{ const kind=trophyKind(), T=TROPHY[kind]; const pts=trophyPoints().pts, cur=trophyStage(pts);
-    openSheet({kind:'html',title:`Grow your ${T.name}`,html:`<p class="muted small">Every workout you finish is 1 point. Every week you hit your goal of ${st.settings.goal||4} workouts adds 2 bonus points. You have <b>${pts}</b>.</p>
-      <div class="seg tro-pick">${[['elk','Bull Elk'],['buck','Whitetail']].map(([v,l])=>`<button data-a="setTrophy" data-v="${v}" aria-selected="${kind===v}">${l}</button>`).join('')}</div>
+    const tp=trophyPoints(); const plans=[...new Set(workoutsSorted().map(planKeyOf).filter(Boolean).concat(folderNames()))];
+    openSheet({kind:'html',title:`Grow your ${T.name}`,html:`<p class="muted small">Your animal grows with your current plan, <b>${esc(planName(tp.key))}</b> (week ${tp.week}). Points per plan workout:</p>
+      <ul class="ptlist"><li>${ic('check','sm')}<span>Finish the workout</span><b>+1</b></li><li>${ic('target','sm')}<span>Hit every coach target (weight and reps)</span><b>+1</b></li><li>${ic('trophy','sm')}<span>Personal records (up to 2)</span><b>+1 each</b></li><li>${ic('cal','sm')}<span>Hit your weekly goal of ${st.settings.goal||4}</span><b>+2</b></li></ul>
+      <p class="small">You have <b>${tp.pts}</b> points: ${tp.workouts} workouts, ${tp.hits} on target, ${tp.prs} PR points, ${tp.weeks} goal week${tp.weeks===1?'':'s'}.</p>
+      ${plans.length>1?`<div class="field"><label>Plan</label><div class="chips">${plans.map(k=>`<button class="chip ${k===tp.key?'on':''}" data-a="setPlan" data-v="${esc(k)}">${esc(planName(k))}</button>`).join('')}</div></div>`:''}
+      <button class="btn ghost sm" data-a="restartPlan">${ic('history','sm')} Start this plan over (back to ${esc(T.stages[0])})</button>
+      <div class="animals tro-pick">${Object.keys(TROPHY).map(v=>`<button class="scn ${kind===v?'on':''}" data-a="setTrophy" data-v="${v}">${trophyArt(v,6,{scene:false})}<span>${esc(TROPHY[v].name)}</span></button>`).join('')}</div>
       <ol class="tro-ladder">${T.stages.map((n,i)=>`<li class="${i<cur?'got':i===cur?'now':'lock'}">${trophyArt(kind,i,{scene:false})}<div><b>${n}</b><span class="muted small">${TR_PTS[i]} pts${i===cur?' · you are here':i<cur?' · earned':''}</span></div></li>`).join('')}</ol>`}); },
+  setPlan:(d)=>{ st.settings.planKey=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
+  restartPlan:()=>{ const k=currentPlan(); if(!k) return; confirmSheet('Start this plan over?','Your animal goes back to the first stage and grows again from your next workout. Your workout history stays.','Start over',()=>{ st.settings.planStarts={...(st.settings.planStarts||{}),[k]:Date.now()}; st.settings.planKey=k; Store.saveSettings(); render(); toast('Plan restarted. Time to grow.'); },false); },
   setTrophy:(d)=>{ st.settings.trophy=d.v; Store.saveSettings(); render(); A.trophyInfo(); },
   toggleSet:(d)=>{
     audio();
@@ -4066,7 +4284,11 @@ const A={
   doDiscard:()=>{ st.active=null; Store.saveActive(true); ui.rest=null; wake(false); ui.stack=[]; ui.tab='workout'; render(); },
   saveWorkout:()=>{
     const a=clone(st.active); const n=$('#wname'); if(n&&n.value.trim()) a.name=n.value.trim(); const nt=$('#wnotes'); if(nt) a.notes=nt.value;
-    a.end=Date.now(); normalizeSets(a,true); a.saved=true; delete a.sess; delete a.updatedAt;
+    a.end=Date.now();
+    { let tgt=0, ok=0; for(const e of a.exercises){ for(const s of e.sets){ if(s.type==='w') continue; const pw=num(s.pw), pr=num(s.pr), pt=num(s.pt); if(!pw&&!pr&&!pt) continue; tgt++; if(s.done && (!pw||num(s.w)>=pw-0.01) && (!pr||num(s.r)>=pr) && (!pt||num(s.t)>=pt)) ok++; } } a.hit= tgt>0 && ok===tgt; }
+    const srcR=a.routineId&&st.routines[a.routineId];
+    if(srcR && !(a.comeback&&a.comeback.light&&!a.comebackOff) && !a.deload){ const rr=clone(srcR); let ch=0; rr.exercises.forEach((re,ri)=>{ const we=a.exercises.find((x,xi)=>x.exId===re.exId&&(xi===ri||true)); if(!we) return; const doneW=we.sets.filter(s=>s.done&&s.type!=='w'); if(!doneW.length) return; let k=0; re.sets.forEach(rs=>{ if(rs.type==='w') return; const src=doneW[Math.min(k,doneW.length-1)]; k++; for(const c of ['w','r','t','d']){ if(src[c]!==''&&src[c]!=null&&String(rs[c])!==String(src[c])){ rs[c]=src[c]; ch++; } } }); }); if(ch){ rr.updated=Date.now(); Store.put('routines',rr.id,rr); a.routineUpdated=true; } }
+    normalizeSets(a,true); a.saved=true; delete a.sess; delete a.updatedAt;
     if(!a.exercises.length){ toast('Check off at least one set.'); return; }
     a.prs=computePRs(a);
     Store.put('workouts',a.id,a);
@@ -4202,7 +4424,7 @@ document.addEventListener('focusout',()=>{ if(ui.dirtyRender){ setTimeout(()=>{ 
 
 </script>
 <script>
-window.WH_BUILD='202611171411';
+window.WH_BUILD='202611171418';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
