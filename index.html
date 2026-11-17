@@ -3747,6 +3747,7 @@ milArt=function(stage,{scene=true}={}){
 };
 WORLDS.mil.art=milArt;
 
+delete WORLDS.mil; // Military theme removed
 function worldKey(){ return WORLDS[st.settings.world]? st.settings.world : 'hunt'; }
 const BADGE_NAMES={
   space:['Ignition','Cadet','Pilot','Commander','Captain','Space Legend','Payload 100K','Heavy Lift','Million-Pound Launch','Saturn V','Max Thrust','Four Orbits','12-Week Mission','Six-Month Voyage','Mission Accomplished','New Frontier','Hall of Astronauts','Sunrise Launch','Night Shift','Landing Gear','Cargo Bay','Steady Spine','50 Hours in Orbit','Reach Deep Space'],
@@ -5089,10 +5090,11 @@ function artFor(p,opts){
     st.settings.world=p.world||'hunt';
     if(p.world==='hunt'||!p.world){ st.settings.trophy=p.kind||'elk'; return trophyArt(p.kind||'elk',p.stage||0,opts); }
     if(p.world==='mil'){ st.settings.branch=p.kind||'army'; return milArt(p.stage||0,opts); }
+    if(!WORLDS[p.world]) return trophyArt('elk',p.stage||0,opts);
     return WORLDS[p.world].art(p.stage||0,opts);
   } finally { Object.assign(st.settings,prev); }
 }
-function worldLabel(p){ if(p.world==='hunt'||!p.world) return (TROPHY[p.kind]||TROPHY.elk).name; if(p.world==='mil') return (BRANCHES[p.kind]||BRANCHES.army).name; return WORLDS[p.world].name; }
+function worldLabel(p){ if(p.world==='hunt'||!p.world) return (TROPHY[p.kind]||TROPHY.elk).name; if(p.world==='mil') return (BRANCHES[p.kind]||BRANCHES.army).name; return (WORLDS[p.world]||{name:'Work Harder'}).name; }
 function avatar(p,size=''){ return p&&p.photo? `<img class="avatar ${size}" src="${esc(p.photo)}" alt="">` : `<span class="avatar ${size} ph">${esc(((p&&p.name)||'?').trim().slice(0,1).toUpperCase())}</span>`; }
 function feedRow(f){ return `<li class="frow"><div><b>${esc(f.name)}</b><span class="muted small">${esc(fmtWhen(f.start))}</span></div><div class="fstats"><span>${ic('target','xs')} +${f.pts} pts</span><span>${ic('dumbbell','xs')} ${fmtN(convW(f.lb,'lb',st.settings.unit))} ${st.settings.unit}</span><span>${ic('clock','xs')} ${f.min} min</span><span>${ic('list','xs')} ${f.ex} ex</span></div></li>`; }
 function friendCard(f,full){
@@ -5183,7 +5185,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171444';
+window.WH_BUILD='202611171446';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
