@@ -586,6 +586,8 @@ textarea{resize:vertical;line-height:1.4}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);font:inherit;cursor:pointer}
 .cbox{display:flex;gap:8px}.cbox input{flex:1;min-width:0}
 .nudge{display:grid;gap:6px;justify-items:start}.nudge p{margin:0}
+.folder{position:relative}.folder-h{padding-right:48px!important}
+.folder-share{position:absolute;top:0;right:0}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3854,7 +3856,7 @@ routines(){
     <div class="row2"><button class="btn" data-a="newRoutine">${ic('plus')} New routine</button><button class="btn" data-a="aiRoutine">${ic('spark')} Build with Claude</button></div>
     ${!rs.length&&Store.mode!=='cloud'?importCard('Bring your routines over'):''}
     ${folders.map(f=>{ const list=rs.filter(r=>r.folder===f); const isOpen=open[f]!==false;
-      return `<div class="folder"><button class="folder-h" data-a="toggleFolder" data-v="${esc(f)}" aria-expanded="${isOpen}">${ic('folder')}<b>${esc(f)}</b>${ic(isOpen?'down':'right','sm')}<span class="muted small">${list.length} routine${list.length===1?'':'s'}</span></button>
+      return `<div class="folder"><button class="folder-h" data-a="toggleFolder" data-v="${esc(f)}" aria-expanded="${isOpen}">${ic('folder')}<b>${esc(f)}</b>${ic(isOpen?'down':'right','sm')}<span class="muted small">${list.length} routine${list.length===1?'':'s'}</span></button><button class="iconbtn folder-share" data-a="folderMenu" data-v="${esc(f)}" aria-label="Folder options">${ic('more')}</button>
         ${isOpen?list.map(r=>routineCard(r,false)).join(''):''}</div>`; }).join('')}
     ${loose.length?`<h3 class="sub">${folders.length?'Other routines':'My routines'} (${loose.length})</h3>${loose.map(r=>routineCard(r,false)).join('')}`:''}
     ${!rs.length?`<p class="muted small">No routines yet. Make one, have Claude build one, or save a starter below.</p>`:''}
@@ -4729,10 +4731,12 @@ const A={
     menu(r.name,[
       {label:'Edit routine',icon:'edit',fn:()=>push({name:'redit',obj:convertObjUnit(clone(r),st.settings.unit)})},
       {label:'Share with friends',icon:'share',fn:()=>Social.share('routine',r.id)},
+      ...(r.folder?[{label:`Share whole "${r.folder}" folder`,icon:'folder',fn:()=>Social.share('folder',r.folder)}]:[]),
       {label:'Duplicate',icon:'copy',fn:()=>{ const c={...clone(r),id:uid(),name:r.name+' (copy)',updated:Date.now()}; Store.put('routines',c.id,c); render(); toast('Duplicated'); }},
       {label:'Delete routine',icon:'trash',danger:true,fn:()=>confirmSheet('Delete this routine?',`"${r.name}" will be removed. Past workouts stay in your history.`,'Delete',()=>{ Store.del('routines',r.id); ui.stack=ui.stack.filter(x=>!(x.name==='rview'&&x.id===r.id)); render(); })}
     ]);
   },
+  folderMenu:(d)=>menu(d.v,[{label:'Share folder with friends',icon:'share',fn:()=>Social.share('folder',d.v)}]),
   toggleFolder:(d)=>{ const o=ui.folderOpen||(ui.folderOpen={}); o[d.v]=o[d.v]===false; render(); },
   openR:(d)=>push({name:'rview',id:d.id,tpl:!!d.tpl}),
   rMetric:(d)=>{ cur().metric=d.v; const m=$('#main'),y=m.scrollTop; render(); $('#main').scrollTop=y; },
@@ -5112,8 +5116,12 @@ const Social={
   },
   sharePayload(kind,id){
     let o,unit;
-    if(kind==='routine'){ const r=st.routines[id]; if(!r) return null; unit=r.unit||st.settings.unit;
-      o={name:r.name,notes:r.notes||'',exercises:(r.exercises||[]).map(e=>({exId:e.exId,rest:e.rest??null,note:e.note||'',ss:e.ss||null,sets:(e.sets||[]).map(s=>({type:s.type||'n',w:s.w??'',r:s.r??'',t:s.t??'',d:s.d??''}))}))}; }
+    const rOut=r=>({name:r.name,notes:r.notes||'',unit:r.unit||st.settings.unit,exercises:(r.exercises||[]).map(e=>({exId:e.exId,rest:e.rest??null,note:e.note||'',ss:e.ss||null,sets:(e.sets||[]).map(s=>({type:s.type||'n',w:s.w??'',r:s.r??'',t:s.t??'',d:s.d??''}))}))});
+    if(kind==='folder'){ const list=routinesSorted().filter(r=>r.folder===id); if(!list.length) return null; unit=st.settings.unit;
+      const rs=list.map(rOut); const all=rs.flatMap(r=>r.exercises);
+      const custom={}; for(const e of all){ if(!BUILTIN[e.exId]&&st.custom[e.exId]){ const c=clone(st.custom[e.exId]); delete c.hidden; custom[e.exId]=c; } }
+      return JSON.parse(JSON.stringify({type:'folder',name:id,from:(this.profile&&this.profile.name)||'A friend',createdAt:Date.now(),unit,ex:all.length,sets:all.reduce((a,e)=>a+e.sets.length,0),routines:rs.length,data:{name:id,routines:rs},custom})); }
+    if(kind==='routine'){ const r=st.routines[id]; if(!r) return null; unit=r.unit||st.settings.unit; o=rOut(r); }
     else { const w=st.workouts[id]; if(!w) return null; unit=w.unit||st.settings.unit;
       o={name:w.name||'Workout',notes:w.notes||'',done:w.start,min:Math.round(((w.end||w.start)-w.start)/60000),exercises:(w.exercises||[]).map(e=>({exId:e.exId,rest:e.rest??null,note:e.cue||'',ss:e.ss||null,sets:(e.sets||[]).filter(s=>s.done!==false).map(s=>({type:s.type||'n',w:s.w??'',r:s.r??'',t:s.t??'',d:s.d??''}))})).filter(e=>e.sets.length)}; }
     const custom={}; for(const e of o.exercises){ if(!BUILTIN[e.exId]&&st.custom[e.exId]){ const c=clone(st.custom[e.exId]); delete c.hidden; custom[e.exId]=c; } }
@@ -5123,7 +5131,7 @@ const Social={
     if(!this.user){ toast('Sign in on the Friends tab to share'); setTab('friends'); return; }
     const item=this.sharePayload(kind,id); if(!item){ toast('Nothing to share'); return; }
     if(!item.ex){ toast('Add some exercises first'); return; }
-    const sid=kind[0]+'_'+id;
+    const sid=kind[0]+'_'+(kind==='folder'?id.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60):id);
     try{ await this.api.putShared(this.user.uid,sid,item); this.myShared=[{...item,id:sid},...(this.myShared||[]).filter(x=>x.id!==sid)]; toast(`Shared "${item.name}" with your friends`); softRender(true); }
     catch(e){ toast('Could not share: '+(e.code||e.message||'error')); }
   },
@@ -5251,14 +5259,20 @@ function homeFeed(ws){
 }
 function findShared(fid,id){ const list= fid? ((Social.friends.find(x=>x.uid===fid)||{}).shared||[]) : (Social.myShared||[]); return list.find(x=>x.id===id); }
 function sharedRow(it,fid){
-  const kind=it.type==='workout'?'Workout':'Routine';
-  return `<li><button class="shrow" data-a="openShared" data-f="${esc(fid||'')}" data-id="${esc(it.id)}"><span class="shic">${ic(it.type==='workout'?'dumbbell':'list','sm')}</span><span class="minw"><b>${esc(it.name)}</b><span class="muted small">${kind} · ${it.ex} exercises · ${it.sets} sets${fid?` · from ${esc(it.from||'friend')}`:''} · ${esc(fmtWhen(it.createdAt))}</span></span>${ic('chev','sm')}</button></li>`;
+  const kind=it.type==='workout'?'Workout':it.type==='folder'?`Folder · ${it.routines} routines`:'Routine';
+  return `<li><button class="shrow" data-a="openShared" data-f="${esc(fid||'')}" data-id="${esc(it.id)}"><span class="shic">${ic(it.type==='workout'?'dumbbell':it.type==='folder'?'folder':'list','sm')}</span><span class="minw"><b>${esc(it.name)}</b><span class="muted small">${kind} · ${it.ex} exercises${fid?` · from ${esc(it.from||'friend')}`:''} · ${esc(fmtWhen(it.createdAt))}</span></span>${ic('chev','sm')}</button></li>`;
 }
 function sharedExName(it,id){ const x=st.custom[id]||BUILTIN[id]||(it.custom||{})[id]; return x?x.name:'Exercise'; }
 function importSharedCustom(it){ let n=0; for(const [id,def] of Object.entries(it.custom||{})){ if(!BUILTIN[id]&&!st.custom[id]){ Store.put('custom',id,{...def,id}); n++; } } return n; }
 PAGES.shared=function(p){
   const it=findShared(p.fid,p.id); if(!it) return PAGES.missing();
   const d=it.data||{}; const u=it.unit||'lb';
+  if(it.type==='folder') return {hdr:hdr('Shared folder',{left:backBtn}),body:`<section class="gut stack">
+    <div><h2 class="h2">${ic('folder')} ${esc(it.name)}</h2><div class="muted small">${p.fid?`From ${esc(it.from||'a friend')} · `:'You shared this · '}${it.routines} routines · ${it.ex} exercises</div></div>
+    ${p.fid?`<button class="btn primary wide" data-a="saveShared" data-f="${esc(p.fid)}" data-id="${esc(it.id)}">${ic('plus')} Save all ${it.routines} routines</button>`
+    :`<button class="btn ghost wide danger-t" data-a="unshare" data-id="${esc(it.id)}">${ic('trash','sm')} Stop sharing</button>`}
+    ${(d.routines||[]).map(r=>`<div class="card shex"><b class="acc">${esc(r.name)}</b><div class="muted small">${r.exercises.length} exercises</div><ol class="shsets">${r.exercises.map(e=>`<li>${esc(sharedExName(it,e.exId))} <span class="muted small">${e.sets.length} sets</span></li>`).join('')}</ol></div>`).join('')}
+  </section>`};
   const fmtSet=s=>{ const b=[]; if(s.w!==''&&s.w!=null) b.push(wDisp(s.w,u)); if(s.r!==''&&s.r!=null) b.push(s.r+' reps'); if(s.t) b.push(fmtTime(s.t)); if(s.d) b.push(s.d+' '+st.settings.dist); return b.join(' × ')||'–'; };
   return {hdr:hdr(it.type==='workout'?'Shared workout':'Shared routine',{left:backBtn}),body:`<section class="gut stack">
     <div><h2 class="h2">${esc(it.name)}</h2><div class="muted small">${p.fid?`From ${esc(it.from||'a friend')} · `:'You shared this · '}${it.ex} exercises · ${it.sets} sets${d.min?` · ${d.min} min`:''}</div></div>
@@ -5312,6 +5326,9 @@ Object.assign(A,{
   morePosts:()=>{ ui.postN=(ui.postN||8)+8; render(); },
   openShared:(d)=>push({name:'shared',fid:d.f||'',id:d.id}),
   saveShared:(d)=>{ const it=findShared(d.f,d.id); if(!it) return; importSharedCustom(it); const src=it.data||{};
+    if(it.type==='folder'){ let fname=it.name; if(folderNames().includes(fname)) fname=`${it.name} (${it.from||'friend'})`; let o=routinesSorted().length;
+      for(const r of src.routines||[]){ const n={id:uid(),name:r.name,notes:r.notes||'',folder:fname,unit:r.unit||it.unit||'lb',order:o++,updated:Date.now(),exercises:clone(r.exercises||[]).map(e=>({...e,rest:e.rest??undefined,ss:e.ss||undefined}))}; Store.put('routines',n.id,n); }
+      toast(`Saved folder "${fname}" to your routines`); render(); return; }
     const r={id:uid(),name:src.name||it.name,notes:src.notes||'',folder:`From ${it.from||'friends'}`,unit:it.unit||'lb',order:routinesSorted().length,updated:Date.now(),exercises:clone(src.exercises||[]).map(e=>({...e,rest:e.rest??undefined,ss:e.ss||undefined}))};
     Store.put('routines',r.id,r); toast(`Saved "${r.name}" to My routines`); render(); },
   startShared:(d)=>{ const it=findShared(d.f,d.id); if(!it) return; importSharedCustom(it); const src=clone(it.data||{}); startWorkout({...src,id:'shared',tpl:true,unit:it.unit||'lb'}); },
@@ -5332,7 +5349,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171509';
+window.WH_BUILD='202611171831';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
