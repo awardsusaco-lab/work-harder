@@ -2635,9 +2635,10 @@ function topOf(e,unitFrom,unitTo){
   return {W:convW(W,unitFrom||'lb',unitTo), reps:atW.filter(s=>!s.amrap).map(s=>num(s.r)||0).concat(am&&(num(am.w)||0)===W?[Math.min(num(am.r)||0,999)]:[]), all:ws, effort:eff, amrap:am?{w:convW(num(am.w)||0,unitFrom||'lb',unitTo),r:num(am.r)||0}:null};
 }
 /* Plan the next session for one exercise. Returns {w, r, t, d, msg, kind} or null. */
+function noReps(ex){ return !colsFor(ex).includes('r'); }
 function coachPlan(exId,note,check,unit){
   const ex=getEx(exId); const hist=sessionsFor(exId,4);
-  if(!hist.length) return {msg:'First time: pick a weight that leaves 1–2 good reps in the tank. The coach takes it from there.',kind:'new'};
+  if(!hist.length) return {msg: noReps(ex)? (colsFor(ex).includes('w')?'First time: pick a load you can move the whole distance with good posture. The coach takes it from there.':'First time: find a pace you can hold the whole way. The coach takes it from there.') : 'First time: pick a weight that leaves 1–2 good reps in the tank. The coach takes it from there.',kind:'new'};
   const last=hist[0], lastT=topOf(last.e,last.w.unit,unit); if(!lastT) return null;
   const prev=hist[1]? topOf(hist[1].e,hist[1].w.unit,unit) : null;
   const feel=check&&check.feel||'normal', knees=check&&check.knees||'good';
@@ -2734,7 +2735,7 @@ function comebackPlan(exId,note,cb,unit){
   const ex=getEx(exId); const all=stats().byEx[exId]||[];
   const pre=all.find(x=>x.w.start<cb.gapStart), since=all.filter(x=>x.w.start>=cb.gapStart);
   const tag= cb.light? `Comeback session ${cb.stage+1} of ${CB_SESSIONS}` : 'Ramping back';
-  if(!pre) return {msg:`${tag}: new lift. Go light and learn the movement; leave 3–4 reps in the tank.`,kind:'new'};
+  if(!pre) return {msg:`${tag}: new lift. Go light and learn the movement; ${noReps(ex)?'finish every set with plenty left':'leave 3–4 reps in the tank'}.`,kind:'new'};
   const preT=topOf(pre.e,pre.w.unit,unit); if(!preT) return null;
   const [lo,hi]=repRange(note,ex);
   if(ex.type==='cardio') return null;
@@ -2764,7 +2765,7 @@ function comebackPlan(exId,note,cb,unit){
   else if(eff==='easy'){ bump=0.10; why='it felt easy, so +10%'; }
   else { bump=0.05; why=`you got your reps${eff==='medium'?' at Medium effort':''}, so +5%`; }
   let w=roundTo(lastT.W*(1+bump),step); if(bump>0&&w<=lastT.W) w=lastT.W+step;
-  if(w>=preT.W){ w=preT.W; return {w,r:target,msg:`${tag}: back to your pre-break ${fw(w)} ${unit} (${why}).${cb.light?' Still leave 2–3 reps in the tank this week.':' Normal coaching from here.'}`,kind:'cb'}; }
+  if(w>=preT.W){ w=preT.W; return {w,r:target,msg:`${tag}: back to your pre-break ${fw(w)} ${unit} (${why}).${cb.light?(noReps(ex)?' Still keep it on the easy side this week.':' Still leave 2–3 reps in the tank this week.'):' Normal coaching from here.'}`,kind:'cb'}; }
   return {w,r:target,msg:`${tag}: ${fw(w)} ${unit} (${why}). Pre-break was ${fw(preT.W)}.`,kind:'cb'};
 }
 /* Apply plans to an active workout's exercises that have no completed sets yet. */
@@ -2776,7 +2777,7 @@ function applyCoach(a,force){
   a.exercises.forEach((e,idx)=>{
     if(e.sets.some(s=>s.done)) return;
     const X=getEx(e.exId);
-    e.push= light? (['cardio'].includes(X.type)?'Easy pace.':'Medium: stop every set with 3–4 good reps left. No sets to failure this week.') : pushTarget(e,idx,a);
+    e.push= light? (noReps(X)? (colsFor(X).includes('w')?'Medium: finish every set with some left in the tank. Nothing all-out this week.':'Easy pace.') :'Medium: stop every set with 3–4 good reps left. No sets to failure this week.') : pushTarget(e,idx,a);
     const work=e.sets.filter(s=>s.type!=='w'); work.forEach(s=>delete s.amrap);
     // comeback: one fewer set on the first two sessions back; restore when turned off
     if(light && cb.stage<2 && !e.cbRemoved && work.length>=3 && X.type!=='cardio'){ const rm=work[work.length-1]; e.sets.splice(e.sets.lastIndexOf(rm),1); e.cbRemoved=rm; work.pop(); }
@@ -4213,7 +4214,7 @@ function exCard(obj,e,i,mode){
       ${mode!=='routine'?`<button class="prev" data-a="usePrev" data-e="${i}" data-s="${si}" ${prevTxt?'':'disabled'}>${esc(prevTxt||'–')}</button>`:''}
       ${inputs}
       ${mode==='routine'?`<button class="rm" data-a="rmSet" data-e="${i}" data-s="${si}" aria-label="Remove set">${ic('x','sm')}</button>`:`<button class="chk ${s.done?'on':''}" data-a="toggleSet" data-e="${i}" data-s="${si}" aria-label="Complete set">${pr||ic('check')}</button>`}
-    </div>${mode!=='routine'&&s.done&&s.type!=='w'?effRow(i,si,s):''}`;
+    </div>${mode!=='routine'&&s.done&&s.type!=='w'?effRow(i,si,s,ex):''}`;
   }).join('');
   return `<div class="card exc ${e.ss?'ss':''}">
     <div class="exc-h">
@@ -4228,7 +4229,7 @@ function exCard(obj,e,i,mode){
     <textarea class="note-in" data-f="exnote" data-e="${i}" rows="${mode==='routine'?2:1}" placeholder="${mode==='routine'?'Coaching cue shown while you lift (rep range, rest, form)…':'Add notes here…'}">${esc(e.note||'')}</textarea>
     ${mode!=='edit'?`<button class="restchip" data-a="restPick" data-e="${i}">${ic('clock','sm')} Rest timer: ${fmtRest(rest)}</button>`:''}
     <div class="sets">
-      ${mode!=='routine'&&e.sets.some(s=>s.done&&s.type!=='w')?`<p class="effhint">${ic('flame','sm')}<span>After each set, tap how many more reps you could have done. The coach uses this to set your next weights.</span></p>`:''}
+      ${mode!=='routine'&&e.sets.some(s=>s.done&&s.type!=='w')?`<p class="effhint">${ic('flame','sm')}<span>${noReps(ex)?(colsFor(ex).includes('w')?'After each set, tap how much you had left in the tank. The coach uses this to set your next load.':'After each set, tap how hard it was to talk. The coach uses this to set your next pace.'):'After each set, tap how many more reps you could have done. The coach uses this to set your next weights.'}</span></p>`:''}
       <div class="srow head ${gridCls}"><span>SET</span>${mode!=='routine'?'<span>PREVIOUS</span>':''}${cols.map(c=>`<span>${colLabel(c,ex)}</span>`).join('')}<span>${mode==='routine'?'':ic('check','sm')}</span></div>
       ${rows}
     </div>
@@ -4237,9 +4238,13 @@ function exCard(obj,e,i,mode){
 }
 
 /* Per-set effort: reps left in the tank */
-const EFF_LV=[['easy','Easy','4+ more'],['medium','Medium','2–3 more'],['hard','Hard','1 more'],['max','Max','0, failure']];
-function effRow(i,si,s){
-  return `<div class="seff" role="group" aria-label="Effort for this set">${EFF_LV.map(([v,l,d])=>`<button class="${s.eff===v?'on':''} e-${v}" data-a="setEff" data-e="${i}" data-s="${si}" data-v="${v}" aria-pressed="${s.eff===v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div>`;
+const EFF_LV=[['easy','Easy','4+ reps left'],['medium','Medium','2–3 reps left'],['hard','Hard','1 rep left'],['max','Max','failure']];
+/* Carries, sleds and walks have no reps, so they get a "how much was left" scale; pure cardio uses the talk test */
+const EFF_CARRY=[['easy','Easy','lots left'],['medium','Medium','some left'],['hard','Hard','just made it'],['max','Max','had to stop']];
+const EFF_TALK=[['easy','Easy','can chat'],['medium','Medium','can talk'],['hard','Hard','few words'],['max','Max','can\'t talk']];
+function effScale(ex){ const c=colsFor(ex); if(c.includes('r')) return EFF_LV; return c.includes('w')? EFF_CARRY : EFF_TALK; }
+function effRow(i,si,s,ex){
+  return `<div class="seff" role="group" aria-label="Effort for this set">${(ex?effScale(ex):EFF_LV).map(([v,l,d])=>`<button class="${s.eff===v?'on':''} e-${v}" data-a="setEff" data-e="${i}" data-s="${si}" data-v="${v}" aria-pressed="${s.eff===v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div>`;
 }
 /* exercise-level effort for the coach: Max anywhere wins, otherwise the last rated working set */
 function effFromSets(e){
@@ -5015,9 +5020,16 @@ function onField(ev,commit){
     case 'exequip': ui.exq.equip=v; render(); return;
     case 'rrange': p.range=+v; render(); return;
     case 'excol': ui.exq.col=v; render(); return;
-    case 'set': { const obj=curObj(); const s=obj.exercises[+el.dataset.e].sets[+el.dataset.s]; const c=el.dataset.c;
+    case 'set': { const obj=curObj(); const ei=+el.dataset.e, si=+el.dataset.s; const sets=obj.exercises[ei].sets; const s=sets[si]; const c=el.dataset.c; const before=s[c];
       if(commit){ if(c==='t'){ s.t=parseTime(v)??''; el.value=s.t!==''?fmtTime(s.t):''; } else s[c]= v===''?'':(num(v)??''); if(s[c]==='') el.value=''; }
       else s[c]=v;
+      // fill the sets below that aren't done yet (same set type, and only ones that were blank or matched this set)
+      if(!s.done && s.type!=='w'){
+        for(let j=si+1;j<sets.length;j++){ const t=sets[j]; if(t.done||(t.type||'n')!==(s.type||'n')) continue;
+          const tv=t[c]; if(!(tv===''||tv==null||String(tv)===String(before??''))) continue;
+          t[c]=s[c]; const box=document.querySelector(`input.cell[data-e="${ei}"][data-s="${j}"][data-c="${c}"]`);
+          if(box&&box!==el) box.value= c==='t'&&commit? (t.t!==''?fmtTime(t.t):'') : (t[c]??''); }
+      }
       changed(false); return; }
     case 'exnote': curObj().exercises[+el.dataset.e].note=v; changed(false); return;
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
@@ -5400,7 +5412,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171838';
+window.WH_BUILD='202611180855';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
