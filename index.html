@@ -588,6 +588,9 @@ textarea{resize:vertical;line-height:1.4}
 .nudge{display:grid;gap:6px;justify-items:start}.nudge p{margin:0}
 .folder{position:relative}.folder-h{padding-right:48px!important}
 .folder-share{position:absolute;top:0;right:0}
+.pchk{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex:none;color:#fff}
+.pchk.on{background:var(--acc);border-color:var(--acc)}
+.pick .shrow{min-height:56px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3307,6 +3310,7 @@ trophyArt=function(kind,stage,{scene=true}={}){
 Object.assign(I,{
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4M17.5 14.8c2.2.6 3.6 2.4 4 5.2"/>',
   chev:'<path d="m9 5 7 7-7 7"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
   chat:'<path d="M4.5 5.5h15v10h-9l-4.5 3.5v-3.5h-1.5z"/>',
   mountain:'<path d="M2.5 19.5 9 8.5l4 6.5 2.5-3.5 6 8z"/><path d="M7.4 11.2 9 12.6l1.6-1.4"/>',
@@ -5080,6 +5084,9 @@ const Social={
         putShared:(uid,id,item)=>fs.setDoc(D('users',uid,'shared',id),item),
         listShared:async (uid,n=20)=>{ const q=fs.query(C('users',uid,'shared'),fs.orderBy('createdAt','desc'),fs.limit(n)); const s=await fs.getDocs(q); return s.docs.map(d=>({...d.data(),id:d.id})); },
         delShared:(uid,id)=>fs.deleteDoc(D('users',uid,'shared',id)),
+        putInbox:(to,id,item)=>fs.setDoc(D('users',to,'inbox',id),item),
+        delInbox:(to,id)=>fs.deleteDoc(D('users',to,'inbox',id)),
+        listInbox:async (me,n=40)=>{ const q=fs.query(C('users',me,'inbox'),fs.orderBy('createdAt','desc'),fs.limit(n)); const s=await fs.getDocs(q); return s.docs.map(d=>({...d.data(),id:d.id})); },
         listReacts:async (owner,fid)=>{ const [l,c]=await Promise.all([fs.getDocs(C('users',owner,'feed',fid,'likes')),fs.getDocs(fs.query(C('users',owner,'feed',fid,'comments'),fs.orderBy('at','asc'),fs.limit(50)))]); return {likes:l.docs.map(d=>d.id),comments:c.docs.map(d=>({...d.data(),id:d.id}))}; },
         like:(owner,fid,me)=>fs.setDoc(D('users',owner,'feed',fid,'likes',me),{at:Date.now()}),
         unlike:(owner,fid,me)=>fs.deleteDoc(D('users',owner,'feed',fid,'likes',me)),
@@ -5127,13 +5134,38 @@ const Social={
     const custom={}; for(const e of o.exercises){ if(!BUILTIN[e.exId]&&st.custom[e.exId]){ const c=clone(st.custom[e.exId]); delete c.hidden; custom[e.exId]=c; } }
     return JSON.parse(JSON.stringify({type:kind,name:o.name,from:(this.profile&&this.profile.name)||'A friend',createdAt:Date.now(),unit,ex:o.exercises.length,sets:o.exercises.reduce((a,e)=>a+e.sets.length,0),data:o,custom}));
   },
-  async share(kind,id){
+  sid(kind,id){ return kind[0]+'_'+(kind==='folder'?id.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60):id); },
+  share(kind,id){
     if(!this.user){ toast('Sign in on the Friends tab to share'); setTab('friends'); return; }
+    if(!this.friends.length){ toast('Add a friend first on the Friends tab'); return; }
     const item=this.sharePayload(kind,id); if(!item){ toast('Nothing to share'); return; }
     if(!item.ex){ toast('Add some exercises first'); return; }
-    const sid=kind[0]+'_'+(kind==='folder'?id.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60):id);
-    try{ await this.api.putShared(this.user.uid,sid,item); this.myShared=[{...item,id:sid},...(this.myShared||[]).filter(x=>x.id!==sid)]; toast(`Shared "${item.name}" with your friends`); softRender(true); }
-    catch(e){ toast('Could not share: '+(e.code||e.message||'error')); }
+    const prev=(this.myShared||[]).find(x=>x.id===this.sid(kind,id));
+    ui.pick=new Set(prev&&prev.to||[]); push({name:'sharePick',kind,id});
+  },
+  async sendShare(kind,id,to){
+    const item=this.sharePayload(kind,id); if(!item) return; const sid=this.sid(kind,id); const me=this.user.uid;
+    const prev=((this.myShared||[]).find(x=>x.id===sid)||{}).to||[];
+    const box={...item,fromUid:me};
+    try{
+      for(const t of to) await this.api.putInbox(t,me+'_'+sid,box);
+      for(const t of prev) if(!to.includes(t)){ try{ await this.api.delInbox(t,me+'_'+sid); }catch(e){} }
+      if(to.length){ const rec={...item,to}; await this.api.putShared(me,sid,rec); this.myShared=[{...rec,id:sid},...(this.myShared||[]).filter(x=>x.id!==sid)]; }
+      else { await this.api.delShared(me,sid); this.myShared=(this.myShared||[]).filter(x=>x.id!==sid); }
+      const names=to.map(t=>this.person(t).name||'friend');
+      toast(to.length?`Sent "${item.name}" to ${names.length>2?names.length+' friends':names.join(' & ')}`:'Stopped sharing'); return true;
+    }catch(e){ toast('Could not share: '+(e.code||e.message||'error')); return false; }
+  },
+  async unshare(sid){
+    const it=(this.myShared||[]).find(x=>x.id===sid); const me=this.user.uid;
+    for(const t of (it&&it.to)||[]){ try{ await this.api.delInbox(t,me+'_'+sid); }catch(e){} }
+    try{ await this.api.delShared(me,sid); }catch(e){}
+    this.myShared=(this.myShared||[]).filter(x=>x.id!==sid);
+  },
+  async migrateShares(){ // early shares went to every friend: deliver them to each friend's inbox so they keep working
+    const me=this.user.uid; const all=this.friends.map(f=>f.uid);
+    for(const it of this.myShared||[]){ if(Array.isArray(it.to)) continue; const {id,...rest}=it;
+      try{ for(const t of all) await this.api.putInbox(t,me+'_'+id,{...rest,fromUid:me}); await this.api.putShared(me,id,{...rest,to:all}); it.to=all; }catch(e){} }
   },
   async loadPosts(){
     try{ this.myFeed=await this.api.listFeed(this.user.uid,8); }catch(e){ this.myFeed=[]; }
@@ -5158,9 +5190,10 @@ const Social={
   async loadFriends(){
     if(!this.user) return; this.loading=true;
     try{ const ids=await this.api.listFriends(this.user.uid); const out=[];
-      for(const id of ids){ try{ const p=await this.api.getProfile(id); if(!p) continue; const feed=await this.api.listFeed(id,8); let shared=[]; try{ shared=await this.api.listShared(id,15); }catch(e){} out.push({uid:id,...p,feed,shared}); }catch(e){} }
+      for(const id of ids){ try{ const p=await this.api.getProfile(id); if(!p) continue; const feed=await this.api.listFeed(id,8); out.push({uid:id,...p,feed,shared:[]}); }catch(e){} }
       this.friends=out.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-      try{ this.myShared=await this.api.listShared(this.user.uid,30); }catch(e){}
+      try{ this.myShared=await this.api.listShared(this.user.uid,30); await this.migrateShares(); }catch(e){}
+      try{ const inbox=await this.api.listInbox(this.user.uid,40); for(const f of this.friends) f.shared=inbox.filter(x=>x.fromUid===f.uid); }catch(e){}
       await this.loadPosts(); }
     catch(e){ this.err=e.message; }
     this.loading=false; softRender(true);
@@ -5216,7 +5249,7 @@ TABS.friends=function(){
     ${(()=>{ const all=Social.friends.flatMap(f=>(f.shared||[]).map(it=>({it,fid:f.uid}))).sort((a,b)=>(b.it.createdAt||0)-(a.it.createdAt||0)).slice(0,8);
       return all.length?`<h2 class="sec">${ic('share')} Shared with you</h2><ul class="shlist card">${all.map(x=>sharedRow(x.it,x.fid)).join('')}</ul>`:''; })()}
     <h2 class="sec">${ic('upload')} You've shared <span class="muted small">${(Social.myShared||[]).length}</span></h2>
-    ${(Social.myShared||[]).length?`<ul class="shlist card">${Social.myShared.map(it=>sharedRow(it,null)).join('')}</ul>`:`<p class="muted small">Share a routine or workout from its ⋯ menu and your friends can save it.</p>`}
+    ${(Social.myShared||[]).length?`<ul class="shlist card">${Social.myShared.map(it=>sharedRow(it,null)).join('')}</ul>`:`<p class="muted small">Share a routine, folder or workout from its ⋯ menu and pick which friends get it.</p>`}
     <button class="btn ghost wide sm" data-a="refreshFriends">${ic('history','sm')} Refresh</button>
     <button class="btn ghost wide sm danger-t" data-a="signOut">Sign out</button>`;
   }
@@ -5260,17 +5293,31 @@ function homeFeed(ws){
 function findShared(fid,id){ const list= fid? ((Social.friends.find(x=>x.uid===fid)||{}).shared||[]) : (Social.myShared||[]); return list.find(x=>x.id===id); }
 function sharedRow(it,fid){
   const kind=it.type==='workout'?'Workout':it.type==='folder'?`Folder · ${it.routines} routines`:'Routine';
-  return `<li><button class="shrow" data-a="openShared" data-f="${esc(fid||'')}" data-id="${esc(it.id)}"><span class="shic">${ic(it.type==='workout'?'dumbbell':it.type==='folder'?'folder':'list','sm')}</span><span class="minw"><b>${esc(it.name)}</b><span class="muted small">${kind} · ${it.ex} exercises${fid?` · from ${esc(it.from||'friend')}`:''} · ${esc(fmtWhen(it.createdAt))}</span></span>${ic('chev','sm')}</button></li>`;
+  return `<li><button class="shrow" data-a="openShared" data-f="${esc(fid||'')}" data-id="${esc(it.id)}"><span class="shic">${ic(it.type==='workout'?'dumbbell':it.type==='folder'?'folder':'list','sm')}</span><span class="minw"><b>${esc(it.name)}</b><span class="muted small">${kind} · ${it.ex} exercises${fid?` · from ${esc(it.from||'friend')}`:` · to ${esc((it.to||[]).map(u=>Social.person(u).name||'friend').join(', ')||'all')}`} · ${esc(fmtWhen(it.createdAt))}</span></span>${ic('chev','sm')}</button></li>`;
 }
 function sharedExName(it,id){ const x=st.custom[id]||BUILTIN[id]||(it.custom||{})[id]; return x?x.name:'Exercise'; }
 function importSharedCustom(it){ let n=0; for(const [id,def] of Object.entries(it.custom||{})){ if(!BUILTIN[id]&&!st.custom[id]){ Store.put('custom',id,{...def,id}); n++; } } return n; }
+PAGES.sharePick=function(p){
+  const name= p.kind==='folder'? p.id : p.kind==='routine'? (st.routines[p.id]||{}).name : (st.workouts[p.id]||{}).name;
+  const pick=ui.pick||(ui.pick=new Set()); const fr=Social.friends; const allOn=fr.length&&fr.every(f=>pick.has(f.uid));
+  const prev=(Social.myShared||[]).find(x=>x.id===Social.sid(p.kind,p.id)); const n=[...pick].filter(u=>fr.some(f=>f.uid===u)).length;
+  return {hdr:hdr('Share with…',{left:backBtn}),body:`<section class="gut stack">
+    <div><h2 class="h2">${ic(p.kind==='folder'?'folder':p.kind==='workout'?'dumbbell':'list')} ${esc(name||'')}</h2><div class="muted small">${p.kind==='folder'?'Folder':p.kind==='workout'?'Workout':'Routine'} · only the friends you check will see it</div></div>
+    <ul class="shlist card pick">
+      <li><button class="shrow" data-a="pickAll" aria-pressed="${!!allOn}"><span class="pchk ${allOn?'on':''}">${allOn?ic('check','sm'):''}</span><span class="minw"><b>All friends</b><span class="muted small">${fr.length} friend${fr.length===1?'':'s'}</span></span></button></li>
+      ${fr.map(f=>{ const on=pick.has(f.uid); return `<li><button class="shrow" data-a="pickToggle" data-id="${esc(f.uid)}" aria-pressed="${on}"><span class="pchk ${on?'on':''}">${on?ic('check','sm'):''}</span>${avatar(f)}<span class="minw"><b>${esc(f.name||'Friend')}</b><span class="muted small">${esc(worldLabel(f))} · ${esc(f.stageName||'')}</span></span></button></li>`; }).join('')}
+    </ul>
+    <button class="btn primary wide big" data-a="pickSend" ${!n&&!prev?'disabled':''}>${ic('share')} ${n?`Send to ${n} friend${n===1?'':'s'}`:'Stop sharing'}</button>
+    ${prev?`<p class="muted small center">Already shared with ${esc((prev.to||[]).map(u=>Social.person(u).name||'friend').join(', ')||'no one')}. Uncheck someone to take it back.</p>`:''}
+  </section>`};
+};
 PAGES.shared=function(p){
   const it=findShared(p.fid,p.id); if(!it) return PAGES.missing();
   const d=it.data||{}; const u=it.unit||'lb';
   if(it.type==='folder') return {hdr:hdr('Shared folder',{left:backBtn}),body:`<section class="gut stack">
     <div><h2 class="h2">${ic('folder')} ${esc(it.name)}</h2><div class="muted small">${p.fid?`From ${esc(it.from||'a friend')} · `:'You shared this · '}${it.routines} routines · ${it.ex} exercises</div></div>
     ${p.fid?`<button class="btn primary wide" data-a="saveShared" data-f="${esc(p.fid)}" data-id="${esc(it.id)}">${ic('plus')} Save all ${it.routines} routines</button>`
-    :`<button class="btn ghost wide danger-t" data-a="unshare" data-id="${esc(it.id)}">${ic('trash','sm')} Stop sharing</button>`}
+    :`<p class="muted small">Shared with ${esc((it.to||[]).map(u=>Social.person(u).name||'friend').join(', ')||'everyone')}</p><button class="btn wide" data-a="editShare" data-id="${esc(it.id)}">${ic('users','sm')} Change who can see it</button><button class="btn ghost wide danger-t" data-a="unshare" data-id="${esc(it.id)}">${ic('trash','sm')} Stop sharing</button>`}
     ${(d.routines||[]).map(r=>`<div class="card shex"><b class="acc">${esc(r.name)}</b><div class="muted small">${r.exercises.length} exercises</div><ol class="shsets">${r.exercises.map(e=>`<li>${esc(sharedExName(it,e.exId))} <span class="muted small">${e.sets.length} sets</span></li>`).join('')}</ol></div>`).join('')}
   </section>`};
   const fmtSet=s=>{ const b=[]; if(s.w!==''&&s.w!=null) b.push(wDisp(s.w,u)); if(s.r!==''&&s.r!=null) b.push(s.r+' reps'); if(s.t) b.push(fmtTime(s.t)); if(s.d) b.push(s.d+' '+st.settings.dist); return b.join(' × ')||'–'; };
@@ -5278,7 +5325,7 @@ PAGES.shared=function(p){
     <div><h2 class="h2">${esc(it.name)}</h2><div class="muted small">${p.fid?`From ${esc(it.from||'a friend')} · `:'You shared this · '}${it.ex} exercises · ${it.sets} sets${d.min?` · ${d.min} min`:''}</div></div>
     ${p.fid?`<button class="btn primary wide" data-a="saveShared" data-f="${esc(p.fid)}" data-id="${esc(it.id)}">${ic('plus')} Save to my routines</button>
     <button class="btn wide" data-a="startShared" data-f="${esc(p.fid)}" data-id="${esc(it.id)}">${ic('play')} Start it now</button>`
-    :`<button class="btn ghost wide danger-t" data-a="unshare" data-id="${esc(it.id)}">${ic('trash','sm')} Stop sharing</button>`}
+    :`<p class="muted small">Shared with ${esc((it.to||[]).map(u=>Social.person(u).name||'friend').join(', ')||'everyone')}</p><button class="btn wide" data-a="editShare" data-id="${esc(it.id)}">${ic('users','sm')} Change who can see it</button><button class="btn ghost wide danger-t" data-a="unshare" data-id="${esc(it.id)}">${ic('trash','sm')} Stop sharing</button>`}
     ${d.notes?`<details class="plan card"><summary><b>Notes</b></summary><p>${esc(d.notes)}</p></details>`:''}
     ${(d.exercises||[]).map(e=>`<div class="card shex"><b class="acc">${esc(sharedExName(it,e.exId))}</b>${e.note?`<p class="cue small">${esc(e.note)}</p>`:''}<ol class="shsets">${(e.sets||[]).map(s=>`<li>${esc(fmtSet(s))}</li>`).join('')}</ol></div>`).join('')}
   </section>`};
@@ -5332,7 +5379,11 @@ Object.assign(A,{
     const r={id:uid(),name:src.name||it.name,notes:src.notes||'',folder:`From ${it.from||'friends'}`,unit:it.unit||'lb',order:routinesSorted().length,updated:Date.now(),exercises:clone(src.exercises||[]).map(e=>({...e,rest:e.rest??undefined,ss:e.ss||undefined}))};
     Store.put('routines',r.id,r); toast(`Saved "${r.name}" to My routines`); render(); },
   startShared:(d)=>{ const it=findShared(d.f,d.id); if(!it) return; importSharedCustom(it); const src=clone(it.data||{}); startWorkout({...src,id:'shared',tpl:true,unit:it.unit||'lb'}); },
-  unshare:(d)=>confirmSheet('Stop sharing this?','Friends will no longer see it. Anyone who already saved it keeps their copy.','Stop sharing',async()=>{ try{ await Social.api.delShared(Social.user.uid,d.id); }catch(e){} Social.myShared=(Social.myShared||[]).filter(x=>x.id!==d.id); pop(); }),
+  unshare:(d)=>confirmSheet('Stop sharing this?','Friends will no longer see it. Anyone who already saved it keeps their copy.','Stop sharing',async()=>{ await Social.unshare(d.id); pop(); render(); }),
+  pickToggle:(d)=>{ const p=ui.pick||(ui.pick=new Set()); p.has(d.id)?p.delete(d.id):p.add(d.id); render(); },
+  pickAll:()=>{ const p=ui.pick||(ui.pick=new Set()); const all=Social.friends.map(f=>f.uid); if(all.every(u=>p.has(u))) p.clear(); else all.forEach(u=>p.add(u)); render(); },
+  pickSend:async()=>{ const c=cur(); const to=[...(ui.pick||[])].filter(u=>Social.friends.some(f=>f.uid===u)); const btn=$('[data-a=pickSend]'); if(btn) btn.disabled=true; const ok=await Social.sendShare(c.kind,c.id,to); if(ok){ pop(); render(); } else if(btn) btn.disabled=false; },
+  editShare:(d)=>{ const it=(Social.myShared||[]).find(x=>x.id===d.id); if(!it) return; const kind=it.type; const id= kind==='folder'? it.name : d.id.slice(2); ui.pick=new Set(it.to||[]); push({name:'sharePick',kind,id}); },
   shareR:(d)=>Social.share(d.kind||'routine',d.id),
   friendMenu:(d)=>menu('',[{label:'Remove friend',icon:'trash',danger:true,fn:()=>confirmSheet('Remove this friend?','You will stop seeing each other\'s progress.','Remove',async()=>{ await Social.api.unlink(Social.user.uid,d.id); Social.friends=Social.friends.filter(f=>f.uid!==d.id); pop(); })}]),
   editProfile:()=>{ ui.newPhoto=null; push({name:'profileEdit'}); },
@@ -5349,7 +5400,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611171831';
+window.WH_BUILD='202611171838';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
