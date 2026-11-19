@@ -596,6 +596,11 @@ textarea{resize:vertical;line-height:1.4}
 .swapchips{display:flex;flex-wrap:nowrap!important;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin:0 -16px;padding:0 16px}.swapchips .chip{flex:none;padding:8px 14px;font-size:14px;cursor:pointer}.swapchips .chip.on{background:var(--accent);color:var(--on-accent)}
 .swaprt{display:flex;align-items:center;gap:10px;font-size:14px}.swaprt input{width:20px;height:20px;accent-color:var(--accent)}
 .toppick{flex:none;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);margin-right:6px}
+.gymrow{flex-direction:row!important;align-items:center;width:100%;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.gymrow .minw{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.gymlist .toggle{padding:4px 0}
+.gymnote{margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nogear{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:12px;padding:10px 12px;background:color-mix(in srgb,#f5a524 16%,transparent);color:inherit;font:inherit;font-size:14px;cursor:pointer}
+.nogear .ic{color:#f5a524;flex:none}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -866,6 +871,10 @@ button,.chip,.slab,#nav,.exhead,.folder-h{-webkit-user-select:none;user-select:n
 /* ---------- Reference data ---------- */
 const MUSCLES = ['Chest','Shoulders','Triceps','Biceps','Forearms','Lats','Upper Back','Traps','Lower Back','Abs','Obliques','Glutes','Quads','Hamstrings','Calves','Adductors','Abductors','Neck','Full Body','Cardio'];
 const EQUIP = ['Barbell','Dumbbell','Kettlebell','Machine','Cable','Bodyweight','Band','EZ Bar','Smith Machine','Trap Bar','Plate','Cardio Machine','Other'];
+const EQUIP_NOTE={Other:'sled, rings, sandbag, yoke…','Cardio Machine':'treadmill, bike, rower…',Machine:'leg press, pec deck, curl machines…',Plate:'weight plates',Bodyweight:'always on'};
+const GYM_PRESETS=[['full','Full gym',EQUIP],['home','Home gym',['Dumbbell','Bodyweight','Band','Kettlebell','Barbell','Plate']],['basic','Dumbbells only',['Dumbbell','Bodyweight','Band']],['bw','No equipment',['Bodyweight']]];
+function missingGear(){ return (typeof st!=='undefined'&&st.settings&&st.settings.noEquip)||[]; }
+function hasGear(ex){ const m=missingGear(); return !m.length||(ex.equipment||'Other')==='Bodyweight'||!m.includes(ex.equipment||'Other'); }
 const TYPES = {
   wr:{label:'Weight & reps', cols:['w','r']},
   reps:{label:'Bodyweight reps', cols:['r']},
@@ -3947,12 +3956,13 @@ function routineCard(r,tpl){
 function exerciseBrowser(pick){
   const q=ui.exq; const qs=norm(q.q);
   const colOk=e=>{ const n=e.nip; switch(q.col){ case 'nip': return !!n; case 'nipS': return !!(n&&n.best&&TIER_ORDER[n.best]<=1); case 'top': return !!(n&&n.top); case 'gem': return !!(n&&n.gem); case 'custom': return !!e.custom&&!BUILTIN[e.id]; default: return true; } };
-  let list=allEx().filter(e=>(!qs||norm(e.name).includes(qs)||norm((e.primary||[]).join(' ')).includes(qs)) && (!q.muscle||(e.primary||[]).includes(q.muscle)||(e.secondary||[]).includes(q.muscle)) && (!q.equip||e.equipment===q.equip) && colOk(e));
+  let list=allEx().filter(e=>(!qs||norm(e.name).includes(qs)||norm((e.primary||[]).join(' ')).includes(qs)) && (!q.muscle||(e.primary||[]).includes(q.muscle)||(e.secondary||[]).includes(q.muscle)) && (!q.equip||e.equipment===q.equip) && colOk(e) && (q.allGear||q.equip||hasGear(e)));
   if(q.col&&q.col.startsWith('nip')) list=list.sort((a,b)=>TIER_ORDER[nipTierFor(a,q.muscle)]-TIER_ORDER[nipTierFor(b,q.muscle)]||a.name.localeCompare(b.name));
   const sel = pick? (cur().sel||[]) : [];
   const rows=list.map(e=>`<li><button class="exrow ${sel.includes(e.id)?'sel':''}" data-a="${pick?'pickToggle':'openEx'}" data-id="${esc(e.id)}">${thumb(e)}<span class="exrow-t"><b>${esc(e.name)}</b><span class="muted small">${esc((e.primary||[]).join(', '))}${e.custom&&!BUILTIN[e.id]?' · Custom':''}</span></span>${nipBadge(e,q.muscle)}${pick?`<span class="tick">${sel.includes(e.id)?sel.indexOf(e.id)+1:''}</span>`:ic('right','dim')}</button></li>`).join('');
   return `<div class="gut stack">
    <label class="search">${ic('search')}<input id="exq" data-f="exq" type="search" placeholder="Search ${allEx().length} exercises" value="${esc(q.q)}" autocomplete="off"></label>
+   ${missingGear().length?`<p class="muted small gymnote">${ic('dumbbell','xs')} ${q.allGear?'Showing all equipment':'Only showing what your gym has'} · <button class="linkbtn acc" data-a="exAllGear">${q.allGear?'Just my gym':'Show all'}</button></p>`:''}
    <div class="filters3">
     <select id="exmus" data-f="exmuscle" aria-label="Muscle"><option value="">Muscle</option>${MUSCLES.map(m=>`<option ${q.muscle===m?'selected':''}>${m}</option>`).join('')}</select>
     <select id="exeq" data-f="exequip" aria-label="Equipment"><option value="">Gear</option>${EQUIP.map(m=>`<option ${q.equip===m?'selected':''}>${m}</option>`).join('')}</select>
@@ -4145,7 +4155,8 @@ settings(){
    <div class="field"><label>Weekly goal</label>${seg('goal',[[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6']],s.goal)}</div>
    <label class="toggle"><input type="checkbox" data-f="ssound" ${s.sound?'checked':''}><span>Beep when rest is over</span></label>
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
-   </div><h2 class="sec">${ic('mountain')} App world</h2><div class="card setcard"><p class="muted small">Each world has its own look, art and reward path. Your progress carries over.</p>
+   </div><h2 class="sec">${ic('dumbbell')} My gym</h2><button class="card setcard gymrow" data-a="openGym"><span class="minw"><b>${missingGear().length?`${EQUIP.length-missingGear().length} of ${EQUIP.length} equipment types`:'Full gym (everything)'}</b><span class="muted small">${missingGear().length?'Missing: '+esc(missingGear().join(', ')):'Tap to tell the app what your gym has'}</span></span>${ic('chev','sm')}</button>
+   <h2 class="sec">${ic('mountain')} App world</h2><div class="card setcard"><p class="muted small">Each world has its own look, art and reward path. Your progress carries over.</p>
    <div class="worlds">${Object.keys(WORLDS).map(k=>{ const W=WORLDS[k]; const art= k==='hunt'? trophyArt(trophyKind(),6) : W.art(6); return `<button class="wtile ${worldKey()===k?'on':''}" data-a="setWorld" data-v="${k}">${art}<b>${ic(W.icon,'sm')} ${esc(W.name)}</b><span class="muted small">${esc(W.tag)}</span></button>`; }).join('')}</div></div>
    ${worldKey()==='mil'?`<div class="card setcard"><div class="field"><label>${ic('shield','sm')} Branch</label><div class="animals">${Object.keys(BRANCHES).map(k=>`<button class="scn ${branchKey()===k?'on':''}" data-a="setS" data-k="branch" data-v="${k}">${(()=>{ const prev=st.settings.branch; st.settings.branch=k; const a=milArt(6,{scene:false}); st.settings.branch=prev; return a; })()}<span>${esc(BRANCHES[k].name)}</span></button>`).join('')}</div></div></div>`:''}
    <div class="card setcard"><div class="field"><label>${ic('target','sm')} Accountability</label>${seg('acct',[['off','Off'],['easy','Easy'],['normal','Normal'],['max','Max']],s.acct||'easy')}<p class="muted small">${ACCT_TXT[s.acct||'easy']}</p></div></div>
@@ -4249,6 +4260,7 @@ function exCard(obj,e,i,mode){
       ${mode!=='edit'&&!e.sets.some(s=>s.done)?`<button class="iconbtn swapbtn" data-a="swapOpen" data-e="${i}" aria-label="Swap ${esc(ex.name)} for an alternative" title="Swap">${ic('swap')}</button>`:''}
       <button class="iconbtn" data-a="exMenu" data-e="${i}" aria-label="Exercise options">${ic('more')}</button>
     </div>
+    ${mode!=='edit'&&!hasGear(ex)&&!e.sets.some(s=>s.done)?`<button class="nogear" data-a="swapOpen" data-e="${i}">${ic('swap','sm')}<span>Your gym doesn't have <b>${esc(ex.equipment||'this gear')}</b>. Tap to swap.</span></button>`:''}
     ${e.ss?`<button class="ssbadge" data-a="exMenu" data-e="${i}">Superset ${esc(e.ss)}</button>`:''}
     ${mode!=='routine'&&e.cue?`<p class="cue">${ic('list','sm')}<span>${esc(e.cue)}</span></p>`:''}
     ${mode==='active'&&e.coach&&e.coach.msg?`<div class="coachchip k-${esc(e.coach.kind)}">${ic('spark','sm')}<span><b>Coach:</b> ${esc(e.coach.msg)}${e.coach.swap?`<button class="btn sm primary swapbtn" data-a="coachSwap" data-e="${i}" data-id="${esc(e.coach.swap.id)}">Swap to ${esc(e.coach.swap.name)} (${esc(e.coach.swap.t)} tier)</button>`:''}</span></div>`:''}
@@ -4858,6 +4870,10 @@ const A={
     {label:'Remove exercise',icon:'trash',danger:true,fn:()=>{ obj.exercises.splice(i,1); changed(true); }}
   ]); },
   swapOpen:(d)=>push({name:'swap',e:+d.e}),
+  swapAllGear:()=>{ cur().allGear=true; render(); },
+  exAllGear:()=>{ ui.exq.allGear=!ui.exq.allGear; render(); },
+  openGym:()=>push({name:'gym'}),
+  gymPreset:(d)=>{ const pr=GYM_PRESETS.find(x=>x[0]===d.v); st.settings.noEquip=EQUIP.filter(q=>q!=='Bodyweight'&&!pr[2].includes(q)); Store.saveSettings(); render(); },
   swapEq:(d)=>{ cur().eq=d.v; render(); },
   swapSearch:()=>{ const p=cur(); ui.exq={q:'',muscle:'',equip:'',col:''}; ui.stack.pop(); push({name:'picker',sel:[],replace:p.e}); },
   swapTo:(d)=>{ const p=cur(); const host=ui.stack[ui.stack.length-2]; const obj= host.name==='active'? st.active : host.obj; const i=p.e; const e=obj.exercises[i]; const old=getEx(e.exId); const nx=getEx(d.id);
@@ -5070,6 +5086,7 @@ function onField(ev,commit){
       changed(false); return; }
     case 'exnote': curObj().exercises[+el.dataset.e].note=v; changed(false); return;
     case 'swapRt': p.rt=!!v; return;
+    case 'gymEq': { const m=new Set(missingGear()); const q=el.dataset.v; v? m.delete(q) : m.add(q); st.settings.noEquip=EQUIP.filter(x=>m.has(x)); Store.saveSettings(); render(); return; }
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
     case 'wname': st.active.name=v; Store.saveActive(); return; case 'wnotes': st.active.notes=v; Store.saveActive(); return;
@@ -5347,10 +5364,20 @@ function sharedRow(it,fid){
 }
 function sharedExName(it,id){ const x=st.custom[id]||BUILTIN[id]||(it.custom||{})[id]; return x?x.name:'Exercise'; }
 function importSharedCustom(it){ let n=0; for(const [id,def] of Object.entries(it.custom||{})){ if(!BUILTIN[id]&&!st.custom[id]){ Store.put('custom',id,{...def,id}); n++; } } return n; }
+PAGES.gym=function(){
+  const miss=new Set(missingGear()); const cnt=allEx().reduce((m,e)=>(m[e.equipment||'Other']=(m[e.equipment||'Other']||0)+1,m),{});
+  const preset=GYM_PRESETS.find(([,,have])=>EQUIP.every(q=>have.includes(q)!==miss.has(q)||q==='Bodyweight'));
+  return {hdr:hdr('My gym',{left:backBtn}),body:`<section class="gut stack">
+    <p class="muted">Turn off what your gym doesn't have. Swaps and the exercise list will only suggest things you can do, and the coach flags any exercise that needs missing gear.</p>
+    <div class="chips swapchips">${GYM_PRESETS.map(([k,l])=>`<button class="chip ${preset&&preset[0]===k?'on':''}" data-a="gymPreset" data-v="${k}">${l}</button>`).join('')}</div>
+    <div class="card setcard gymlist">${EQUIP.map(q=>{ const on=!miss.has(q)||q==='Bodyweight'; return `<label class="toggle"><input type="checkbox" data-f="gymEq" data-v="${esc(q)}" ${on?'checked':''} ${q==='Bodyweight'?'disabled':''}><span><b>${esc(q)}</b> <span class="muted small">${cnt[q]||0} exercises${EQUIP_NOTE[q]?' · '+esc(EQUIP_NOTE[q]):''}</span></span></label>`; }).join('')}</div>
+    <p class="muted small">${allEx().filter(hasGear).length} of ${allEx().length} exercises available.</p>
+  </section>`};
+};
 PAGES.swap=function(p){
   const host=ui.stack[ui.stack.length-2]; const obj= host&&host.name==='active'? st.active : host&&host.obj; if(!obj||!obj.exercises[p.e]) return PAGES.missing();
   const e=obj.exercises[p.e]; const ex=getEx(e.exId); const inUse=new Set(obj.exercises.map(x=>x.exId));
-  const all=swapRecs(ex,inUse); const eqs=[...new Set(all.slice(0,40).map(x=>x.e.equipment||'Other'))].sort();
+  const all0=swapRecs(ex,inUse); const all=p.allGear? all0 : all0.filter(x=>hasGear(x.e)); const hid=all0.length-all.length; const eqs=[...new Set(all.slice(0,40).map(x=>x.e.equipment||'Other'))].sort();
   const f=p.eq||''; const list=all.filter(x=>!f||(x.e.equipment||'Other')===f).slice(0,f?12:10);
   const canRoutine= host.name==='active'&&obj.routineId&&st.routines[obj.routineId];
   return {hdr:hdr('Swap exercise',{left:backBtn}),body:`<section class="gut stack">
@@ -5358,6 +5385,7 @@ PAGES.swap=function(p){
     ${eqs.length>1?`<div class="chips swapchips"><button class="chip ${!f?'on':''}" data-a="swapEq" data-v="">Best matches</button>${eqs.map(q=>`<button class="chip ${f===q?'on':''}" data-a="swapEq" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>`:''}
     ${canRoutine?`<label class="swaprt"><input type="checkbox" data-f="swapRt" ${p.rt?'checked':''}> Also change it in <b>${esc(st.routines[obj.routineId].name)}</b></label>`:''}
     ${list.length?`<ul class="exlist card">${list.map((x,k)=>`<li><button class="exrow" data-a="swapTo" data-id="${esc(x.e.id)}">${thumb(x.e)}<span class="exrow-t"><b>${esc(x.e.name)}</b><span class="muted small">${esc([x.e.equipment,...x.why].filter(Boolean).join(' · '))}${x.done?` · done ${x.done}×`:''}</span></span>${!f&&k===0?'<span class="toppick">Top pick</span>':''}${x.t&&TIER_ORDER[x.t]<=1?`<span class="tier t${x.t}">${x.t}</span>`:''}</button></li>`).join('')}</ul>`:`<p class="muted">No close matches${f?' with '+esc(f):''}.</p>`}
+    ${hid?`<p class="muted small center">Hiding ${hid} that need gear your gym doesn't have · <button class="linkbtn acc" data-a="swapAllGear">Show them</button> · <button class="linkbtn acc" data-a="openGym">My gym</button></p>`:missingGear().length?'':`<p class="muted small center"><button class="linkbtn acc" data-a="openGym">${ic('dumbbell','xs')} Set what your gym has</button></p>`}
     <button class="btn wide" data-a="swapSearch">${ic('search','sm')} Search all exercises</button>
   </section>`};
 };
@@ -5368,8 +5396,8 @@ PAGES.sharePick=function(p){
   return {hdr:hdr('Share with…',{left:backBtn}),body:`<section class="gut stack">
     <div><h2 class="h2">${ic(p.kind==='folder'?'folder':p.kind==='workout'?'dumbbell':'list')} ${esc(name||'')}</h2><div class="muted small">${p.kind==='folder'?'Folder':p.kind==='workout'?'Workout':'Routine'} · only the friends you check will see it</div></div>
     <ul class="shlist card pick">
-      <li><button class="shrow" data-a="pickAll" aria-pressed="${!!allOn}"><span class="pchk ${allOn?'on':''}">${allOn?ic('check','sm'):''}</span><span class="minw"><b>All friends</b><span class="muted small">${fr.length} friend${fr.length===1?'':'s'}</span></span></button></li>
-      ${fr.map(f=>{ const on=pick.has(f.uid); return `<li><button class="shrow" data-a="pickToggle" data-id="${esc(f.uid)}" aria-pressed="${on}"><span class="pchk ${on?'on':''}">${on?ic('check','sm'):''}</span>${avatar(f)}<span class="minw"><b>${esc(f.name||'Friend')}</b><span class="muted small">${esc(worldLabel(f))} · ${esc(f.stageName||'')}</span></span></button></li>`; }).join('')}
+      <li><button class="shrow" data-a="friendPickAll" aria-pressed="${!!allOn}"><span class="pchk ${allOn?'on':''}">${allOn?ic('check','sm'):''}</span><span class="minw"><b>All friends</b><span class="muted small">${fr.length} friend${fr.length===1?'':'s'}</span></span></button></li>
+      ${fr.map(f=>{ const on=pick.has(f.uid); return `<li><button class="shrow" data-a="friendPick" data-id="${esc(f.uid)}" aria-pressed="${on}"><span class="pchk ${on?'on':''}">${on?ic('check','sm'):''}</span>${avatar(f)}<span class="minw"><b>${esc(f.name||'Friend')}</b><span class="muted small">${esc(worldLabel(f))} · ${esc(f.stageName||'')}</span></span></button></li>`; }).join('')}
     </ul>
     <button class="btn primary wide big" data-a="pickSend" ${!n&&!prev?'disabled':''}>${ic('share')} ${n?`Send to ${n} friend${n===1?'':'s'}`:'Stop sharing'}</button>
     ${prev?`<p class="muted small center">Already shared with ${esc((prev.to||[]).map(u=>Social.person(u).name||'friend').join(', ')||'no one')}. Uncheck someone to take it back.</p>`:''}
@@ -5444,8 +5472,8 @@ Object.assign(A,{
     Store.put('routines',r.id,r); toast(`Saved "${r.name}" to My routines`); render(); },
   startShared:(d)=>{ const it=findShared(d.f,d.id); if(!it) return; importSharedCustom(it); const src=clone(it.data||{}); startWorkout({...src,id:'shared',tpl:true,unit:it.unit||'lb'}); },
   unshare:(d)=>confirmSheet('Stop sharing this?','Friends will no longer see it. Anyone who already saved it keeps their copy.','Stop sharing',async()=>{ await Social.unshare(d.id); pop(); render(); }),
-  pickToggle:(d)=>{ const p=ui.pick||(ui.pick=new Set()); p.has(d.id)?p.delete(d.id):p.add(d.id); render(); },
-  pickAll:()=>{ const p=ui.pick||(ui.pick=new Set()); const all=Social.friends.map(f=>f.uid); if(all.every(u=>p.has(u))) p.clear(); else all.forEach(u=>p.add(u)); render(); },
+  friendPick:(d)=>{ const p=ui.pick||(ui.pick=new Set()); p.has(d.id)?p.delete(d.id):p.add(d.id); render(); },
+  friendPickAll:()=>{ const p=ui.pick||(ui.pick=new Set()); const all=Social.friends.map(f=>f.uid); if(all.every(u=>p.has(u))) p.clear(); else all.forEach(u=>p.add(u)); render(); },
   pickSend:async()=>{ const c=cur(); const to=[...(ui.pick||[])].filter(u=>Social.friends.some(f=>f.uid===u)); const btn=$('[data-a=pickSend]'); if(btn) btn.disabled=true; const ok=await Social.sendShare(c.kind,c.id,to); if(ok){ pop(); render(); } else if(btn) btn.disabled=false; },
   editShare:(d)=>{ const it=(Social.myShared||[]).find(x=>x.id===d.id); if(!it) return; const kind=it.type; const id= kind==='folder'? it.name : d.id.slice(2); ui.pick=new Set(it.to||[]); push({name:'sharePick',kind,id}); },
   shareR:(d)=>Social.share(d.kind||'routine',d.id),
@@ -5464,7 +5492,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190745';
+window.WH_BUILD='202611190750';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
