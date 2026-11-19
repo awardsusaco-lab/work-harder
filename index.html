@@ -608,6 +608,14 @@ textarea{resize:vertical;line-height:1.4}
 .brainrow{display:flex;justify-content:space-between;align-items:center}
 .bpill{flex:none;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface2);white-space:nowrap}
 .bpill.acc{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}.bpill.warn{background:color-mix(in srgb,#f5a524 18%,transparent);color:#f5a524}.bpill.muted{color:var(--muted)}
+.rolist{list-style:none;margin:0;padding:4px 0}
+.rolist li{display:flex;align-items:center;gap:12px;padding:4px 4px 4px 12px;background:var(--surface);border-radius:12px;transition:box-shadow .15s,transform .15s}
+.rolist li+li{border-top:1px solid var(--line)}
+.rolist li .minw{flex:1;display:flex;flex-direction:column;min-width:0}.rolist li b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rolist li .thumb,.rolist li svg.fig{width:40px;height:40px}
+.rolist li.dragging{position:relative;z-index:2;background:var(--surface2);box-shadow:0 8px 24px rgba(0,0,0,.35);transform:scale(1.02)}
+.rhandle{flex:none;display:grid;place-items:center;width:48px;height:48px;border:0;background:none;color:var(--muted);touch-action:none;cursor:grab;border-radius:10px}
+.rhandle:active{cursor:grabbing;color:var(--accent)}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3461,6 +3469,7 @@ Object.assign(I,{
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4M17.5 14.8c2.2.6 3.6 2.4 4 5.2"/>',
   chev:'<path d="m9 5 7 7-7 7"/>',
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  grip:'<path d="M4 8h16M4 12h16M4 16h16"/>',
   swap:'<path d="M7 4 3.5 7.5 7 11M3.5 7.5H17M17 13l3.5 3.5L17 20M20.5 16.5H7"/>',
   heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
   chat:'<path d="M4.5 5.5h15v10h-9l-4.5 3.5v-3.5h-1.5z"/>',
@@ -4982,6 +4991,7 @@ const A={
 
   /* logger */
   exMenu:(d)=>{ const obj=curObj(); const i=+d.e; const e=obj.exercises[i]; menu(getEx(e.exId).name,[
+    {label:'Reorder exercises',icon:'grip',fn:()=>push({name:'reorder'})},
     {label:'Move up',icon:'up',fn:()=>{ if(i>0){ obj.exercises.splice(i-1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
     {label:'Move down',icon:'down',fn:()=>{ if(i<obj.exercises.length-1){ obj.exercises.splice(i+1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
     {label:'Swap for an alternative',icon:'swap',fn:()=>A.swapOpen({e:i})},
@@ -4996,6 +5006,7 @@ const A={
   swapAllGear:()=>{ cur().allGear=true; render(); },
   exAllGear:()=>{ ui.exq.allGear=!ui.exq.allGear; render(); },
   openGym:()=>push({name:'gym'}),
+  reorderDone:()=>{ reorderApply(); const host=ui.stack[ui.stack.length-2]; ui.stack.pop(); if(host&&host.name==='active') changed(true); else render(); toast('Order saved'); },
   openBrain:()=>push({name:'brain'}),
   gymPreset:(d)=>{ const pr=GYM_PRESETS.find(x=>x[0]===d.v); st.settings.noEquip=EQUIP.filter(q=>q!=='Bodyweight'&&!pr[2].includes(q)); Store.saveSettings(); render(); },
   swapEq:(d)=>{ cur().eq=d.v; render(); },
@@ -5517,6 +5528,34 @@ PAGES.brain=function(){
     ${lifts.length?`<ul class="exlist card">${lifts.map(({X,L})=>`<li><button class="exrow" data-a="openEx" data-id="${esc(X.id)}">${thumb(X)}<span class="exrow-t"><b>${esc(X.name)}</b><span class="muted small">${L.sessions} sessions · ${L.jumps?`${L.succ}/${L.jumps} jumps stuck`:'no jumps yet'}${L.hardIsMed?' · Hard = Medium':''}${L.easyIsMed?' · Easy = Medium':''}</span></span><span class="bpill ${SL[L.style][1]}">${SL[L.style][0]}</span></button></li>`).join('')}</ul>`:'<p class="muted small">Log a few workouts and this fills in.</p>'}
   </section>`};
 };
+PAGES.reorder=function(){
+  const host=ui.stack[ui.stack.length-2]; const obj= host&&host.name==='active'? st.active : host&&host.obj; if(!obj) return PAGES.missing();
+  return {hdr:hdr('Reorder exercises',{left:backBtn,right:`<button class="btn primary sm" data-a="reorderDone">Done</button>`}),body:`<section class="gut stack">
+    <p class="muted small">Drag the handle on the right to move an exercise.</p>
+    <ul class="rolist card" id="rolist">${obj.exercises.map((e,i)=>{ const X=getEx(e.exId); const done=e.sets.filter(s=>s.done).length;
+      return `<li data-i="${i}">${thumb(X)}<span class="minw"><b>${esc(X.name)}</b><span class="muted small">${e.sets.length} set${e.sets.length===1?'':'s'}${done?` · ${done} done`:''}${e.ss?` · superset ${esc(e.ss)}`:''}${e.bonus?' · bonus':''}</span></span><button class="rhandle" aria-label="Move ${esc(X.name)}. Use arrow keys" title="Drag to reorder">${ic('grip')}</button></li>`; }).join('')}</ul>
+  </section>`};
+};
+function reorderApply(){
+  const ul=document.getElementById('rolist'); if(!ul) return; const host=ui.stack[ui.stack.length-2]; const obj= host&&host.name==='active'? st.active : host&&host.obj; if(!obj) return;
+  const order=[...ul.children].map(li=>+li.dataset.i); if(order.every((v,k)=>v===k)) return;
+  obj.exercises=order.map(i=>obj.exercises[i]); [...ul.children].forEach((li,k)=>li.dataset.i=k);
+  if(host.name==='active') Store.saveActive();
+}
+(function(){
+  let drag=null;
+  document.addEventListener('pointerdown',ev=>{ const h=ev.target.closest&&ev.target.closest('.rhandle'); if(!h) return; ev.preventDefault(); const li=h.closest('li');
+    drag={li,ul:li.parentElement,id:ev.pointerId,y:ev.clientY}; li.classList.add('dragging'); try{ h.setPointerCapture(ev.pointerId); }catch(e){} if(navigator.vibrate) try{navigator.vibrate(8);}catch(e){} });
+  document.addEventListener('pointermove',ev=>{ if(!drag||ev.pointerId!==drag.id) return; ev.preventDefault(); drag.y=ev.clientY;
+    const over=[...drag.ul.children].find(x=>{ if(x===drag.li) return false; const r=x.getBoundingClientRect(); return ev.clientY>=r.top&&ev.clientY<=r.bottom; });
+    if(over){ const r=over.getBoundingClientRect(); const before=ev.clientY<r.top+r.height/2; const ref= before? over : over.nextSibling; if(ref!==drag.li&&ref!==drag.li.nextSibling) drag.ul.insertBefore(drag.li,ref); }
+    const m=document.getElementById('main'); if(m){ const R=m.getBoundingClientRect(); if(ev.clientY<R.top+70) m.scrollTop-=12; else if(ev.clientY>R.bottom-70) m.scrollTop+=12; } },{passive:false});
+  const end=ev=>{ if(!drag||ev.pointerId!==drag.id) return; drag.li.classList.remove('dragging'); drag=null; reorderApply(); };
+  document.addEventListener('pointerup',end); document.addEventListener('pointercancel',end);
+  document.addEventListener('keydown',ev=>{ const h=ev.target.closest&&ev.target.closest('.rhandle'); if(!h||!['ArrowUp','ArrowDown'].includes(ev.key)) return; ev.preventDefault(); const li=h.closest('li');
+    if(ev.key==='ArrowUp'&&li.previousElementSibling) li.parentElement.insertBefore(li,li.previousElementSibling); else if(ev.key==='ArrowDown'&&li.nextElementSibling) li.parentElement.insertBefore(li.nextElementSibling,li);
+    reorderApply(); h.focus(); });
+})();
 PAGES.gym=function(){
   const miss=new Set(missingGear()); const cnt=allEx().reduce((m,e)=>(m[e.equipment||'Other']=(m[e.equipment||'Other']||0)+1,m),{});
   const preset=GYM_PRESETS.find(([,,have])=>EQUIP.every(q=>have.includes(q)!==miss.has(q)||q==='Bodyweight'));
@@ -5645,7 +5684,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190821';
+window.WH_BUILD='202611190826';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
