@@ -601,6 +601,7 @@ textarea{resize:vertical;line-height:1.4}
 .gymnote{margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .nogear{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:12px;padding:10px 12px;background:color-mix(in srgb,#f5a524 16%,transparent);color:inherit;font:inherit;font-size:14px;cursor:pointer}
 .nogear .ic{color:#f5a524;flex:none}
+.wunote{display:flex;gap:8px;align-items:flex-start;margin:0;font-size:14px;color:var(--muted)}.wunote .ic{color:#f5a524;flex:none;margin-top:2px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2783,6 +2784,19 @@ function comebackPlan(exId,note,cb,unit){
   return {w,r:target,msg:`${tag}: ${fw(w)} ${unit} (${why}). Pre-break was ${fw(preT.W)}.`,kind:'cb'};
 }
 /* Apply plans to an active workout's exercises that have no completed sets yet. */
+/* Warm-ups: if last time's warm-up felt Hard or Max, start today's lighter (warm-ups should leave you fresh) */
+function warmupAdjust(e,X,a){
+  delete e.wuNote;
+  const wus=e.sets.filter(s=>s.type==='w'); if(!wus.length||!colsFor(X).includes('w')) return;
+  const last=(stats().byEx[e.exId]||[])[0]; if(!last) return;
+  const lw=(last.e.sets||[]).filter(s=>s.type==='w'&&s.done!==false);
+  let worst=''; 
+  wus.forEach((s,k)=>{ const p=lw[k]; if(s.pwuBase!==undefined){ s.pw=s.pwuBase; delete s.pwuBase; }
+    if(!p||(p.eff!=='hard'&&p.eff!=='max')) return; const base=convW(num(p.w)||0,last.w.unit||'lb',a.unit); if(!base) return;
+    const f=p.eff==='max'?0.75:0.85; s.pwuBase=s.pw??''; const orig=num(s.pw); const ref=orig? Math.min(base,orig) : base; s.pw=round1(roundTo(ref*f,weightStep(X,a.unit,ref))); if(s.pw>=ref) s.pw=round1(ref-weightStep(X,a.unit,ref));
+    if(p.eff==='max'||!worst) worst=p.eff; });
+  if(worst) e.wuNote= worst==='max'? 'Your warm-up felt way too heavy last time, so it starts about 25% lighter today.' : 'Your warm-up felt hard last time, so it starts about 15% lighter today. Warm-ups should leave you fresh for the work sets.';
+}
 function applyCoach(a,force){
   const posts=recentPosts(); const drained=posts.filter(p=>p==='drained').length>=2, more=posts.filter(p=>p==='more').length>=2;
   if(a.comeback===undefined){ const cb=comebackState(a.start); a.comeback=cb||null; }
@@ -2791,6 +2805,7 @@ function applyCoach(a,force){
   a.exercises.forEach((e,idx)=>{
     if(e.sets.some(s=>s.done)) return;
     const X=getEx(e.exId);
+    warmupAdjust(e,X,a);
     e.push= light? (noReps(X)? (colsFor(X).includes('w')?'Medium: finish every set with some left in the tank. Nothing all-out this week.':'Easy pace.') :'Medium: stop every set with 3–4 good reps left. No sets to failure this week.') : pushTarget(e,idx,a);
     const work=e.sets.filter(s=>s.type!=='w'); work.forEach(s=>delete s.amrap);
     // comeback: one fewer set on the first two sessions back; restore when turned off
@@ -4251,7 +4266,7 @@ function exCard(obj,e,i,mode){
       ${mode!=='routine'?`<button class="prev" data-a="usePrev" data-e="${i}" data-s="${si}" ${prevTxt?'':'disabled'}>${esc(prevTxt||'–')}</button>`:''}
       ${inputs}
       ${mode==='routine'?`<button class="rm" data-a="rmSet" data-e="${i}" data-s="${si}" aria-label="Remove set">${ic('x','sm')}</button>`:`<button class="chk ${s.done?'on':''}" data-a="toggleSet" data-e="${i}" data-s="${si}" aria-label="Complete set">${pr||ic('check')}</button>`}
-    </div>${mode!=='routine'&&s.done&&s.type!=='w'?effRow(i,si,s,ex):''}`;
+    </div>${mode!=='routine'&&s.done?effRow(i,si,s,ex):''}`;
   }).join('');
   return `<div class="card exc ${e.ss?'ss':''}">
     <div class="exc-h">
@@ -4263,12 +4278,13 @@ function exCard(obj,e,i,mode){
     ${mode!=='edit'&&!hasGear(ex)&&!e.sets.some(s=>s.done)?`<button class="nogear" data-a="swapOpen" data-e="${i}">${ic('swap','sm')}<span>Your gym doesn't have <b>${esc(ex.equipment||'this gear')}</b>. Tap to swap.</span></button>`:''}
     ${e.ss?`<button class="ssbadge" data-a="exMenu" data-e="${i}">Superset ${esc(e.ss)}</button>`:''}
     ${mode!=='routine'&&e.cue?`<p class="cue">${ic('list','sm')}<span>${esc(e.cue)}</span></p>`:''}
+    ${mode==='active'&&e.wuNote&&!e.sets.some(s=>s.done)?`<p class="wunote">${ic('flame','sm')}<span>${esc(e.wuNote)}</span></p>`:''}
     ${mode==='active'&&e.coach&&e.coach.msg?`<div class="coachchip k-${esc(e.coach.kind)}">${ic('spark','sm')}<span><b>Coach:</b> ${esc(e.coach.msg)}${e.coach.swap?`<button class="btn sm primary swapbtn" data-a="coachSwap" data-e="${i}" data-id="${esc(e.coach.swap.id)}">Swap to ${esc(e.coach.swap.name)} (${esc(e.coach.swap.t)} tier)</button>`:''}</span></div>`:''}
     ${mode==='active'&&e.push?`<p class="pushline">${ic('flame','sm')}<span><b>How hard:</b> ${esc(e.push)}</span></p>`:''}
     <textarea class="note-in" data-f="exnote" data-e="${i}" rows="${mode==='routine'?2:1}" placeholder="${mode==='routine'?'Coaching cue shown while you lift (rep range, rest, form)…':'Add notes here…'}">${esc(e.note||'')}</textarea>
     ${mode!=='edit'?`<button class="restchip" data-a="restPick" data-e="${i}">${ic('clock','sm')} Rest timer: ${fmtRest(rest)}</button>`:''}
     <div class="sets">
-      ${mode!=='routine'&&e.sets.some(s=>s.done&&s.type!=='w')?`<p class="effhint">${ic('flame','sm')}<span>${noReps(ex)?(colsFor(ex).includes('w')?'After each set, tap how much you had left in the tank. The coach uses this to set your next load.':'After each set, tap how hard it was to talk. The coach uses this to set your next pace.'):'After each set, tap how many more reps you could have done. The coach uses this to set your next weights.'}</span></p>`:''}
+      ${mode!=='routine'&&e.sets.some(s=>s.done)?`<p class="effhint">${ic('flame','sm')}<span>${noReps(ex)?(colsFor(ex).includes('w')?'After each set, tap how much you had left in the tank. The coach uses this to set your next load.':'After each set, tap how hard it was to talk. The coach uses this to set your next pace.'):'After each set, tap how many more reps you could have done. The coach uses this to set your next weights.'}</span></p>`:''}
       <div class="srow head ${gridCls}"><span>SET</span>${mode!=='routine'?'<span>PREVIOUS</span>':''}${cols.map(c=>`<span>${colLabel(c,ex)}</span>`).join('')}<span>${mode==='routine'?'':ic('check','sm')}</span></div>
       ${rows}
     </div>
@@ -4282,8 +4298,9 @@ const EFF_LV=[['easy','Easy','4+ reps left'],['medium','Medium','2–3 reps left
 const EFF_CARRY=[['easy','Easy','lots left'],['medium','Medium','some left'],['hard','Hard','just made it'],['max','Max','had to stop']];
 const EFF_TALK=[['easy','Easy','can chat'],['medium','Medium','can talk'],['hard','Hard','few words'],['max','Max','can\'t talk']];
 function effScale(ex){ const c=colsFor(ex); if(c.includes('r')) return EFF_LV; return c.includes('w')? EFF_CARRY : EFF_TALK; }
+const EFF_WU=[['easy','Easy','felt light'],['medium','Medium','felt good'],['hard','Hard','felt heavy'],['max','Max','too heavy']];
 function effRow(i,si,s,ex){
-  return `<div class="seff" role="group" aria-label="Effort for this set">${(ex?effScale(ex):EFF_LV).map(([v,l,d])=>`<button class="${s.eff===v?'on':''} e-${v}" data-a="setEff" data-e="${i}" data-s="${si}" data-v="${v}" aria-pressed="${s.eff===v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div>`;
+  return `<div class="seff${s.type==='w'?' wu':''}" role="group" aria-label="${s.type==='w'?'How the warm-up felt':'Effort for this set'}">${(s.type==='w'&&ex&&colsFor(ex).includes('w')?EFF_WU:ex?effScale(ex):EFF_LV).map(([v,l,d])=>`<button class="${s.eff===v?'on':''} e-${v}" data-a="setEff" data-e="${i}" data-s="${si}" data-v="${v}" aria-pressed="${s.eff===v}"><b>${l}</b><small>${d}</small></button>`).join('')}</div>`;
 }
 /* exercise-level effort for the coach: Max anywhere wins, otherwise the last rated working set */
 function effFromSets(e){
@@ -4908,7 +4925,12 @@ const A={
     if(r){ const rr=clone(r); const re=rr.exercises.find(x=>x.exId===e.exId); if(re){ re.exId=d.id; re.sets.forEach(s=>s.w=''); rr.updated=Date.now(); Store.put('routines',rr.id,rr); } }
     applyCoach(a); changed(true); toast(`Swapped ${old} for ${getEx(d.id).name}${r?' in '+r.name:''}`); },
   effort:(d)=>{ const e=curObj().exercises[+d.e]; e.effort= e.effort===d.v? '' : d.v; changed(true); },
-  setEff:(d)=>{ const e=curObj().exercises[+d.e]; const s=e.sets[+d.s]; s.eff= s.eff===d.v? undefined : d.v; if(!s.eff) delete s.eff; e.effort=effFromSets(e)||undefined; if(!e.effort) delete e.effort; changed(true); },
+  setEff:(d)=>{ const obj=curObj(); const e=obj.exercises[+d.e]; const s=e.sets[+d.s]; s.eff= s.eff===d.v? undefined : d.v; if(!s.eff) delete s.eff; e.effort=effFromSets(e)||undefined; if(!e.effort) delete e.effort;
+    if(s.type==='w'&&(s.eff==='hard'||s.eff==='max')){ const X=getEx(e.exId); const base=num(s.w)||num(s.pw); const unit=obj.unit||st.settings.unit;
+      const nx=e.sets.slice(+d.s+1).find(t=>t.type==='w'&&!t.done&&t.w==='');
+      if(base&&nx&&colsFor(X).includes('w')){ const cur=num(nx.pw)||base; const lim=round1(roundTo(base*(s.eff==='max'?0.9:1),weightStep(X,unit,base))); if(cur>lim){ nx.pw=lim; toast(`Next warm-up set lowered to ${fw(lim)} ${unit}`); } }
+      else if(!nx) toast('Got it. Next time the coach starts your warm-up lighter.'); }
+    changed(true); },
   setTimer:(d)=>{ audio(); const e=st.active.exercises[+d.e]; const s=e.sets[+d.s]; if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
     ui.rest=null; renderRest();
     ui.stimer={e:+d.e,si:+d.s,target:setTimerTarget(e,s,+d.s),phase:'prep',prepEnd:Date.now()+3000,start:0,pauseAcc:0,pausedAt:0,lastN:null}; renderSetTimer(); },
@@ -5492,7 +5514,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190750';
+window.WH_BUILD='202611190754';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
