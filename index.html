@@ -2666,7 +2666,7 @@ function learnFor(exId,unit){
   const ex=getEx(exId); const arr= ex&&['wr','wreps'].includes(ex.type)? (S.byEx[exId]||[]).slice(0,24).reverse() : [];
   let jumps=0,succ=0,under=0,underN=0,over=0,overN=0,tired=0,tiredOk=0;
   for(let i=1;i<arr.length;i++){
-    const A=arr[i-1], B=arr[i]; const a=topOf(A.e,A.w.unit,unit), b=topOf(B.e,B.w.unit,unit); if(!a||!b||!a.reps.length||!b.reps.length) continue;
+    const A=arr[i-1], B=arr[i]; if(B.w.start-A.w.start>14*DAY) continue; const a=topOf(A.e,A.w.unit,unit), b=topOf(B.e,B.w.unit,unit); if(!a||!b||!a.reps.length||!b.reps.length) continue;
     const [lo,hi]=repRange(B.e.note||B.e.cue||'',ex); const aMin=Math.min(...a.reps), bMin=Math.min(...b.reps);
     const ok= bMin>=Math.min(lo,aMin-2) && b.effort!=='max';   // a jump "sticks" if reps stay in range (or drop by no more than 2)
     if(b.W>a.W+0.01){ jumps++; if(ok) succ++; if(a.effort==='easy'){ overN++; if(!ok) over++; } }
@@ -2712,6 +2712,9 @@ function coachPlan(exId,note,check,unit){
     const [lo,hi]=repRange(note,ex);
     const step=weightStep(ex,unit,lastT.W);
     const B=brainStyle(exId,unit); const L=B.L, G=B.G||brainGlobal(unit); let learned='';
+    const gapD=Math.round((Date.now()-last.w.start)/DAY);
+    if(gapD>=12 && lastT.W>0){ const loss=expectedLoss(gapD); if(loss>=0.03){ const nw=roundTo(lastT.W*(1-loss),step); if(nw<lastT.W){ const m=timeModel();
+      return {w:nw,r:Math.min(hi,lo+1),msg:`${Math.round(gapD/7)} weeks since your last ${ex.name}. ${m.learned?'From your past breaks you':'Most people'} lose about ${Math.round(loss*100)}% over that long → ${fw(nw)} ${unit} × ${Math.min(hi,lo+1)} today, then build back.`,kind:'cb'}; } } }
     if(lastT.effort==='hard'&&(L.hardIsMed||(L.underN<2&&G.hardIsMed))){ lastT.effort='medium'; learned=' (Coach has learned your "Hard" usually has more in it.)'; }
     else if(lastT.effort==='easy'&&(L.easyIsMed||(L.overN<2&&G.easyIsMed))){ lastT.effort='medium'; learned=' (Coach has learned your "Easy" usually means Medium for jumps.)'; }
     const tiredFine=L.tiredFine||G.tiredFine;
@@ -2776,7 +2779,7 @@ function isMainLift(a,idx){
 }
 function recentPosts(){ return workoutsSorted().slice(0,3).map(w=>w.post).filter(Boolean); }
 /* ---------- Comeback mode: easing back in after 2+ weeks off ---------- */
-const CB_GAP=14*DAY, CB_SESSIONS=4, CB_WINDOW=42*DAY;
+const CB_GAP=14*DAY, CB_WINDOW=42*DAY;
 function comebackState(now=Date.now()){
   const ws=workoutsSorted().slice().reverse(); // oldest first
   if(!ws.length) return null;
@@ -2785,16 +2788,44 @@ function comebackState(now=Date.now()){
   for(let i=ws.length-1;i>0;i--){
     if(ws[i].start-ws[i-1].start>=CB_GAP){
       const back=ws.length-i; if(now-ws[i].start>CB_WINDOW) return null;
-      return {stage:back,light:back<CB_SESSIONS,gapStart:ws[i].start,gapDays:Math.round((ws[i].start-ws[i-1].start)/DAY)};
+      return {stage:back,light:back<cbSessions(),gapStart:ws[i].start,gapDays:Math.round((ws[i].start-ws[i-1].start)/DAY)};
     }
   }
   return null;
 }
-function cbStartFactor(gapDays){ return gapDays>=56?0.6 : gapDays>=28?0.7 : 0.8; }
+/* Time off: learn from YOUR past breaks how much strength you lose per week off and how fast it comes back */
+let _tmS=null,_tm=null;
+function timeModel(){
+  const S=stats(); if(S===_tmS&&_tm) return _tm; _tmS=S;
+  const ws=workoutsSorted().slice().reverse(); const breaks=[];
+  for(let i=1;i<ws.length;i++){
+    const gap=(ws[i].start-ws[i-1].start)/DAY; if(gap<12) continue;
+    const after=ws[i]; const losses=[]; const rebounds=[];
+    for(const e of after.exercises||[]){
+      const X=getEx(e.exId); if(!X||!['wr','wreps'].includes(X.type)) continue;
+      const hist=(S.byEx[e.exId]||[]); const pre=hist.find(x=>x.w.start<after.start&&x.w.start>=after.start-(gap+30)*DAY&&x.w.start<=ws[i-1].start);
+      if(!pre) continue; const a=e1rmAvg(pre.e,pre.w.unit,pre.w.start), b=e1rmAvg(e,after.unit,after.start); if(!a||!b) continue;
+      losses.push(1-b/a);
+      const post=hist.filter(x=>x.w.start>=after.start).reverse(); let k=0; for(const x of post){ k++; if(e1rmAvg(x.e,x.w.unit,x.w.start)>=a*0.97) break; if(k>=8) break; } rebounds.push(k);
+    }
+    if(losses.length>=2){ losses.sort((x,y)=>x-y); const med=losses[Math.floor(losses.length/2)]; rebounds.sort((x,y)=>x-y);
+      breaks.push({gapDays:Math.round(gap),loss:Math.max(0,med),lifts:losses.length,rebound:rebounds[Math.floor(rebounds.length/2)],at:after.start}); }
+  }
+  const PRIOR=0.015; const rates=breaks.map(b=>b.loss/Math.max(1,(b.gapDays-7)/7)).sort((x,y)=>x-y);
+  const n=rates.length; const dataRate= n? rates[Math.floor(n/2)] : PRIOR; const rate=Math.min(0.06,(n*dataRate+2*PRIOR)/(n+2));
+  const rb=breaks.map(b=>b.rebound).sort((x,y)=>x-y); const rebound= rb.length? Math.round((rb.length*rb[Math.floor(rb.length/2)]+2*4)/(rb.length+2)) : 4;
+  return _tm={breaks,rate,rebound:Math.max(2,Math.min(6,rebound)),learned:n>0};
+}
+function expectedLoss(gapDays){ const m=timeModel(); return Math.max(0,Math.min(0.35,m.rate*Math.max(0,(gapDays-7)/7))); }
+function cbSessions(){ return timeModel().rebound; }
+function cbStartFactor(gapDays){
+  const m=timeModel(); if(!m.learned) return gapDays>=56?0.6 : gapDays>=28?0.7 : 0.8;
+  return Math.max(0.55,Math.min(0.9, Math.round((1-expectedLoss(gapDays)-0.07)*20)/20));  // a little under what you've actually lost, so session 1 feels easy
+}
 function comebackPlan(exId,note,cb,unit){
   const ex=getEx(exId); const all=stats().byEx[exId]||[];
   const pre=all.find(x=>x.w.start<cb.gapStart), since=all.filter(x=>x.w.start>=cb.gapStart);
-  const tag= cb.light? `Comeback session ${cb.stage+1} of ${CB_SESSIONS}` : 'Ramping back';
+  const tag= cb.light? `Comeback session ${cb.stage+1} of ${cbSessions()}` : 'Ramping back';
   if(!pre) return {msg:`${tag}: new lift. Go light and learn the movement; ${noReps(ex)?'finish every set with plenty left':'leave 3–4 reps in the tank'}.`,kind:'new'};
   const preT=topOf(pre.e,pre.w.unit,unit); if(!preT) return null;
   const [lo,hi]=repRange(note,ex);
@@ -2971,7 +3002,7 @@ function coachInsights(){
   if(posts.length>=3){ const d=posts.filter(p=>p==='drained').length, m=posts.filter(p=>p==='more').length;
     if(d>=3) out.push({kind:'warn',title:`Drained after ${d} of your last ${posts.length} workouts`,text:'The coach is trimming accessory sets. Check sleep and food; an easy week may help.'});
     else if(m>=3) out.push({kind:'good',title:`Felt like you had more ${m} of the last ${posts.length} times`,text:'The coach is adding a set to your main lifts. Keep rating honestly.'}); }
-  const cbs=comebackState(); if(cbs&&cbs.light) out.unshift({kind:'info',title:`Comeback mode: session ${cbs.stage+1} of ${CB_SESSIONS}`,text:cbs.stage===0?`${cbs.gapDays} days off. Your next workouts start lighter and climb based on how each lift feels.`:'Weights are climbing back based on your effort ratings. Keep rating every set.'});
+  const cbs=comebackState(); if(cbs&&cbs.light) out.unshift({kind:'info',title:`Comeback mode: session ${cbs.stage+1} of ${cbSessions()}`,text:cbs.stage===0?`${cbs.gapDays} days off. Your next workouts start lighter and climb based on how each lift feels.`:'Weights are climbing back based on your effort ratings. Keep rating every set.'});
   // 7) Consistency
   const last4=ws.filter(w=>w.start>now-28*DAY).length, goal=(st.settings.goal||4)*4;
   out.push({kind:last4>=goal*0.8?'good':'info',title:`${last4} workouts in the last 4 weeks`,text:last4>=goal*0.8?'Right on your goal. Consistency is what makes the rest work.':`Goal is about ${goal}. The plan works best when the weeks are full.`});
@@ -4294,7 +4325,7 @@ function loggerPage(obj,mode){
     const c=obj.comeback;
     top+= obj.comebackOff
       ? `<div class="card cbcard"><b>Comeback mode is off</b><p class="muted small">Back to normal targets. Tap to ease in again.</p><button class="btn sm" data-a="comebackToggle">Turn comeback mode on</button></div>`
-      : `<div class="card cbcard"><b>${ic('spark','sm')} Comeback mode · session ${c.stage+1} of ${CB_SESSIONS}</b><p class="small">${c.stage===0?`${c.gapDays} days off: weights start at ${Math.round(cbStartFactor(c.gapDays)*100)}% with one fewer set.`:`Lifts climb from your ratings: Easy +10%, Medium +5%, Hard holds.`} Rate each set as you go.</p><button class="btn ghost sm cboff" data-a="comebackToggle">I'm ready, turn it off</button></div>`;
+      : `<div class="card cbcard"><b>${ic('spark','sm')} Comeback mode · session ${c.stage+1} of ${cbSessions()}</b><p class="small">${c.stage===0?`${c.gapDays} days off: weights start at ${Math.round(cbStartFactor(c.gapDays)*100)}% with one fewer set.`:`Lifts climb from your ratings: Easy +10%, Medium +5%, Hard holds.`} Rate each set as you go.</p><button class="btn ghost sm cboff" data-a="comebackToggle">I'm ready, turn it off</button></div>`;
   }
   if(mode==='active'&&obj.deload){ top+=`<div class="card cbcard dlcard"><b>${ic('history','sm')} Deload week</b><p class="small">${esc(obj.deload.why)}</p><button class="btn ghost sm cboff" data-a="deloadSkip">Skip the deload, go full</button></div>`; }
   if(mode==='active'&&obj.routineId){
@@ -5477,6 +5508,11 @@ PAGES.brain=function(){
       ${G.tiredFine?`<p class="small">${ic('check','xs')} You perform fine on days you feel run down, so it doesn't hold you back on those days.</p>`:''}
       ${!G.hardIsMed&&!G.easyIsMed&&!G.tiredFine?`<p class="muted small">Rate your sets (Easy/Medium/Hard/Max) and your daily feeling, and the coach will learn how accurate they are for you.</p>`:''}
     </div>
+    ${(()=>{ const m=timeModel(); const lastW=workoutsSorted()[0]; const since=lastW?Math.round((Date.now()-lastW.start)/DAY):0;
+      return `<div class="card stack"><div class="brainrow"><b>${ic('history','sm')} Time off</b><span class="bpill ${m.learned?'acc':'muted'}">${m.learned?`Learned from ${m.breaks.length} break${m.breaks.length===1?'':'s'}`:'Using typical numbers'}</span></div>
+      <p class="small">After the first week off you ${m.learned?'have lost':'would typically lose'} about <b>${(m.rate*100).toFixed(1)}%</b> strength per week, and it takes about <b>${m.rebound} sessions</b> to get back. Comeback mode and weights after time away use these numbers.</p>
+      ${m.breaks.slice(-4).reverse().map(b=>`<p class="muted small">${esc(new Date(b.at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}: ${b.gapDays} days off → ${Math.round(b.loss*100)}% weaker, back in ${b.rebound} session${b.rebound===1?'':'s'}</p>`).join('')}
+      ${since>=12?`<p class="small">${ic('spark','xs')} It's been ${since} days since your last workout. Expect about ${Math.round(expectedLoss(since)*100)}% lighter to start.</p>`:''}</div>`; })()}
     <h2 class="sec">${ic('dumbbell')} By lift</h2>
     ${lifts.length?`<ul class="exlist card">${lifts.map(({X,L})=>`<li><button class="exrow" data-a="openEx" data-id="${esc(X.id)}">${thumb(X)}<span class="exrow-t"><b>${esc(X.name)}</b><span class="muted small">${L.sessions} sessions · ${L.jumps?`${L.succ}/${L.jumps} jumps stuck`:'no jumps yet'}${L.hardIsMed?' · Hard = Medium':''}${L.easyIsMed?' · Easy = Medium':''}</span></span><span class="bpill ${SL[L.style][1]}">${SL[L.style][0]}</span></button></li>`).join('')}</ul>`:'<p class="muted small">Log a few workouts and this fills in.</p>'}
   </section>`};
@@ -5609,7 +5645,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190814';
+window.WH_BUILD='202611190821';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
