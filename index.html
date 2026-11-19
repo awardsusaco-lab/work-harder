@@ -591,6 +591,11 @@ textarea{resize:vertical;line-height:1.4}
 .pchk{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex:none;color:#fff}
 .pchk.on{background:var(--acc);border-color:var(--acc)}
 .pick .shrow{min-height:56px}
+.swapbtn{color:var(--accent)}
+.swapfrom{flex-direction:row!important;align-items:center;gap:12px}.swapfrom .minw{display:flex;flex-direction:column;min-width:0}
+.swapchips{display:flex;flex-wrap:nowrap!important;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin:0 -16px;padding:0 16px}.swapchips .chip{flex:none;padding:8px 14px;font-size:14px;cursor:pointer}.swapchips .chip.on{background:var(--accent);color:var(--on-accent)}
+.swaprt{display:flex;align-items:center;gap:10px;font-size:14px}.swaprt input{width:20px;height:20px;accent-color:var(--accent)}
+.toppick{flex:none;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);margin-right:6px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3043,7 +3048,7 @@ function nipCard(e){ const n=e.nip; if(!n) return '';
    <p class="muted small">From his hypertrophy tier-list videos, where S is best and F is worst.</p></div>`; }
 
 const NIPLIST={Chest:'Chest',Lats:'Back','Upper Back':'Back',Shoulders:'Shoulders',Biceps:'Biceps',Triceps:'Triceps',Quads:'Quads',Glutes:'Glutes'};
-const FAMILIES=[['squat','lunge','legpress','stepup','sissy','revnordic'],['hinge','rdl','goodmorning','rackpull','kbswing','backext'],['bench','incline','fly','seatpress','cablefly','pushup','dip','pressout','floorpress'],['pullup','pulldown','straightpull'],['row','csrow','cablerow','pendlay','sealrow','invrow'],['latraise','yraise'],['revfly','revcable','facepull'],['ohp','seatohp','landmine'],['curl','preacher','bayesian','inclinecurl','spider'],['pushdown','ohtri','skull','kickback'],['bridge','quadkick','kickleg','seated'],['legext'],['legcurl','seatlegcurl','nordic']];
+const FAMILIES=[['squat','lunge','legpress','stepup','sissy','revnordic'],['hinge','rdl','goodmorning','rackpull','kbswing','backext'],['bench','incline','fly','seatpress','cablefly','pushup','dip','pressout','floorpress'],['pullup','pulldown','straightpull'],['row','csrow','cablerow','pendlay','sealrow','invrow'],['latraise','yraise'],['revfly','revcable','facepull'],['ohp','seatohp','landmine'],['curl','preacher','bayesian','inclinecurl','spider'],['pushdown','ohtri','skull','kickback'],['bridge','quadkick','kickleg','seated'],['legext'],['legcurl','seatlegcurl','nordic'],['carry','suitcase','hugcarry','ruck','sled','sleddrag','yoke','overheadcarry']];
 function famOf(p){ const i=FAMILIES.findIndex(f=>f.includes(p)); return i; }
 function alternativesFor(ex,max=6){
   const mapped=(ex.primary||[]).map(m=>NIPLIST[m]).filter(Boolean);
@@ -3060,6 +3065,26 @@ function alternativesFor(ex,max=6){
   let out=cand.filter(c=>c.same);
   if(out.length<2) out = list? cand : out;
   return out.sort((a,b)=>TIER_ORDER[a.t]-TIER_ORDER[b.t]||(b.e.nip.top?1:0)-(a.e.nip.top?1:0)||a.e.name.localeCompare(b.e.name)).slice(0,max);
+}
+/* Smart swap suggestions: same job, same kind of logging, ranked by muscle match, movement, tier and your history */
+function swapRecs(ex,inUse){
+  const fam=famOf(ex.pattern); const myCols=colsFor(ex).join(); const P=ex.primary||[], S2=ex.secondary||[];
+  const byEx=stats().byEx; const tierOf=e=>{ if(!e.nip) return null; const mapped=P.map(m=>NIPLIST[m]).filter(Boolean); const r=e.nip.ranks.find(x=>mapped.includes(x[0])); return r?r[1]:(e.nip.best||null); };
+  const out=[];
+  for(const e of allEx()){
+    if(e.id===ex.id||inUse.has(e.id)) continue;
+    const pOver=(e.primary||[]).filter(m=>P.includes(m)).length; const sameFam=fam>=0&&famOf(e.pattern)===fam; const samePat=e.pattern===ex.pattern;
+    if(!pOver&&!sameFam) continue;
+    const cols=colsFor(e).join(); const sameLog=cols===myCols || (cols.includes('r')===myCols.includes('r') && cols.includes('d')===myCols.includes('d'));
+    if(!sameLog) continue;
+    let sc=pOver*4+(sameFam?5:0)+(samePat?3:0)+(e.secondary||[]).filter(m=>S2.includes(m)).length;
+    if(pOver&&pOver===P.length&&(e.primary||[]).length===P.length) sc+=3;
+    const t=tierOf(e); if(t) sc+= t==='S'?4 : t==='A'?2.5 : t==='B'?1 : 0;
+    const done=(byEx[e.id]||[]).length; if(done) sc+=Math.min(3,1+done/3);
+    const why=[]; if(pOver===P.length&&P.length) why.push('same muscles'); else if(pOver) why.push((e.primary||[]).filter(m=>P.includes(m)).join(', ')); if(sameFam) why.push(samePat?'same movement':'similar movement');
+    out.push({e,sc,t,done,why});
+  }
+  return out.sort((a,b)=>b.sc-a.sc||a.e.name.localeCompare(b.e.name));
 }
 function altsCard(ex){
   const alts=alternativesFor(ex); if(!alts.length) return '';
@@ -3312,6 +3337,7 @@ Object.assign(I,{
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4M17.5 14.8c2.2.6 3.6 2.4 4 5.2"/>',
   chev:'<path d="m9 5 7 7-7 7"/>',
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  swap:'<path d="M7 4 3.5 7.5 7 11M3.5 7.5H17M17 13l3.5 3.5L17 20M20.5 16.5H7"/>',
   heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
   chat:'<path d="M4.5 5.5h15v10h-9l-4.5 3.5v-3.5h-1.5z"/>',
   mountain:'<path d="M2.5 19.5 9 8.5l4 6.5 2.5-3.5 6 8z"/><path d="M7.4 11.2 9 12.6l1.6-1.4"/>',
@@ -4220,6 +4246,7 @@ function exCard(obj,e,i,mode){
     <div class="exc-h">
       <button class="exhead" data-a="howTo" data-id="${esc(ex.id)}" data-cue="${esc(e.cue||e.note||'')}">${thumb(ex)}<b class="acc">${esc(ex.name)}</b></button>
       ${howBtn(ex.id,e.cue||e.note||'')}
+      ${mode!=='edit'&&!e.sets.some(s=>s.done)?`<button class="iconbtn swapbtn" data-a="swapOpen" data-e="${i}" aria-label="Swap ${esc(ex.name)} for an alternative" title="Swap">${ic('swap')}</button>`:''}
       <button class="iconbtn" data-a="exMenu" data-e="${i}" aria-label="Exercise options">${ic('more')}</button>
     </div>
     ${e.ss?`<button class="ssbadge" data-a="exMenu" data-e="${i}">Superset ${esc(e.ss)}</button>`:''}
@@ -4824,13 +4851,23 @@ const A={
   exMenu:(d)=>{ const obj=curObj(); const i=+d.e; const e=obj.exercises[i]; menu(getEx(e.exId).name,[
     {label:'Move up',icon:'up',fn:()=>{ if(i>0){ obj.exercises.splice(i-1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
     {label:'Move down',icon:'down',fn:()=>{ if(i<obj.exercises.length-1){ obj.exercises.splice(i+1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
-    ...(alternativesFor(getEx(e.exId)).length?[{label:'Swap for an S-tier alternative',icon:'trophy',fn:()=>A.swapAlt({e:i})}]:[]),
-    {label:'Replace exercise',icon:'edit',fn:()=>{ ui.exq={q:'',muscle:'',equip:'',col:''}; push({name:'picker',sel:[],replace:i}); }},
+    {label:'Swap for an alternative',icon:'swap',fn:()=>A.swapOpen({e:i})},
     ...(i<obj.exercises.length-1&&!(e.ss&&obj.exercises[i+1].ss===e.ss)?[{label:'Superset with next exercise',icon:'link',fn:()=>{ const nx=obj.exercises[i+1]; const used=new Set(obj.exercises.map(x=>x.ss).filter(Boolean)); let L=e.ss||nx.ss; if(!L){ L='A'; while(used.has(L)) L=String.fromCharCode(L.charCodeAt(0)+1); } e.ss=L; nx.ss=L; changed(true); }}]:[]),
     ...(e.ss?[{label:'Remove from superset',icon:'x',fn:()=>{ const L=e.ss; delete e.ss; const rest=obj.exercises.filter(x=>x.ss===L); if(rest.length<2) rest.forEach(x=>delete x.ss); changed(true); }}]:[]),
     {label:'How to do it',icon:'play',fn:()=>push({name:'exd',id:e.exId,tab:'how'})},
     {label:'Remove exercise',icon:'trash',danger:true,fn:()=>{ obj.exercises.splice(i,1); changed(true); }}
   ]); },
+  swapOpen:(d)=>push({name:'swap',e:+d.e}),
+  swapEq:(d)=>{ cur().eq=d.v; render(); },
+  swapSearch:()=>{ const p=cur(); ui.exq={q:'',muscle:'',equip:'',col:''}; ui.stack.pop(); push({name:'picker',sel:[],replace:p.e}); },
+  swapTo:(d)=>{ const p=cur(); const host=ui.stack[ui.stack.length-2]; const obj= host.name==='active'? st.active : host.obj; const i=p.e; const e=obj.exercises[i]; const old=getEx(e.exId); const nx=getEx(d.id);
+    const isRoutine=host.name==='redit';
+    obj.exercises[i]={exId:d.id,rest:e.rest,note:'',ss:e.ss,sets:e.sets.filter(s=>!s.done||isRoutine).map(s=>({type:s.type||'n',w:'',r:isRoutine?s.r:'',t:isRoutine?s.t:'',d:'',done:false}))};
+    if(!obj.exercises[i].sets.length) obj.exercises[i].sets=[newSet(),newSet(),newSet()];
+    if(!obj.exercises[i].ss) delete obj.exercises[i].ss;
+    if(p.rt&&host.name==='active'&&obj.routineId&&st.routines[obj.routineId]){ const r=st.routines[obj.routineId]; const re=r.exercises.find(x=>x.exId===old.id); if(re){ re.exId=d.id; re.note=''; r.updated=Date.now(); Store.put('routines',r.id,r); } }
+    if(host.name==='active'){ delete obj.exercises[i].push; delete obj.exercises[i].coach; applyCoach(obj,true); }
+    ui.stack.pop(); changed(true); toast(`Swapped in ${nx.name}${p.rt?' (routine updated too)':''}`); },
   swapAlt:(d)=>{ const obj=curObj(); const i=+d.e; const e=obj.exercises[i]; const alts=alternativesFor(getEx(e.exId));
     menu('Swap '+getEx(e.exId).name+' for…',alts.map(a=>({label:`${a.t} tier · ${a.e.name}`,fn:()=>{
       const isRoutine=cur().name==='redit';
@@ -5032,6 +5069,7 @@ function onField(ev,commit){
       }
       changed(false); return; }
     case 'exnote': curObj().exercises[+el.dataset.e].note=v; changed(false); return;
+    case 'swapRt': p.rt=!!v; return;
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
     case 'wname': st.active.name=v; Store.saveActive(); return; case 'wnotes': st.active.notes=v; Store.saveActive(); return;
@@ -5309,6 +5347,20 @@ function sharedRow(it,fid){
 }
 function sharedExName(it,id){ const x=st.custom[id]||BUILTIN[id]||(it.custom||{})[id]; return x?x.name:'Exercise'; }
 function importSharedCustom(it){ let n=0; for(const [id,def] of Object.entries(it.custom||{})){ if(!BUILTIN[id]&&!st.custom[id]){ Store.put('custom',id,{...def,id}); n++; } } return n; }
+PAGES.swap=function(p){
+  const host=ui.stack[ui.stack.length-2]; const obj= host&&host.name==='active'? st.active : host&&host.obj; if(!obj||!obj.exercises[p.e]) return PAGES.missing();
+  const e=obj.exercises[p.e]; const ex=getEx(e.exId); const inUse=new Set(obj.exercises.map(x=>x.exId));
+  const all=swapRecs(ex,inUse); const eqs=[...new Set(all.slice(0,40).map(x=>x.e.equipment||'Other'))].sort();
+  const f=p.eq||''; const list=all.filter(x=>!f||(x.e.equipment||'Other')===f).slice(0,f?12:10);
+  const canRoutine= host.name==='active'&&obj.routineId&&st.routines[obj.routineId];
+  return {hdr:hdr('Swap exercise',{left:backBtn}),body:`<section class="gut stack">
+    <div class="card swapfrom">${thumb(ex)}<div class="minw"><span class="muted small">Replacing</span><b>${esc(ex.name)}</b><span class="muted small">${esc((ex.primary||[]).join(', '))} · ${esc(ex.equipment||'')}</span></div></div>
+    ${eqs.length>1?`<div class="chips swapchips"><button class="chip ${!f?'on':''}" data-a="swapEq" data-v="">Best matches</button>${eqs.map(q=>`<button class="chip ${f===q?'on':''}" data-a="swapEq" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>`:''}
+    ${canRoutine?`<label class="swaprt"><input type="checkbox" data-f="swapRt" ${p.rt?'checked':''}> Also change it in <b>${esc(st.routines[obj.routineId].name)}</b></label>`:''}
+    ${list.length?`<ul class="exlist card">${list.map((x,k)=>`<li><button class="exrow" data-a="swapTo" data-id="${esc(x.e.id)}">${thumb(x.e)}<span class="exrow-t"><b>${esc(x.e.name)}</b><span class="muted small">${esc([x.e.equipment,...x.why].filter(Boolean).join(' · '))}${x.done?` · done ${x.done}×`:''}</span></span>${!f&&k===0?'<span class="toppick">Top pick</span>':''}${x.t&&TIER_ORDER[x.t]<=1?`<span class="tier t${x.t}">${x.t}</span>`:''}</button></li>`).join('')}</ul>`:`<p class="muted">No close matches${f?' with '+esc(f):''}.</p>`}
+    <button class="btn wide" data-a="swapSearch">${ic('search','sm')} Search all exercises</button>
+  </section>`};
+};
 PAGES.sharePick=function(p){
   const name= p.kind==='folder'? p.id : p.kind==='routine'? (st.routines[p.id]||{}).name : (st.workouts[p.id]||{}).name;
   const pick=ui.pick||(ui.pick=new Set()); const fr=Social.friends; const allOn=fr.length&&fr.every(f=>pick.has(f.uid));
@@ -5412,7 +5464,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611180855';
+window.WH_BUILD='202611190745';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
