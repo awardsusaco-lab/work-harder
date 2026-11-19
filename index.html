@@ -5545,7 +5545,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190758';
+window.WH_BUILD='202611190759';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
@@ -5561,7 +5561,7 @@ if('serviceWorker' in navigator){
       const v=await r.json(); if(!v.build||v.build===window.WH_BUILD||document.getElementById('whupd')) return;
       const b=document.createElement('button'); b.id='whupd'; b.textContent='New version ready. Tap to update';
       b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:9999;border:0;border-radius:999px;padding:12px 18px;font:600 15px/1.2 Inter,system-ui,sans-serif;background:#3B82F6;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.35)';
-      b.onclick=async()=>{ b.textContent='Updating…'; try{ const reg=await navigator.serviceWorker.getRegistration(); if(reg) await reg.update(); const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){} location.reload(); };
+      b.onclick=async()=>{ b.textContent='Updating…'; try{ if(typeof st!=='undefined'&&st.active&&typeof Store!=='undefined') Store.saveActive(); }catch(e){} try{ const reg=await navigator.serviceWorker.getRegistration(); if(reg) await reg.update(); const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){} location.reload(); };
       document.body.appendChild(b);
     }catch(e){}
   }
