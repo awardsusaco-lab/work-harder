@@ -602,6 +602,8 @@ textarea{resize:vertical;line-height:1.4}
 .nogear{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:12px;padding:10px 12px;background:color-mix(in srgb,#f5a524 16%,transparent);color:inherit;font:inherit;font-size:14px;cursor:pointer}
 .nogear .ic{color:#f5a524;flex:none}
 .wunote{display:flex;gap:8px;align-items:flex-start;margin:0;font-size:14px;color:var(--muted)}.wunote .ic{color:#f5a524;flex:none;margin-top:2px}
+.linkbtn.acc{color:var(--accent);font-weight:700}
+.bonushdr{margin-top:8px}.bonushdr p{margin:4px 0 0}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2797,7 +2799,31 @@ function warmupAdjust(e,X,a){
     if(p.eff==='max'||!worst) worst=p.eff; });
   if(worst) e.wuNote= worst==='max'? 'Your warm-up felt way too heavy last time, so it starts about 25% lighter today.' : 'Your warm-up felt hard last time, so it starts about 15% lighter today. Warm-ups should leave you fresh for the work sets.';
 }
+/* Exercise cap: keep the most valuable N, move the rest to "Bonus · if you have time" at the end */
+function exValue(a,e,idx,others){
+  const X=getEx(e.exId); const work=e.sets.filter(s=>s.type!=='w').length;
+  let v=work*3; if(isMainLift(a,idx)) v+=100; if(COMPOUND_PATTERNS.has(X.pattern)) v+=30;
+  const t=X.nip&&X.nip.best; if(t) v+= t==='S'?6 : t==='A'?3 : 0;
+  const P=X.primary||[]; const covered=P.filter(m=>others.some(o=>(getEx(o.exId).primary||[]).includes(m))).length;
+  if(P.length&&covered===P.length) v-=15; else if(covered) v-=5;
+  if(work<=2&&!COMPOUND_PATTERNS.has(X.pattern)) v-=8;
+  if(work<=1) v-=15;
+  return v;
+}
+function applyCap(a){
+  const cap=+st.settings.maxEx||0;
+  for(const e of a.exercises) if(e.bonus&&!e.sets.some(s=>s.done)) delete e.bonus;
+  if(!cap||a.capOff) return;
+  let keep=a.exercises.filter(e=>!e.bonus);
+  while(keep.length>cap){
+    let worst=null, wv=Infinity;
+    keep.forEach(e=>{ if(e.sets.some(s=>s.done)) return; const idx=a.exercises.indexOf(e); const v=exValue(a,e,idx,keep.filter(o=>o!==e)); if(v<wv){ wv=v; worst=e; } });
+    if(!worst) break; worst.bonus=true; keep=keep.filter(e=>e!==worst);
+  }
+  const bon=a.exercises.filter(e=>e.bonus); if(bon.length){ a.exercises=a.exercises.filter(e=>!e.bonus).concat(bon); }
+}
 function applyCoach(a,force){
+  applyCap(a);
   const posts=recentPosts(); const drained=posts.filter(p=>p==='drained').length>=2, more=posts.filter(p=>p==='more').length>=2;
   if(a.comeback===undefined){ const cb=comebackState(a.start); a.comeback=cb||null; }
   const cb= a.comebackOff? null : a.comeback; const light=cb&&cb.light;
@@ -4167,6 +4193,7 @@ settings(){
    <div class="field"><label>Distance</label>${seg('dist',[['mi','Miles'],['km','Kilometers']],s.dist)}</div>
    </div><h2 class="sec">${ic('dumbbell')} Workouts</h2><div class="card setcard">
    <div class="field"><label for="srest">Default rest timer</label><select id="srest" data-f="srest">${[0,30,45,60,75,90,120,150,180,240,300].map(v=>`<option value="${v}" ${s.rest==v?'selected':''}>${fmtRest(v)}</option>`).join('')}</select></div>
+   <div class="field"><label>Max exercises per workout</label>${seg('maxEx',[[0,'Off'],[6,'6'],[7,'7'],[8,'8'],[9,'9']],st.settings.maxEx||0)}<p class="muted small">Over the cap, the coach moves the exercises that overlap most to a "Bonus" section at the end. Your routines aren't changed.</p></div>
    <div class="field"><label>Weekly goal</label>${seg('goal',[[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6']],s.goal)}</div>
    <label class="toggle"><input type="checkbox" data-f="ssound" ${s.sound?'checked':''}><span>Beep when rest is over</span></label>
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
@@ -4215,7 +4242,9 @@ function loggerPage(obj,mode){
   let top='';
   if(mode==='routine') top=`<input id="rname" class="title-in" data-f="rname" value="${esc(obj.name)}" placeholder="Routine title"><div class="field"><label for="rfolder">Folder</label><input id="rfolder" data-f="rfolder" list="folderlist" value="${esc(obj.folder||'')}" placeholder="None (e.g. Hunting)"><datalist id="folderlist">${folderNames().map(f=>`<option value="${esc(f)}">`).join('')}</datalist></div><textarea id="rnotes" data-f="rnotes" rows="2" placeholder="Notes (optional)">${esc(obj.notes||'')}</textarea>`;
   if(mode==='edit') top=`<input id="ename" class="title-in" data-f="ename" value="${esc(obj.name)}"><textarea id="enotes" data-f="enotes" rows="2" placeholder="Description">${esc(obj.notes||'')}</textarea>`;
-  const cards=obj.exercises.map((e,i)=>exCard(obj,e,i,mode)).join('');
+  const nb=mode==='active'? obj.exercises.filter(e=>e.bonus).length : 0;
+  const cards=obj.exercises.map((e,i)=>(mode==='active'&&e.bonus&&!(obj.exercises[i-1]||{}).bonus?`<div class="bonushdr"><h2 class="sec">${ic('plus')} Bonus · if you have time</h2><p class="muted small">Your cap is ${st.settings.maxEx} exercises, so the coach moved the ${nb===1?'one':nb} that overlap${nb===1?'s':''} most with the rest down here. Skipping ${nb===1?'it':'them'} won't count against you. <button class="linkbtn acc" data-a="capOff">Do them all today</button></p></div>`:'')+exCard(obj,e,i,mode)).join('')
+    +(mode==='active'&&obj.capOff&&+st.settings.maxEx&&obj.exercises.length>+st.settings.maxEx?`<p class="muted small center"><button class="linkbtn acc" data-a="capOn">Trim back to ${st.settings.maxEx} exercises</button></p>`:'');
   const empty = obj.exercises.length? '' : `<div class="empty small-empty"><div class="empty-fig">${figSVG(BUILTIN.bench_bb,{anim:'bench_bb'})}</div><h2>${mode==='routine'?'Add exercises to this routine':'Get started'}</h2><p>Add an exercise to start logging.</p></div>`;
   if(mode==='active'&&obj.comeback&&obj.comeback.light){
     const c=obj.comeback;
@@ -4887,6 +4916,8 @@ const A={
     {label:'Remove exercise',icon:'trash',danger:true,fn:()=>{ obj.exercises.splice(i,1); changed(true); }}
   ]); },
   swapOpen:(d)=>push({name:'swap',e:+d.e}),
+  capOff:()=>{ st.active.capOff=true; applyCoach(st.active); changed(true); },
+  capOn:()=>{ delete st.active.capOff; applyCoach(st.active); changed(true); },
   swapAllGear:()=>{ cur().allGear=true; render(); },
   exAllGear:()=>{ ui.exq.allGear=!ui.exq.allGear; render(); },
   openGym:()=>push({name:'gym'}),
@@ -4994,8 +5025,8 @@ const A={
   saveWorkout:()=>{
     const a=clone(st.active); const n=$('#wname'); if(n&&n.value.trim()) a.name=n.value.trim(); const nt=$('#wnotes'); if(nt) a.notes=nt.value;
     a.end=Date.now();
-    { let pl=0, sk=0; for(const e of a.exercises) for(const s of e.sets){ if(s.type==='w') continue; pl++; if(!s.done) sk++; } a.planned=pl; a.skipped=sk; }
-    { let tgt=0, ok=0; for(const e of a.exercises){ for(const s of e.sets){ if(s.type==='w') continue; const pw=num(s.pw), pr=num(s.pr), pt=num(s.pt); if(!pw&&!pr&&!pt) continue; tgt++; if(s.done && (!pw||num(s.w)>=pw-0.01) && (!pr||num(s.r)>=pr) && (!pt||num(s.t)>=pt)) ok++; } } a.hit= tgt>0 && ok===tgt; }
+    { let pl=0, sk=0; for(const e of a.exercises){ if(e.bonus&&!e.sets.some(x=>x.done)) continue; for(const s of e.sets){ if(s.type==='w') continue; pl++; if(!s.done) sk++; } } a.planned=pl; a.skipped=sk; }
+    { let tgt=0, ok=0; for(const e of a.exercises){ if(e.bonus&&!e.sets.some(x=>x.done)) continue; for(const s of e.sets){ if(s.type==='w') continue; const pw=num(s.pw), pr=num(s.pr), pt=num(s.pt); if(!pw&&!pr&&!pt) continue; tgt++; if(s.done && (!pw||num(s.w)>=pw-0.01) && (!pr||num(s.r)>=pr) && (!pt||num(s.t)>=pt)) ok++; } } a.hit= tgt>0 && ok===tgt; }
     const srcR=a.routineId&&st.routines[a.routineId];
     if(srcR && !(a.comeback&&a.comeback.light&&!a.comebackOff) && !a.deload){ const rr=clone(srcR); let ch=0; rr.exercises.forEach((re,ri)=>{ const we=a.exercises.find((x,xi)=>x.exId===re.exId&&(xi===ri||true)); if(!we) return; const doneW=we.sets.filter(s=>s.done&&s.type!=='w'); if(!doneW.length) return; let k=0; re.sets.forEach(rs=>{ if(rs.type==='w') return; const src=doneW[Math.min(k,doneW.length-1)]; k++; for(const c of ['w','r','t','d']){ if(src[c]!==''&&src[c]!=null&&String(rs[c])!==String(src[c])){ rs[c]=src[c]; ch++; } } }); }); if(ch){ rr.updated=Date.now(); Store.put('routines',rr.id,rr); a.routineUpdated=true; } }
     normalizeSets(a,true); a.saved=true; delete a.sess; delete a.updatedAt;
@@ -5055,7 +5086,7 @@ const A={
   },
 
   /* settings & profile */
-  setS:(d)=>{ const k=d.k; let v=d.v; if(k==='goal') v=+v; const old=st.settings[k]; st.settings[k]=v; if(k==='unit'&&st.active&&old!==v){ convertObjUnit(st.active,v); Store.saveActive(); } Store.saveSettings(); render(); },
+  setS:(d)=>{ const k=d.k; let v=d.v; if(k==='goal'||k==='maxEx') v=+v; const old=st.settings[k]; st.settings[k]=v; if(k==='unit'&&st.active&&old!==v){ convertObjUnit(st.active,v); Store.saveActive(); } Store.saveSettings(); render(); },
   setAccent:(d)=>{ st.settings.accent=d.v; Store.saveSettings(); render(); },
   exportJSON:()=>{ const data=JSON.stringify({app:'work-harder',version:1,exported:new Date().toISOString(),settings:st.settings,custom:st.custom,routines:st.routines,workouts:st.workouts,body:st.body},null,1); saveFile(`work-harder-backup-${new Date().toISOString().slice(0,10)}.json`,data,'Backup'); },
   exportCSV:()=>saveFile(`work-harder-workouts-${new Date().toISOString().slice(0,10)}.csv`,exportCSV(),'Workouts CSV'),
@@ -5514,7 +5545,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190754';
+window.WH_BUILD='202611190758';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
