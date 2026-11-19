@@ -604,6 +604,10 @@ textarea{resize:vertical;line-height:1.4}
 .wunote{display:flex;gap:8px;align-items:flex-start;margin:0;font-size:14px;color:var(--muted)}.wunote .ic{color:#f5a524;flex:none;margin-top:2px}
 .linkbtn.acc{color:var(--accent);font-weight:700}
 .bonushdr{margin-top:8px}.bonushdr p{margin:4px 0 0}
+.brainsum{flex-direction:row!important;justify-content:space-around;text-align:center}.brainsum div{display:flex;flex-direction:column}.brainsum b{font-size:22px}
+.brainrow{display:flex;justify-content:space-between;align-items:center}
+.bpill{flex:none;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface2);white-space:nowrap}
+.bpill.acc{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}.bpill.warn{background:color-mix(in srgb,#f5a524 18%,transparent);color:#f5a524}.bpill.muted{color:var(--muted)}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2653,6 +2657,34 @@ function topOf(e,unitFrom,unitTo){
 }
 /* Plan the next session for one exercise. Returns {w, r, t, d, msg, kind} or null. */
 function noReps(ex){ return !colsFor(ex).includes('r'); }
+/* ---------- Coach brain: learns from YOUR history how you respond to its calls ----------
+   Rebuilt from your logged workouts, so it keeps learning every session and never drifts from your data. */
+let _brainS=null, _brain={};
+function learnFor(exId,unit){
+  const S=stats(); if(S!==_brainS){ _brainS=S; _brain={}; }
+  if(_brain[exId]) return _brain[exId];
+  const ex=getEx(exId); const arr= ex&&['wr','wreps'].includes(ex.type)? (S.byEx[exId]||[]).slice(0,24).reverse() : [];
+  let jumps=0,succ=0,under=0,underN=0,over=0,overN=0,tired=0,tiredOk=0;
+  for(let i=1;i<arr.length;i++){
+    const A=arr[i-1], B=arr[i]; const a=topOf(A.e,A.w.unit,unit), b=topOf(B.e,B.w.unit,unit); if(!a||!b||!a.reps.length||!b.reps.length) continue;
+    const [lo,hi]=repRange(B.e.note||B.e.cue||'',ex); const aMin=Math.min(...a.reps), bMin=Math.min(...b.reps);
+    const ok= bMin>=Math.min(lo,aMin-2) && b.effort!=='max';   // a jump "sticks" if reps stay in range (or drop by no more than 2)
+    if(b.W>a.W+0.01){ jumps++; if(ok) succ++; if(a.effort==='easy'){ overN++; if(!ok) over++; } }
+    else if(Math.abs(b.W-a.W)<0.01 && a.effort==='hard' && aMin>=lo && aMin<hi){ underN++; if(bMin>=aMin+2) under++; }
+    if(B.w.feel==='rundown'){ tired++; if(b.W>=a.W-0.01&&bMin>=aMin) tiredOk++; }
+  }
+  const rate=(succ+2)/(jumps+3);
+  const L={sessions:arr.length,jumps,succ,rate,underN,overN,
+    style: jumps>=3? (rate>=0.85?'bold':rate<=0.5?'careful':'normal') : 'learning',
+    hardIsMed: underN>=2&&under/underN>=0.6, easyIsMed: overN>=2&&over/overN>=0.5, tiredFine: tired>=2&&tiredOk/tired>=0.75};
+  return _brain[exId]=L;
+}
+function brainGlobal(unit){
+  const S=stats(); const ids=Object.keys(S.byEx); let j=0,ok=0,hm=0,em=0,tf=0,n=0;
+  for(const id of ids){ const X=getEx(id); if(!X||!['wr','wreps'].includes(X.type)) continue; const L=learnFor(id,unit); j+=L.jumps; ok+=L.succ; if(L.hardIsMed) hm++; if(L.easyIsMed) em++; if(L.tiredFine) tf++; n++; }
+  const rate=(ok+2)/(j+3); return {exercises:n,jumps:j,succ:ok,rate,style:j>=8?(rate>=0.85?'bold':rate<=0.5?'careful':'normal'):'learning',hardIsMed:hm>=3,easyIsMed:em>=3,tiredFine:tf>=3,workouts:workoutsSorted().length};
+}
+function brainStyle(exId,unit){ const L=learnFor(exId,unit); if(L.style!=='learning') return {style:L.style,src:'lift',L}; const G=brainGlobal(unit); return {style:G.style==='learning'?'normal':G.style,src:'all',L,G}; }
 function coachPlan(exId,note,check,unit){
   const ex=getEx(exId); const hist=sessionsFor(exId,4);
   if(!hist.length) return {msg: noReps(ex)? (colsFor(ex).includes('w')?'First time: pick a load you can move the whole distance with good posture. The coach takes it from there.':'First time: find a pace you can hold the whole way. The coach takes it from there.') : 'First time: pick a weight that leaves 1–2 good reps in the tank. The coach takes it from there.',kind:'new'};
@@ -2679,15 +2711,25 @@ function coachPlan(exId,note,check,unit){
   } else { // wr, wreps
     const [lo,hi]=repRange(note,ex);
     const step=weightStep(ex,unit,lastT.W);
+    const B=brainStyle(exId,unit); const L=B.L, G=B.G||brainGlobal(unit); let learned='';
+    if(lastT.effort==='hard'&&(L.hardIsMed||(L.underN<2&&G.hardIsMed))){ lastT.effort='medium'; learned=' (Coach has learned your "Hard" usually has more in it.)'; }
+    else if(lastT.effort==='easy'&&(L.easyIsMed||(L.overN<2&&G.easyIsMed))){ lastT.effort='medium'; learned=' (Coach has learned your "Easy" usually means Medium for jumps.)'; }
+    const tiredFine=L.tiredFine||G.tiredFine;
     const minR=Math.min(...lastT.reps), maxR=Math.max(...lastT.reps);
     const allTop=lastT.reps.every(r=>r>=hi);
     const prevMissed=prev && Math.min(...prev.reps)<lo && prev.W>=lastT.W-0.01;
     const bigPush= lastT.amrap && lastT.amrap.r>=hi+3;
     if(allTop && lastT.effort!=='hard' && feel!=='rundown'){
-      const jump= (lastT.effort==='easy'||bigPush)? step*2 : step;
+      const jump= B.style==='careful'? step : (lastT.effort==='easy'||bigPush||(B.style==='bold'&&lastT.effort!=='hard'))? step*2 : step;
+      if(B.style==='bold'&&!(lastT.effort==='easy'||bigPush)&&jump>step) learned+=` (Learned: you handle bigger jumps well${B.src==='all'?' across your lifts':' on this lift'}.)`;
+      if(B.style==='careful'&&(lastT.effort==='easy'||bigPush)) learned+=` (Learned: big jumps${B.src==='all'?'':' on this lift'} have been tough for you, so one step at a time.)`;
       out={w:lastT.W+jump,r:lo,msg:`Hit ${hi}+ on every set${bigPush?` and ${lastT.amrap.r} reps on your push set`:lastT.effort==='easy'?' and it felt easy':''} → +${jump} ${unit}, back to ${lo} reps.`,kind:'up'};
     } else if(bigPush && feel!=='rundown'){
       out={w:lastT.W+step,r:lo,msg:`Push set hit ${lastT.amrap.r} reps, way past ${hi}. You're stronger than the target → +${step} ${unit}.`,kind:'up'};
+    } else if(lastT.effort==='easy' && minR>=lo && feel!=='rundown' && B.style==='careful' && minR<hi-1){
+      out={w:lastT.W,r:Math.min(hi,minR+2),msg:`Felt easy, but jumps here have been tough for you, so the coach is adding reps first: aim for ${Math.min(hi,minR+2)} at ${fw(lastT.W)} ${unit}.`,kind:'up'};
+    } else if(B.style==='bold' && minR>=hi-1 && lastT.effort!=='hard' && feel!=='rundown'){
+      out={w:lastT.W+step,r:lo,msg:`One rep shy of the top and you usually handle jumps well → +${step} ${unit}, back to ${lo} reps.`,kind:'up'};
     } else if(lastT.effort==='easy' && minR>=lo && feel!=='rundown'){
       out={w:lastT.W+step,r:Math.max(lo,minR-1),msg:`You rated it Easy → +${step} ${unit}. Time to push.`,kind:'up'};
     } else if(minR<lo && prevMissed){
@@ -2704,7 +2746,8 @@ function coachPlan(exId,note,check,unit){
     }
     const st3=stallInfo(exId);
     if(st3 && !(out.w>lastT.W)){ out.msg=`No progress in ${st3} sessions on this one. `+out.msg; out.kind='stall'; }
-    if(feel==='rundown' && out.kind==='up'){ out.w=lastT.W; out.r=minR; out.msg='Feeling run down: match last time, no increase today.'; out.kind='hold'; }
+    if(feel==='rundown' && out.kind==='up'){ if(tiredFine){ out.msg+=' You said run down, but you usually still perform on those days, so the plan stays.'; } else { out.w=lastT.W; out.r=minR; out.msg='Feeling run down: match last time, no increase today.'; out.kind='hold'; } }
+    if(learned) out.msg+=learned;
   }
   if(knees==='achy' && kneeEx && out.w!=null){
     const step=weightStep(ex,unit,out.w); out.w=roundTo(out.w*0.85,step); out.msg='Knees achy: about 15% lighter, slow lowering, only pain-free depth. Swap if it still hurts.'; out.kind='knee';
@@ -4198,6 +4241,7 @@ settings(){
    <label class="toggle"><input type="checkbox" data-f="ssound" ${s.sound?'checked':''}><span>Beep when rest is over</span></label>
    <label class="toggle"><input type="checkbox" data-f="swake" ${s.wake?'checked':''}><span>Keep screen awake during workouts</span></label>
    </div><h2 class="sec">${ic('dumbbell')} My gym</h2><button class="card setcard gymrow" data-a="openGym"><span class="minw"><b>${missingGear().length?`${EQUIP.length-missingGear().length} of ${EQUIP.length} equipment types`:'Full gym (everything)'}</b><span class="muted small">${missingGear().length?'Missing: '+esc(missingGear().join(', ')):'Tap to tell the app what your gym has'}</span></span>${ic('chev','sm')}</button>
+   <button class="card setcard gymrow" data-a="openBrain"><span class="minw"><b>${ic('spark','sm')} Coach brain</b><span class="muted small">What the coach has learned about how you respond</span></span>${ic('chev','sm')}</button>
    <h2 class="sec">${ic('mountain')} App world</h2><div class="card setcard"><p class="muted small">Each world has its own look, art and reward path. Your progress carries over.</p>
    <div class="worlds">${Object.keys(WORLDS).map(k=>{ const W=WORLDS[k]; const art= k==='hunt'? trophyArt(trophyKind(),6) : W.art(6); return `<button class="wtile ${worldKey()===k?'on':''}" data-a="setWorld" data-v="${k}">${art}<b>${ic(W.icon,'sm')} ${esc(W.name)}</b><span class="muted small">${esc(W.tag)}</span></button>`; }).join('')}</div></div>
    ${worldKey()==='mil'?`<div class="card setcard"><div class="field"><label>${ic('shield','sm')} Branch</label><div class="animals">${Object.keys(BRANCHES).map(k=>`<button class="scn ${branchKey()===k?'on':''}" data-a="setS" data-k="branch" data-v="${k}">${(()=>{ const prev=st.settings.branch; st.settings.branch=k; const a=milArt(6,{scene:false}); st.settings.branch=prev; return a; })()}<span>${esc(BRANCHES[k].name)}</span></button>`).join('')}</div></div></div>`:''}
@@ -4921,6 +4965,7 @@ const A={
   swapAllGear:()=>{ cur().allGear=true; render(); },
   exAllGear:()=>{ ui.exq.allGear=!ui.exq.allGear; render(); },
   openGym:()=>push({name:'gym'}),
+  openBrain:()=>push({name:'brain'}),
   gymPreset:(d)=>{ const pr=GYM_PRESETS.find(x=>x[0]===d.v); st.settings.noEquip=EQUIP.filter(q=>q!=='Bodyweight'&&!pr[2].includes(q)); Store.saveSettings(); render(); },
   swapEq:(d)=>{ cur().eq=d.v; render(); },
   swapSearch:()=>{ const p=cur(); ui.exq={q:'',muscle:'',equip:'',col:''}; ui.stack.pop(); push({name:'picker',sel:[],replace:p.e}); },
@@ -5417,6 +5462,25 @@ function sharedRow(it,fid){
 }
 function sharedExName(it,id){ const x=st.custom[id]||BUILTIN[id]||(it.custom||{})[id]; return x?x.name:'Exercise'; }
 function importSharedCustom(it){ let n=0; for(const [id,def] of Object.entries(it.custom||{})){ if(!BUILTIN[id]&&!st.custom[id]){ Store.put('custom',id,{...def,id}); n++; } } return n; }
+PAGES.brain=function(){
+  const unit=st.settings.unit; const G=brainGlobal(unit);
+  const lifts=Object.keys(stats().byEx).filter(id=>{ const X=getEx(id); return X&&['wr','wreps'].includes(X.type); }).map(id=>({X:getEx(id),L:learnFor(id,unit)})).filter(x=>x.L.sessions>=3).sort((a,b)=>b.L.sessions-a.L.sessions);
+  const SL={bold:['Ready for bigger jumps','acc'],careful:['Smaller steps','warn'],normal:['Standard steps',''],learning:['Still learning','muted']};
+  const pct=v=>Math.round(v*100)+'%';
+  return {hdr:hdr('Coach brain',{left:backBtn}),body:`<section class="gut stack">
+    <p class="muted">The coach studies every workout you log: when it added weight, did you still hit your reps? When you said Hard, did you have more in you? It tunes its next calls to how <b>you</b> respond. Everyone's coach learns from their own workouts only.</p>
+    <div class="card brainsum"><div><b>${G.workouts}</b><span class="muted small">workouts studied</span></div><div><b>${G.jumps}</b><span class="muted small">weight jumps</span></div><div><b>${G.jumps?pct(G.succ/G.jumps):'–'}</b><span class="muted small">jumps that stuck</span></div></div>
+    <div class="card stack">
+      <div class="brainrow"><b>Overall</b><span class="bpill ${SL[G.style][1]}">${SL[G.style][0]}</span></div>
+      ${G.hardIsMed?`<p class="small">${ic('check','xs')} Your "Hard" sets often have 2+ reps left, so the coach reads Hard as Medium.</p>`:''}
+      ${G.easyIsMed?`<p class="small">${ic('check','xs')} Jumps after "Easy" often fall short, so the coach is a bit more careful after Easy.</p>`:''}
+      ${G.tiredFine?`<p class="small">${ic('check','xs')} You perform fine on days you feel run down, so it doesn't hold you back on those days.</p>`:''}
+      ${!G.hardIsMed&&!G.easyIsMed&&!G.tiredFine?`<p class="muted small">Rate your sets (Easy/Medium/Hard/Max) and your daily feeling, and the coach will learn how accurate they are for you.</p>`:''}
+    </div>
+    <h2 class="sec">${ic('dumbbell')} By lift</h2>
+    ${lifts.length?`<ul class="exlist card">${lifts.map(({X,L})=>`<li><button class="exrow" data-a="openEx" data-id="${esc(X.id)}">${thumb(X)}<span class="exrow-t"><b>${esc(X.name)}</b><span class="muted small">${L.sessions} sessions · ${L.jumps?`${L.succ}/${L.jumps} jumps stuck`:'no jumps yet'}${L.hardIsMed?' · Hard = Medium':''}${L.easyIsMed?' · Easy = Medium':''}</span></span><span class="bpill ${SL[L.style][1]}">${SL[L.style][0]}</span></button></li>`).join('')}</ul>`:'<p class="muted small">Log a few workouts and this fills in.</p>'}
+  </section>`};
+};
 PAGES.gym=function(){
   const miss=new Set(missingGear()); const cnt=allEx().reduce((m,e)=>(m[e.equipment||'Other']=(m[e.equipment||'Other']||0)+1,m),{});
   const preset=GYM_PRESETS.find(([,,have])=>EQUIP.every(q=>have.includes(q)!==miss.has(q)||q==='Bodyweight'));
@@ -5545,7 +5609,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190759';
+window.WH_BUILD='202611190814';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
