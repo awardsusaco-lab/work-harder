@@ -305,7 +305,7 @@ textarea{resize:vertical;line-height:1.4}
 .st-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
 .st-bg{fill:none;stroke:var(--surface2);stroke-width:12}
 .st-fg{fill:none;stroke:var(--accent);stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset .12s linear}
-.st-fg.done{stroke:var(--good)} .st-fg.prep{stroke:var(--warm)}
+.st-fg.done{stroke:var(--good)} .st-fg.prep{stroke:var(--warm)} .st-fg.switch{stroke:#f5a524}
 .st-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .st-num span{font-family:var(--f-display);font-size:68px;line-height:1;font-variant-numeric:tabular-nums}
 .st-num small{color:var(--muted);font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
@@ -616,6 +616,10 @@ textarea{resize:vertical;line-height:1.4}
 .rolist li.dragging{position:relative;z-index:2;background:var(--surface2);box-shadow:0 8px 24px rgba(0,0,0,.35);transform:scale(1.02)}
 .rhandle{flex:none;display:grid;place-items:center;width:48px;height:48px;border:0;background:none;color:var(--muted);touch-action:none;cursor:grab;border-radius:10px}
 .rhandle:active{cursor:grabbing;color:var(--accent)}
+.st-sides{display:flex;justify-content:center;gap:6px;margin:4px 0}
+.st-sides span{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;background:var(--surface2);color:var(--muted)}
+.st-sides span.on{background:var(--accent);color:var(--on-accent,#fff)}.st-sides span.did{color:var(--good)}
+.tcell.sides::after{content:'×2';font-size:11px;font-weight:800;color:var(--muted);margin-left:2px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -4369,7 +4373,7 @@ function exCard(obj,e,i,mode){
       else if(ps){ if(c==='w'&&ps.w!=null&&ps.w!=='') ph=wDisp(ps.w,prev.unit); else if(c==='t'&&ps.t) ph=fmtTime(ps.t); else if(c==='d'&&ps.d) ph=ps.d; else if(c==='r'&&ps.r!=null) ph=ps.r; }
       const im = c==='r'? 'numeric':'decimal';
       const inp=`<input class="cell" data-f="set" data-e="${i}" data-s="${si}" data-c="${c}" inputmode="${im}" enterkeyhint="next" autocomplete="off" value="${esc(val)}" placeholder="${esc(ph||'–')}" aria-label="${colLabel(c,ex)} set ${si+1}">`;
-      if(c==='t' && mode==='active' && !s.done) return `<span class="tcell">${inp}<button class="tgo" data-a="setTimer" data-e="${i}" data-s="${si}" aria-label="Start timer for set ${si+1}">${ic('play','sm')}</button></span>`;
+      if(c==='t' && mode==='active' && !s.done) return `<span class="tcell${sideSwitch(e)?' sides':''}">${inp}<button class="tgo" data-a="setTimer" data-e="${i}" data-s="${si}" aria-label="Start timer for set ${si+1}">${ic('play','sm')}</button></span>`;
       return inp;
     }).join('');
     let pr='';
@@ -4683,6 +4687,10 @@ setInterval(()=>{
 },250);
 
 /* ---------- Set timer for timed exercises (planks, hangs, holds, carries) ---------- */
+/* Each-side holds: time side 1, a short switch countdown, then side 2. Bigger switch time when you have to reposition. */
+const SIDES={copenhagen:10,sideplank:10,sideplank_hip:10,couch_stretch:10,pigeon:10,hipflexor:5,hamstretch:5};
+function sideSwitch(e){ const o=(st.settings.sides||{})[e.exId]; if(o!=null) return o; if(SIDES[e.exId]!=null) return SIDES[e.exId];
+  const X=getEx(e.exId); if(/each (side|leg|arm)|per (side|leg)/i.test(e.note||e.cue||'')||/single[- ]?(leg|arm)|one[- ]?(leg|arm)|side plank|each side/i.test(X.name)) return 5; return 0; }
 function setTimerTarget(e,s,si){
   const t=num(s.t); if(t) return t;
   const pt=num(s.pt); if(pt) return pt;
@@ -4698,19 +4706,22 @@ function renderSetTimer(){
   if(!el){ el=document.createElement('div'); el.id='settimer'; el.className='settimer'; document.body.appendChild(el); }
   const e=st.active&&st.active.exercises[T.e]; if(!e){ ui.stimer=null; el.remove(); return; }
   const ex=getEx(e.exId);
-  const el_=stNow(); const prep=T.phase==='prep'; const left=T.target? Math.max(0,T.target-el_) : 0;
-  const big = prep? Math.max(1,Math.ceil((T.prepEnd-Date.now())/1000)) : T.target? fmtTime(Math.ceil(left)) : fmtTime(Math.floor(el_));
-  const frac = prep? 0 : T.target? Math.min(1,el_/T.target) : (el_%60)/60;
+  const el_=stNow(); const prep=T.phase==='prep', sw=T.phase==='switch'; const left=T.target? Math.max(0,T.target-el_) : 0;
+  const swLeft=sw? Math.max(1,Math.ceil(((T.pausedAt||Date.now())<T.switchEnd? (T.pausedAt? T.swRemain : T.switchEnd-Date.now()) : 0)/1000)) : 0;
+  const big = prep? Math.max(1,Math.ceil((T.prepEnd-Date.now())/1000)) : sw? swLeft : T.target? fmtTime(Math.ceil(left)) : fmtTime(Math.floor(el_));
+  const frac = prep? 0 : sw? 1 : T.target? Math.min(1,el_/T.target) : (el_%60)/60;
+  const sideTxt= T.sides? ` · ${sw?'switch':'side '+T.side+' of 2'}` : '';
   const R=92, C=2*Math.PI*R;
   el.innerHTML=`<div class="st-in">
-    <div class="st-top"><b>${esc(ex.name)}</b><span class="muted">Set ${T.si+1}${T.target?` · ${fmtTime(T.target)}`:' · stopwatch'}</span></div>
+    <div class="st-top"><b>${esc(ex.name)}</b><span class="muted">Set ${T.si+1}${T.target?` · ${fmtTime(T.target)}${T.sides?' each side':''}`:' · stopwatch'}${sideTxt}</span></div>
+    ${T.sides?`<div class="st-sides"><span class="${T.side===1&&!sw?'on':T.side>1||sw?'did':''}">Side 1</span><span class="${sw?'on':''}">${ic('swap','xs')} ${T.sides}s</span><span class="${T.side===2&&!sw?'on':''}">Side 2</span></div>`:''}
     <div class="st-fig">${figSVG(ex,{anim:ex.id,cls:'big'})}</div>
     <div class="st-ring"><svg viewBox="0 0 200 200"><circle class="st-bg" cx="100" cy="100" r="${R}"/><circle class="st-fg ${T.phase}" cx="100" cy="100" r="${R}" stroke-dasharray="${f1(C)}" stroke-dashoffset="${f1(C*(1-frac))}"/></svg>
-      <div class="st-num"><span id="stnum">${big}</span><small>${prep?'Get ready':T.phase==='done'?'Done!':T.pausedAt?'Paused':T.target?'Hold':'Time'}</small></div></div>
+      <div class="st-num"><span id="stnum">${big}</span><small>${prep?'Get ready':sw?(T.pausedAt?'Paused':'Switch sides'):T.phase==='done'?'Done!':T.pausedAt?'Paused':T.target?(T.sides?'Hold · side '+T.side:'Hold'):'Time'}</small></div></div>
     <div class="st-btns">
       ${T.phase==='done'?'':`<button class="btn" data-a="stPause">${T.pausedAt?'Resume':'Pause'}</button>`}
-      ${T.target&&T.phase!=='done'?`<button class="btn" data-a="stAdd">+15 s</button>`:''}
-      ${T.phase==='done'?'':`<button class="btn primary" data-a="stDone">${T.target?'Done early':'Stop & save'}</button>`}
+      ${sw?`<button class="btn" data-a="stAdd">+5 s</button>`:T.target&&T.phase!=='done'?`<button class="btn" data-a="stAdd">+15 s</button>`:''}
+      ${T.phase==='done'?'':`<button class="btn primary" data-a="stDone">${sw?'Start side 2':T.sides&&T.side===1?(T.target?'Switch now':'Stop side 1'):T.target?'Done early':'Stop & save'}</button>`}
     </div>
     <button class="btn ghost sm" data-a="stCancel">Cancel</button>
   </div>`;
@@ -4725,19 +4736,33 @@ function stTick(){
     else { const x=$('#stnum'); if(x) x.textContent=n; }
     return;
   }
+  if(T.phase==='switch'){
+    if(T.pausedAt) return;
+    const n=Math.ceil((T.switchEnd-Date.now())/1000);
+    if(n!==T.lastN){ T.lastN=n; if(n>0&&n<=3) tick1(); const x=$('#stnum'); if(x&&n>0) x.textContent=n; }
+    if(Date.now()>=T.switchEnd) startSide2();
+    return;
+  }
   if(T.phase!=='run' || T.pausedAt) return;
   const el_=stNow();
   if(T.target){
     const left=Math.ceil(T.target-el_);
     if(left<=3 && left>0 && left!==T.lastN){ T.lastN=left; tick1(); }
-    if(el_>=T.target){ finishSetTimer(T.target); return; }
+    if(el_>=T.target){ if(T.sides&&T.side===1) startSwitch(T.target); else finishSetTimer(T.target); return; }
   }
   const x=$('#stnum'); if(x) x.textContent= T.target? fmtTime(Math.ceil(T.target-el_)) : fmtTime(Math.floor(el_));
   const fg=document.querySelector('#settimer .st-fg'); if(fg){ const C=2*Math.PI*92; const frac=T.target? Math.min(1,el_/T.target) : (el_%60)/60; fg.setAttribute('stroke-dashoffset',f1(C*(1-frac))); }
 }
 function tick1(){ if(!st.settings.sound) return; const ac=audio(); if(!ac) return; try{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=660; g.gain.setValueAtTime(0.0001,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.25,ac.currentTime+0.01); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.12); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+0.14); }catch(e){} }
 function goBeep(){ if(!st.settings.sound) return; const ac=audio(); if(!ac) return; try{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=1175; g.gain.setValueAtTime(0.0001,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.35,ac.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.35); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+0.4); }catch(e){} try{navigator.vibrate&&navigator.vibrate(120)}catch(e){} }
+function startSwitch(side1){
+  const T=ui.stimer; if(!T) return; T.side1=side1; if(!T.target) T.target=Math.round(side1);
+  T.phase='switch'; T.pausedAt=0; T.switchEnd=Date.now()+T.sides*1000; T.lastN=null;
+  beep(); try{navigator.vibrate&&navigator.vibrate([150,80,150])}catch(e){} renderSetTimer();
+}
+function startSide2(){ const T=ui.stimer; if(!T) return; T.phase='run'; T.side=2; T.start=Date.now(); T.pauseAcc=0; T.pausedAt=0; T.lastN=null; goBeep(); renderSetTimer(); }
 function finishSetTimer(sec){
+  { const T0=ui.stimer; if(T0&&T0.sides&&T0.side1!=null) sec=Math.min(sec,T0.side1); }
   const T=ui.stimer; if(!T) return;
   T.phase='done'; T.pausedAt=Date.now();
   const e=st.active.exercises[T.e], s=e&&e.sets[T.si];
@@ -4992,6 +5017,7 @@ const A={
   /* logger */
   exMenu:(d)=>{ const obj=curObj(); const i=+d.e; const e=obj.exercises[i]; menu(getEx(e.exId).name,[
     {label:'Reorder exercises',icon:'grip',fn:()=>push({name:'reorder'})},
+    ...(colsFor(getEx(e.exId)).includes('t')&&cur().name!=='wedit'?[{label:`Each-side timer: ${sideSwitch(e)?sideSwitch(e)+'s switch':'off'}`,icon:'swap',fn:()=>menu('Each-side timer',[[0,'Off · one hold'],[5,'On · 5 sec to switch'],[10,'On · 10 sec to switch (more moving)']].map(([v,l])=>({label:(sideSwitch(e)===v?'✓ ':'')+l,icon:v?'swap':'x',fn:()=>A.sidesSet({id:e.exId,v})})))}]:[]),
     {label:'Move up',icon:'up',fn:()=>{ if(i>0){ obj.exercises.splice(i-1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
     {label:'Move down',icon:'down',fn:()=>{ if(i<obj.exercises.length-1){ obj.exercises.splice(i+1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
     {label:'Swap for an alternative',icon:'swap',fn:()=>A.swapOpen({e:i})},
@@ -5051,11 +5077,15 @@ const A={
     changed(true); },
   setTimer:(d)=>{ audio(); const e=st.active.exercises[+d.e]; const s=e.sets[+d.s]; if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
     ui.rest=null; renderRest();
-    ui.stimer={e:+d.e,si:+d.s,target:setTimerTarget(e,s,+d.s),phase:'prep',prepEnd:Date.now()+3000,start:0,pauseAcc:0,pausedAt:0,lastN:null}; renderSetTimer(); },
-  stPause:()=>{ const T=ui.stimer; if(!T) return; if(T.phase==='prep'){ T.phase='run'; T.start=Date.now(); T.pauseAcc=0; }
+    ui.stimer={e:+d.e,si:+d.s,target:setTimerTarget(e,s,+d.s),phase:'prep',prepEnd:Date.now()+3000,start:0,pauseAcc:0,pausedAt:0,lastN:null,sides:sideSwitch(e),side:1}; renderSetTimer(); },
+  stPause:()=>{ const T=ui.stimer; if(!T) return;
+    if(T.phase==='switch'){ if(T.pausedAt){ T.switchEnd=Date.now()+T.swRemain; T.pausedAt=0; } else { T.swRemain=Math.max(0,T.switchEnd-Date.now()); T.pausedAt=Date.now(); } renderSetTimer(); return; }
+    if(T.phase==='prep'){ T.phase='run'; T.start=Date.now(); T.pauseAcc=0; }
     if(T.pausedAt){ T.pauseAcc+=Date.now()-T.pausedAt; T.pausedAt=0; } else T.pausedAt=Date.now(); renderSetTimer(); },
-  stAdd:()=>{ const T=ui.stimer; if(T){ T.target+=15; renderSetTimer(); } },
-  stDone:()=>{ const T=ui.stimer; if(!T) return; const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; } finishSetTimer(sec); },
+  stAdd:()=>{ const T=ui.stimer; if(!T) return; if(T.phase==='switch'){ if(T.pausedAt) T.swRemain+=5000; else T.switchEnd+=5000; } else T.target+=15; renderSetTimer(); },
+  stDone:()=>{ const T=ui.stimer; if(!T) return; if(T.phase==='switch'){ startSide2(); return; } const sec= T.phase==='prep'? 0 : stNow(); if(sec<1){ ui.stimer=null; renderSetTimer(); return; }
+    if(T.sides&&T.side===1){ startSwitch(sec); return; } finishSetTimer(sec); },
+  sidesSet:(d)=>{ const m=st.settings.sides||(st.settings.sides={}); m[d.id]=+d.v; Store.saveSettings(); render(); toast(+d.v?`Each-side timer on · ${d.v}s to switch`:'Each-side timer off'); },
   stCancel:()=>{ ui.stimer=null; renderSetTimer(); },
   allBadges:()=>{ const bs=badgeState(); const cats=['Milestones','Consistency','Strength','Bodyweight','Cardio','Volume','Effort','Records','Variety','Body','Hunter Ready'];
     openSheet({kind:'html',title:`Badges · ${bs.filter(b=>b.got).length} of ${bs.length}`,html:`<p class="muted small">${st.settings.badgeImports?'Counting workouts imported from Hevy.':'Only workouts logged in Work Harder count. Imported Hevy history still feeds the coach.'} <button class="btn ghost sm" data-a="toggleBadgeImports">${st.settings.badgeImports?'Count app workouts only':'Count imported history too'}</button></p>`+cats.map(cat=>{ const list=bs.filter(b=>b.cat===cat); if(!list.length) return ''; return `<h4 class="bcat">${esc(cat)} <span class="muted small">${list.filter(b=>b.got).length}/${list.length}</span></h4><div class="patches big">${list.map(b=>patch(b,'big')).join('')}</div>`; }).join('')}); },
@@ -5684,7 +5714,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611190826';
+window.WH_BUILD='202611200756';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
