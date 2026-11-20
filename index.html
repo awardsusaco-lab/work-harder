@@ -4560,7 +4560,7 @@ function renderRest(){
   el.className = left===0? 'restbar over':'restbar';
   el.innerHTML=`<div class="rest-in gut"><div class="rest-fill" style="width:${pct}%">${left?worldMascot():''}</div>
     <button class="btn sm" data-a="restAdj" data-v="-15">−15</button>
-    <div class="rest-t"><span class="num" id="restnum">${left?fmtTime(left):'Rest over'}</span><span class="muted small">${left?'Rest':'Next set'}</span></div>
+    <div class="rest-t"><span class="num" id="restnum">${left?fmtTime(left):'Rest over'}</span><span class="muted small">${left?'Rest':r.late?`ended ${fmtTime(r.late)} ago`:'Next set'}</span></div>
     <button class="btn sm" data-a="restAdj" data-v="15">+15</button><button class="btn primary sm" data-a="restSkip">${left?'Skip':'Close'}</button></div>`;
 }
 /* ---------- Sheets ---------- */
@@ -4667,13 +4667,14 @@ async function wake(on){
     if(!on && ui.wl){ await ui.wl.release(); ui.wl=null; }
   }catch(e){ ui.wl=null; }
 }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && st.active) wake(true); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ audio(); if(st.active) wake(true); } });
 
 /* ---------- Rest timer & sound ---------- */
 function audio(){ try{ if(!ui.ac){ const C=window.AudioContext||window.webkitAudioContext; if(C) ui.ac=new C(); } if(ui.ac&&ui.ac.state==='suspended') ui.ac.resume(); }catch(e){} return ui.ac; }
 function beep(){
   if(!st.settings.sound) return; const ac=audio(); if(!ac) return;
-  try{ [0,0.22,0.44].forEach((d,i)=>{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=i===2?1175:880; o.type='sine'; g.gain.setValueAtTime(0.0001,ac.currentTime+d); g.gain.exponentialRampToValueAtTime(0.35,ac.currentTime+d+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+d+0.18); o.connect(g).connect(ac.destination); o.start(ac.currentTime+d); o.stop(ac.currentTime+d+0.2); }); }catch(e){}
+  try{ const t0=ac.currentTime+0.02; [[0,880],[0.18,880],[0.36,1320],[0.75,880],[0.93,880],[1.11,1320]].forEach(([d,f])=>{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=f; o.type='triangle';
+      g.gain.setValueAtTime(0.0001,t0+d); g.gain.exponentialRampToValueAtTime(0.95,t0+d+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t0+d+0.16); o.connect(g).connect(ac.destination); o.start(t0+d); o.stop(t0+d+0.18); }); }catch(e){}
 }
 function startRest(sec){ if(!sec) return; ui.rest={end:Date.now()+sec*1000,total:sec,beeped:false}; renderRest(); }
 setInterval(()=>{
@@ -4681,7 +4682,7 @@ setInterval(()=>{
   const r=ui.rest; if(!r) return;
   const left=Math.max(0,Math.ceil((r.end-Date.now())/1000));
   const n=$('#restnum'); const f=$('.rest-fill');
-  if(left===0 && !r.beeped){ r.beeped=true; beep(); try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){} renderRest(); r.hideAt=Date.now()+8000; }
+  if(left===0 && !r.beeped){ r.beeped=true; const late=Date.now()-r.end; if(late>3000) r.late=Math.round(late/1000); beep(); try{navigator.vibrate&&navigator.vibrate([200,100,200,100,200])}catch(e){} renderRest(); r.hideAt=Date.now()+(r.late?20000:8000); }
   else if(left>0){ if(n) n.textContent=fmtTime(left); if(f) f.style.width=Math.max(0,left/r.total*100)+'%'; }
   if(r.hideAt && Date.now()>r.hideAt){ ui.rest=null; renderRest(); }
 },250);
@@ -5714,7 +5715,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611200756';
+window.WH_BUILD='202611200803';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
