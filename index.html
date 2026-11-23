@@ -620,6 +620,10 @@ textarea{resize:vertical;line-height:1.4}
 .st-sides span{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;background:var(--surface2);color:var(--muted)}
 .st-sides span.on{background:var(--accent);color:var(--on-accent,#fff)}.st-sides span.did{color:var(--good)}
 .tcell.sides::after{content:'×2';font-size:11px;font-weight:800;color:var(--muted);margin-left:2px}
+.dayrow{display:flex;align-items:center;gap:8px}.daymid{flex:1;min-width:0}
+.daynav{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:inherit;cursor:pointer}
+.daynav:not(.nx) .ic{transform:scaleX(-1)}.daynav:disabled{opacity:.3}
+.daydone{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--good) 14%,transparent)}.daydone b{color:var(--good);display:flex;align-items:center;gap:6px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3060,7 +3064,7 @@ const ic=(n,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true">
 function cur(){ return ui.stack[ui.stack.length-1]||null; }
 function push(page){ saveScroll(); ui.stack.push(page); ui.navDir='push'; render(); $('#main').scrollTop=0; }
 function pop(){ ui.stack.pop(); ui.navDir='pop'; render(); restoreScroll(); }
-function setTab(t){ saveScroll(); if(t!==ui.tab||ui.stack.length) ui.navDir='tab'; ui.tab=t; ui.stack=[]; render(); restoreScroll(); }
+function setTab(t){ saveScroll(); if(t!==ui.tab) ui.dayOff=0; if(t!==ui.tab||ui.stack.length) ui.navDir='tab'; ui.tab=t; ui.stack=[]; render(); restoreScroll(); }
 function pageKey(){ const p=cur(); return p? p.name+':'+(p.id||'') : 'tab:'+ui.tab; }
 function saveScroll(){ const m=$('#main'); if(m) ui.scroll[pageKey()]=m.scrollTop; }
 function restoreScroll(){ const m=$('#main'); if(m) m.scrollTop=ui.scroll[pageKey()]||0; }
@@ -3235,10 +3239,20 @@ function keyFrames(ex){
 }
 function howBtn(id,cue){ return `<button class="howbtn" data-a="howTo" data-id="${esc(id)}"${cue?` data-cue="${esc(cue)}"`:''}>${ic('play','sm')} How to</button>`; }
 function folderNames(){ const seen=[]; for(const r of routinesSorted()) if(r.folder&&!seen.includes(r.folder)) seen.push(r.folder); return seen; }
-function nextInFolder(f){
+function naturalNext(f){
   const list=routinesSorted().filter(r=>r.folder===f); if(!list.length) return null;
   const ids=new Set(list.map(r=>r.id)); const last=workoutsSorted().find(w=>ids.has(w.routineId));
   if(!last) return list[0]; const i=list.findIndex(r=>r.id===last.routineId); return list[(i+1)%list.length];
+}
+/* You can step the plan forward/back from the home page; that choice sticks until you log a workout from that folder */
+function nextInFolder(f){
+  const o=st.settings.upNext; const list=routinesSorted().filter(r=>r.folder===f);
+  if(o&&o.f===f&&st.routines[o.id]&&list.some(r=>r.id===o.id)){ const ids=new Set(list.map(r=>r.id)); const last=workoutsSorted().find(w=>ids.has(w.routineId)); if(!last||last.start<=o.after) return st.routines[o.id]; }
+  return naturalNext(f);
+}
+function dayStatus(r){
+  const last=workoutsSorted().find(w=>w.routineId===r.id); if(!last) return {done:false};
+  const days=(Date.now()-last.start)/DAY; return {done:days<6.5,last,days};
 }
 function importCard(what){
   return `<div class="card importcard"><h3>${what}</h3><p class="muted small">This phone keeps its own copy of your data. Load the backup file once and your routines, history and PRs show up here.</p><label class="btn primary wide filebtn">${ic('share')} Import backup file<input type="file" data-f="importFile"></label><p class="muted small">Save <b>work-harder-backup-2026-10-18.json</b> to Files or iCloud Drive first, then pick it here.</p></div>`;
@@ -3251,14 +3265,26 @@ function estMin(r){ let sec=0; for(const e of r.exercises||[]){ const rest=e.res
 function heroCard(nx){
   if(st.active) return `<div class="hero"><div class="eyebrow">${ic('bolt','sm')} In progress</div><h3>${esc(st.active.name||'Workout')}</h3><p class="muted small" data-clock="${st.active.start}">${fmtTime((Date.now()-st.active.start)/1000)}</p><button class="btn primary wide big" data-a="resume">${ic('play')} Resume workout</button></div>`;
   if(!nx) return '';
-  const r=nx.r, n=(r.exercises||[]).length;
+  const list= nx.f? routinesSorted().filter(x=>x.folder===nx.f) : [nx.r];
+  const baseIdx=Math.max(0,list.findIndex(x=>x.id===nx.r.id)); const off=ui.dayOff||0;
+  const idx=((baseIdx+off)%list.length+list.length)%list.length; const r=list[idx]; const n=(r.exercises||[]).length;
   const mus=[...new Set((r.exercises||[]).flatMap(e=>getEx(e.exId).primary||[]))].slice(0,4);
+  const ds=dayStatus(r); const isNext=off===0; const nat=nx.f?naturalNext(nx.f):null;
+  const lbl= isNext? `Up next` : off<0? (ds.done?'Done':'Earlier') : 'Later';
+  const statsHtml= ds.done? (()=>{ const w=ds.last; const sets=w.exercises.reduce((a,e)=>a+e.sets.filter(s=>s.done!==false&&s.type!=='w').length,0); const u=st.settings.unit;
+    return `<div class="daydone"><b>${ic('check','sm')} Done ${esc(fmtWhen(w.start))}</b><div class="hero-meta"><span>${ic('clock','sm')} ${Math.round(((w.end||w.start)-w.start)/60000)} min</span><span>${ic('dumbbell','sm')} ${fmtN(convW(workoutVolumeLb(w),'lb',u))} ${u}</span><span>${ic('list','sm')} ${sets} sets</span></div></div>`; })() : '';
   return `<div class="hero">${sceneBanner()}
-    <div class="eyebrow">${ic('cal','sm')} Up next${nx.f?` · ${esc(nx.f)}`:''}</div>
-    <button class="linkhead" data-a="openR" data-id="${esc(r.id)}"><h3>${esc(r.name)}</h3></button>
-    <div class="hero-meta"><span>${ic('list','sm')} ${n} exercises</span><span>${ic('clock','sm')} ~${estMin(r)} min</span></div>
+    <div class="dayrow"><button class="daynav" data-a="dayStep" data-v="-1" aria-label="Previous workout in plan" ${list.length<2?'disabled':''}>${ic('chev','sm')}</button>
+      <div class="daymid"><div class="eyebrow">${ic('cal','sm')} ${lbl}${nx.f?` · ${esc(nx.f)}`:''}${list.length>1?` · ${idx+1}/${list.length}`:''}</div>
+      <button class="linkhead" data-a="openR" data-id="${esc(r.id)}"><h3>${esc(r.name)}</h3></button></div>
+      <button class="daynav nx" data-a="dayStep" data-v="1" aria-label="Next workout in plan" ${list.length<2?'disabled':''}>${ic('chev','sm')}</button></div>
+    ${statsHtml}
+    <div class="hero-meta"><span>${ic('list','sm')} ${n} exercises</span><span>${ic('clock','sm')} ~${estMin(r)} min</span>${!ds.done&&ds.last?`<span>${ic('history','sm')} last ${esc(fmtWhen(ds.last.start))}</span>`:''}</div>
     ${mus.length?`<div class="hero-mus">${mus.map(m=>`<span>${esc(m)}</span>`).join('')}</div>`:''}
-    <button class="btn primary wide big" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} Start workout</button>
+    ${ds.done&&!isNext?`<button class="btn primary wide big" data-a="openW" data-id="${esc(ds.last.id)}">${ic('trophy')} View stats</button><button class="btn wide" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} Do it again</button>`
+      :`<button class="btn primary wide big" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} ${ds.done?'Do it again':'Start workout'}</button>`}
+    ${!isNext&&nx.f?`<button class="btn ghost wide sm" data-a="dayPick" data-id="${esc(r.id)}" data-f="${esc(nx.f)}">${ic('cal','sm')} Make this my next workout</button>`:''}
+    ${isNext&&nat&&nat.id!==r.id?`<p class="muted small center">You moved the plan ahead. <button class="linkbtn acc" data-a="dayReset">Back to ${esc(nat.name)}</button></p>`:''}
     <div class="row2"><button class="btn" data-a="startEmpty">${ic('plus')} Empty workout</button><button class="btn" data-tab="routines">${ic('folder')} Routines</button></div>
   </div>`;
 }
@@ -4947,6 +4973,9 @@ const A={
   editRoutine:(d)=>{ const r=st.routines[d.id]; if(r) push({name:'redit',obj:convertObjUnit(clone(r),st.settings.unit)}); },
   aiRoutine:()=>openSheet({kind:'airoutine',text:''}),
   openW:(d)=>push({name:'wview',id:d.id}),
+  dayStep:(d)=>{ ui.dayOff=(ui.dayOff||0)+(+d.v); render(); },
+  dayPick:(d)=>{ st.settings.upNext={f:d.f,id:d.id,after:(workoutsSorted()[0]||{start:0}).start}; Store.saveSettings(); ui.dayOff=0; toast(`${st.routines[d.id].name} is up next`); render(); },
+  dayReset:()=>{ delete st.settings.upNext; Store.saveSettings(); ui.dayOff=0; render(); },
   wMenu:(d)=>{ const w=st.workouts[d.id]; if(!w) return; menu(w.name,[
     {label:'Edit workout',icon:'edit',fn:()=>{ const o=convertObjUnit(clone(w),st.settings.unit); o.exercises.forEach(e=>e.sets.forEach(s=>s.done=true)); push({name:'wedit',obj:o}); }},
     {label:'Save as routine',icon:'list',fn:()=>A.wToRoutine(d)},
@@ -5715,7 +5744,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611200803';
+window.WH_BUILD='202611230747';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
