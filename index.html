@@ -624,6 +624,14 @@ textarea{resize:vertical;line-height:1.4}
 .daynav{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:inherit;cursor:pointer}
 .daynav:not(.nx) .ic{transform:scaleX(-1)}.daynav:disabled{opacity:.3}
 .daydone{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--good) 14%,transparent)}.daydone b{color:var(--good);display:flex;align-items:center;gap:6px}
+.daylast{display:grid;gap:6px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);color:inherit;font:inherit;cursor:pointer}
+.daylast .muted{display:flex;align-items:center;gap:6px}.coachline{margin:0;display:flex;justify-content:center;align-items:center;gap:6px}
+.cpv{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:var(--surface2)}
+.cpv-h{display:flex;align-items:center;gap:6px}.cpv-h .ic{color:var(--accent)}.cpv-n{margin:0}
+.cpv ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.cpv li{display:flex;align-items:baseline;gap:8px;font-size:14px}
+.cpv-x{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cpv-t{flex:none;font-variant-numeric:tabular-nums;font-weight:600}
+.cpv-d{flex:none;font-size:12px;font-weight:800;min-width:52px;text-align:right}.cpv-d.up{color:var(--good)}.cpv-d.down{color:#f5a524}.cpv-d.same,.cpv-d.new{color:var(--muted)}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3269,20 +3277,29 @@ function heroCard(nx){
   const baseIdx=Math.max(0,list.findIndex(x=>x.id===nx.r.id)); const off=ui.dayOff||0;
   const idx=((baseIdx+off)%list.length+list.length)%list.length; const r=list[idx]; const n=(r.exercises||[]).length;
   const mus=[...new Set((r.exercises||[]).flatMap(e=>getEx(e.exId).primary||[]))].slice(0,4);
-  const ds=dayStatus(r); const isNext=off===0; const nat=nx.f?naturalNext(nx.f):null;
-  const lbl= isNext? `Up next` : off<0? (ds.done?'Done':'Earlier') : 'Later';
-  const statsHtml= ds.done? (()=>{ const w=ds.last; const sets=w.exercises.reduce((a,e)=>a+e.sets.filter(s=>s.done!==false&&s.type!=='w').length,0); const u=st.settings.unit;
-    return `<div class="daydone"><b>${ic('check','sm')} Done ${esc(fmtWhen(w.start))}</b><div class="hero-meta"><span>${ic('clock','sm')} ${Math.round(((w.end||w.start)-w.start)/60000)} min</span><span>${ic('dumbbell','sm')} ${fmtN(convW(workoutVolumeLb(w),'lb',u))} ${u}</span><span>${ic('list','sm')} ${sets} sets</span></div></div>`; })() : '';
+  const isNext=off===0; const nat=nx.f?naturalNext(nx.f):null;
+  const last=workoutsSorted().find(w=>w.routineId===r.id);
+  // "Done" only for days you've already passed in this round of the plan (done since the up-next day was last done)
+  const nextLast=workoutsSorted().find(w=>w.routineId===nx.r.id); const ds={last,done: !!last && off<0 && last.start>(nextLast?nextLast.start:0)};
+  const lbl= isNext? `Up next` : off<0? (ds.done?'Done':'Skipped') : 'Later';
+  const wStats=w=>{ const sets=w.exercises.reduce((a,e)=>a+e.sets.filter(s=>s.done!==false&&s.type!=='w').length,0); const u=st.settings.unit; return `<div class="hero-meta"><span>${ic('clock','sm')} ${Math.round(((w.end||w.start)-w.start)/60000)} min</span><span>${ic('dumbbell','sm')} ${fmtN(convW(workoutVolumeLb(w),'lb',u))} ${u}</span><span>${ic('list','sm')} ${sets} sets</span></div>`; };
+  const ago=w=>{ const d=Math.round((Date.now()-w.start)/DAY); return d<=1?'yesterday':d<7?`${d} days ago`:d<14?'last week':`${Math.round(d/7)} weeks ago`; };
+  const statsHtml= ds.done? `<div class="daydone"><b>${ic('check','sm')} Done ${esc(fmtWhen(last.start))}</b>${wStats(last)}</div>`
+    : last? `<button class="daylast" data-a="openW" data-id="${esc(last.id)}"><span class="muted small">${ic('history','xs')} Last time · ${esc(ago(last))} · ${esc(new Date(last.start).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}))}</span>${wStats(last)}</button>` : '';
   return `<div class="hero">${sceneBanner()}
     <div class="dayrow"><button class="daynav" data-a="dayStep" data-v="-1" aria-label="Previous workout in plan" ${list.length<2?'disabled':''}>${ic('chev','sm')}</button>
       <div class="daymid"><div class="eyebrow">${ic('cal','sm')} ${lbl}${nx.f?` · ${esc(nx.f)}`:''}${list.length>1?` · ${idx+1}/${list.length}`:''}</div>
       <button class="linkhead" data-a="openR" data-id="${esc(r.id)}"><h3>${esc(r.name)}</h3></button></div>
       <button class="daynav nx" data-a="dayStep" data-v="1" aria-label="Next workout in plan" ${list.length<2?'disabled':''}>${ic('chev','sm')}</button></div>
     ${statsHtml}
-    <div class="hero-meta"><span>${ic('list','sm')} ${n} exercises</span><span>${ic('clock','sm')} ~${estMin(r)} min</span>${!ds.done&&ds.last?`<span>${ic('history','sm')} last ${esc(fmtWhen(ds.last.start))}</span>`:''}</div>
+    <div class="hero-meta"><span>${ic('list','sm')} ${n} exercises</span><span>${ic('clock','sm')} ~${estMin(r)} min</span></div>
     ${mus.length?`<div class="hero-mus">${mus.map(m=>`<span>${esc(m)}</span>`).join('')}</div>`:''}
-    ${ds.done&&!isNext?`<button class="btn primary wide big" data-a="openW" data-id="${esc(ds.last.id)}">${ic('trophy')} View stats</button><button class="btn wide" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} Do it again</button>`
-      :`<button class="btn primary wide big" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} ${ds.done?'Do it again':'Start workout'}</button>`}
+    ${ds.done?`<button class="btn primary wide big" data-a="openW" data-id="${esc(last.id)}">${ic('trophy')} View stats</button><button class="btn wide" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} Do it again</button>`
+      :`${(()=>{ const pv=coachPreview(r); if(!pv||!pv.rows.length) return ''; const open=ui.pvOpen===r.id; const show=open?pv.rows:pv.rows.slice(0,4);
+        return `<div class="cpv"><div class="cpv-h">${ic('spark','sm')} <b>Coach's plan for today</b></div>${pv.note?`<p class="muted small cpv-n">${esc(pv.note)}</p>`:''}
+        <ul>${show.map(x=>`<li><span class="cpv-x">${esc(x.name)}</span><span class="cpv-t">${x.sets}× ${esc(x.txt)}</span>${x.delta?`<span class="cpv-d ${x.kind}">${x.kind==='up'?'▲ ':x.kind==='down'?'▼ ':''}${esc(x.delta)}</span>`:''}</li>`).join('')}</ul>
+        ${pv.rows.length>4?`<button class="linkbtn acc small" data-a="pvToggle" data-id="${esc(r.id)}">${open?'Show less':`Show all ${pv.rows.length}`}</button>`:''}</div>`; })()}
+      <button class="btn primary wide big" data-a="startRoutine" data-id="${esc(r.id)}">${ic('play')} Start this plan</button>`}
     ${!isNext&&nx.f?`<button class="btn ghost wide sm" data-a="dayPick" data-id="${esc(r.id)}" data-f="${esc(nx.f)}">${ic('cal','sm')} Make this my next workout</button>`:''}
     ${isNext&&nat&&nat.id!==r.id?`<p class="muted small center">You moved the plan ahead. <button class="linkbtn acc" data-a="dayReset">Back to ${esc(nat.name)}</button></p>`:''}
     <div class="row2"><button class="btn" data-a="startEmpty">${ic('plus')} Empty workout</button><button class="btn" data-tab="routines">${ic('folder')} Routines</button></div>
@@ -4650,8 +4667,34 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; t.c
 /* ---------- Workout lifecycle ---------- */
 function defaultName(){ const h=new Date().getHours(); return h<5?'Night Workout':h<12?'Morning Workout':h<17?'Afternoon Workout':h<21?'Evening Workout':'Night Workout'; }
 function newSet(){ return {type:'n',w:'',r:'',t:'',d:'',done:false}; }
+function buildFromRoutine(from){
+  const u=st.settings.unit;
+  const a={id:uid(),name:from?from.name:defaultName(),start:Date.now(),unit:u,dunit:st.settings.dist,routineId:from&&!from.tpl?from.id:null,notes:'',plan:from&&from.notes||'',exercises:[]};
+  for(const e of from.exercises||[]){
+    a.exercises.push({exId:e.exId,rest:e.rest,note:'',cue:e.note||'',ss:e.ss||undefined,sets:(e.sets||[newSet()]).map(s=>({type:s.type||'n',w:'',r:'',t:'',d:'',done:false,pw:s.w!==''&&s.w!=null?round1(convW(num(s.w),from.unit||'lb',u)):'',pr:s.r??'',pt:s.t??'',pd:s.d??''}))});
+  }
+  a.feel='normal'; a.knees='good'; applyCoach(a); return a;
+}
+/* What the coach has planned for this routine today, compared with last time */
+function coachPreview(r){
+  let a; try{ a=buildFromRoutine(clone(r)); }catch(e){ return null; }
+  const u=a.unit; const rows=[];
+  for(const e of a.exercises){ if(e.bonus) continue; const X=getEx(e.exId); const work=e.sets.filter(s=>s.type!=='w'); if(!work.length) continue; const s0=work[0];
+    const cols=colsFor(X); const txt=setText({w:s0.pw,r:s0.pr,t:s0.pt,d:s0.pd},X,u,a.dunit); const parts=txt?[txt]:[];
+    let delta='', kind='';
+    const last=(stats().byEx[e.exId]||[])[0]; const lt= last&&cols.includes('w')? topOf(last.e,last.w.unit,u) : null;
+    if(lt&&s0.pw!==''){ const d=round1(num(s0.pw)-lt.W); const lr=Math.min(...(lt.reps.length?lt.reps:[0]));
+      if(d>0){ delta=`+${fw(d)}`; kind='up'; } else if(d<0){ delta=`${fw(d)}`; kind='down'; } else if(num(s0.pr)>lr){ delta=`+${num(s0.pr)-lr} rep${num(s0.pr)-lr>1?'s':''}`; kind='up'; } else { delta='same'; kind='same'; } }
+    else if(!last){ delta='new'; kind='new'; }
+    rows.push({name:X.name,sets:work.length,txt:parts.join(' × ')||'—',delta,kind});
+  }
+  const cb=comebackState(), dl=deloadState(a)&&!a.deloadSkip;
+  const note= cb&&cb.light? `Comeback week: easing back in after time off.` : dl? `Deload week: lighter on purpose so you recover.` : rows.some(x=>x.kind==='up')? `Progressing ${rows.filter(x=>x.kind==='up').length} of ${rows.length} exercises from last time.` : '';
+  return {rows,note};
+}
 function startWorkout(from){
   if(st.active){ toast('Finish or discard your current workout first.'); push({name:'active'}); return; }
+  if(from){ st.active=buildFromRoutine(from); Store.saveActive(true); ui.stack=[{name:'active'}]; render(); $('#main').scrollTop=0; wake(true); return; }
   const u=st.settings.unit;
   const a={id:uid(),name:from?from.name:defaultName(),start:Date.now(),unit:u,dunit:st.settings.dist,routineId:from&&!from.tpl?from.id:null,notes:'',plan:from&&from.notes||'',exercises:[]};
   if(from){
@@ -4973,6 +5016,7 @@ const A={
   editRoutine:(d)=>{ const r=st.routines[d.id]; if(r) push({name:'redit',obj:convertObjUnit(clone(r),st.settings.unit)}); },
   aiRoutine:()=>openSheet({kind:'airoutine',text:''}),
   openW:(d)=>push({name:'wview',id:d.id}),
+  pvToggle:(d)=>{ ui.pvOpen= ui.pvOpen===d.id? null : d.id; render(); },
   dayStep:(d)=>{ ui.dayOff=(ui.dayOff||0)+(+d.v); render(); },
   dayPick:(d)=>{ st.settings.upNext={f:d.f,id:d.id,after:(workoutsSorted()[0]||{start:0}).start}; Store.saveSettings(); ui.dayOff=0; toast(`${st.routines[d.id].name} is up next`); render(); },
   dayReset:()=>{ delete st.settings.upNext; Store.saveSettings(); ui.dayOff=0; render(); },
@@ -5744,7 +5788,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611230747';
+window.WH_BUILD='202611230750';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
