@@ -632,6 +632,11 @@ textarea{resize:vertical;line-height:1.4}
 .cpv li{display:flex;align-items:baseline;gap:8px;font-size:14px}
 .cpv-x{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cpv-t{flex:none;font-variant-numeric:tabular-nums;font-weight:600}
 .cpv-d{flex:none;font-size:12px;font-weight:800;min-width:52px;text-align:right}.cpv-d.up{color:var(--good)}.cpv-d.down{color:#f5a524}.cpv-d.same,.cpv-d.new{color:var(--muted)}
+.ptscard{display:grid;gap:10px}
+.pts-top{display:flex;align-items:baseline;gap:8px}.pts-big{font-family:var(--f-display);font-size:40px;line-height:1;color:var(--accent)}.pts-lbl{font-weight:700}
+.pts-items{display:flex;flex-wrap:wrap;gap:6px}.pts-items span{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface2)}.pts-items b{color:var(--good)}.pts-items .neg b{color:#f5a524}
+.pts-bar{height:12px;border-radius:999px;background:var(--surface2);overflow:hidden}.pts-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--good));transition:width .8s ease}
+.pts-foot{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -4189,6 +4194,15 @@ done(p){
   body:`<section class="gut stack celebrate">
     ${(()=>{ const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'?TROPHY[kind]:WORLDS[wk]; const before=trophyStage(trophyPoints(w.start-1).pts), after=trophyStage(trophyPoints(w.start).pts);
       return `<div class="done-trophy ${after>before?'levelup':''}">${wk==='hunt'?trophyArt(kind,after):T.art(after)}${after>before?`<div class="lvl">${ic('bolt','sm')} Level up! You're now a <b>${T.stages[after]}</b></div>`:`<div class="lvl muted">${T.stages[after]} · keep stacking workouts to grow</div>`}</div>`; })()}
+    ${(()=>{ const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'?TROPHY[kind]:WORLDS[wk];
+      const B=trophyPoints(w.start-1), Aft=trophyPoints(w.start); const gained=Aft.pts-B.pts; const stg=trophyStage(Aft.pts);
+      const items=[['Workout done',1]]; if(w.hit) items.push(['Hit coach targets',1]); const pr=Math.min(2,(w.prs||[]).length); if(pr) items.push([`New PR${pr>1?'s':''}`,pr]);
+      const goal=st.settings.goal||4; const inWk=workoutsSorted().filter(x=>x.start<=w.start&&weekStart(x.start)===weekStart(w.start)&&(!Aft.key||planKeyOf(x)===Aft.key)).length; if(inWk===goal) items.push([`Weekly goal hit (${goal}/${goal})`,2]);
+      const earned=items.reduce((a,x)=>a+x[1],0); const lo=TR_PTS[stg], hi=TR_PTS[stg+1]; const pct=hi? Math.max(0,Math.min(100,(Aft.pts-lo)/(hi-lo)*100)) : 100;
+      return `<div class="card ptscard"><div class="pts-top"><span class="pts-big">+${earned}</span><span class="pts-lbl">points earned</span></div>
+        <div class="pts-items">${items.map(([l,v])=>`<span>${esc(l)} <b>+${v}</b></span>`).join('')}${gained<earned?`<span class="neg">Accountability <b>−${earned-gained}</b></span>`:''}</div>
+        <div class="pts-bar" role="progressbar" aria-valuemin="${lo}" aria-valuemax="${hi||lo}" aria-valuenow="${Aft.pts}"><i style="width:${pct.toFixed(1)}%"></i></div>
+        <div class="pts-foot"><span><b>${Aft.pts}</b> pts · ${esc(T.stages[stg])}</span><span>${hi?`<b>${hi-Aft.pts}</b> to ${esc(T.stages[stg+1])}`:'Top stage reached!'}</span></div></div>`; })()}
     ${(()=>{ const a=badgeState(w.start-1), b=badgeState(w.start); const nw=b.filter((x,i)=>x.got&&!a[i].got); return nw.length?`<div class="card newbadges"><h3>${ic('shield','sm')} New badge${nw.length>1?'s':''} earned</h3><div class="patches">${nw.map(x=>patch(x)).join('')}</div></div>`:''; })()}
     <div class="eyebrow center">Workout #${nth} complete</div>
     <h2 class="center bigname">${esc(w.name)}</h2>
@@ -5788,7 +5802,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611230750';
+window.WH_BUILD='202611241016';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
