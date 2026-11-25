@@ -638,6 +638,7 @@ textarea{resize:vertical;line-height:1.4}
 .pts-bar{height:12px;border-radius:999px;background:var(--surface2);overflow:hidden}.pts-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--good));transition:width .8s ease}
 .pts-foot{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 .swapnote .ic{color:var(--accent)!important}
+.synclog{display:grid;gap:6px;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}.synclog p{margin:0}.synclog .btn{justify-self:start}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -4049,6 +4050,7 @@ home(){
     body+=`<div class="empty"><div class="empty-fig">${figSVG(BUILTIN.deadlift,{anim:'deadlift'})}</div><h2>Your first workout starts here</h2><p>Log sets, beat your numbers, and watch the pounds add up. Pick a routine or start empty.</p>
       <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-tab="routines">Browse routines</button></div></div>`;
   } else {
+    if(st.settings.swapSyncLog&&st.settings.swapSyncLog.length) body+=`<div class="card synclog"><b>${ic('swap','sm')} Routines matched to your last workouts</b>${st.settings.swapSyncLog.map(l=>`<p class="small"><b>${esc(l.name)}:</b> ${l.ch.map(c=>`${esc((getEx(c.from)||{}).name||'?')} → ${esc((getEx(c.to)||{}).name||'?')}`).join(', ')}</p>`).join('')}<p class="muted small">From now on, whatever you do in a workout is saved to its routine when you finish.</p><button class="btn sm" data-a="syncLogOk">Got it</button></div>`;
     body+=homeFeed(ws);
   }
   body+='</section>';
@@ -4211,6 +4213,7 @@ done(p){
     ${worldCompare(vol)?`<p class="center lead">${worldCompare(vol)}</p>`:cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
     <div class="kv3"><div><label>Duration</label><b>${fmtDur(dur)}</b></div><div><label>Sets</label><b>${workoutSets(w)}</b></div><div><label>Streak</label><b>${streak} wk</b></div></div>
     ${prs.length?`<div class="card"><h3 class="gold-t">${ic('trophy','sm')} ${prs.length} new personal record${prs.length>1?'s':''}</h3><ul class="prlist">${prs.map(p=>`<li><span>${esc(getEx(p.exId).name)}</span><span class="muted small">${PR_LABEL[p.kind]}</span><b>${prValue(p)}</b></li>`).join('')}</ul></div>`:''}
+    ${w.routineSynced&&w.routineSynced.length?`<p class="muted small center">${ic('swap','sm')} Saved your exercise picks to <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b>: ${w.routineSynced.map(c=>esc(getEx(c.to).name)).join(', ')}.</p>`:''}
     ${w.routineUpdated?`<p class="muted small center">${ic('spark','sm')} The coach saved today's weights into <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> and will set next session's targets from them.</p>`:''}
     <button class="btn wide strava" data-a="strava" data-id="${esc(w.id)}">${ic('share')} Share to Strava</button>
     <button class="btn primary wide" data-a="doneClose">Done</button>
@@ -4691,6 +4694,35 @@ function rememberSwap(obj,oldId,newId){
   re.exId=newId; re.note=''; re.swappedAt=Date.now(); (re.sets||[]).forEach(s=>{ s.w=''; });
   r.updated=Date.now(); Store.put('routines',r.id,r); return r;
 }
+/* Make a routine match the exercises you actually did: an exercise you did that isn't in the routine
+   replaces the routine exercise it most likely stood in for (same muscles/movement, nearby spot). */
+function lastRoutineWorkout(r){ return workoutsSorted().find(w=>w.routineId===r.id||(!w.routineId&&norm(w.name)===norm(r.name))); }
+function syncRoutineFromWorkout(r,w,skip){
+  if(!r||!w) return []; const rIds=new Set(r.exercises.map(e=>e.exId));
+  const wDone=(w.exercises||[]).filter(e=>e.sets.some(s=>s.done!==false)&&!e.tempSwap&&!(skip&&skip.has(e.exId))&&!(w.tempSwaps||[]).includes(e.exId));
+  const wIds=new Set((w.exercises||[]).map(e=>e.exId));
+  const extras=wDone.filter(e=>!rIds.has(e.exId)&&getEx(e.exId)); const missing=r.exercises.map((e,i)=>({e,i})).filter(x=>!wIds.has(x.e.exId)&&getEx(x.e.exId));
+  const out=[];
+  for(const x of extras){
+    const X=getEx(x.exId); const wi=w.exercises.indexOf(x); let best=null, bs=0;
+    for(const m of missing){ if(m.used) continue; const M=getEx(m.e.exId);
+      const ov=(X.primary||[]).filter(q=>(M.primary||[]).includes(q)).length; const fam=famOf(X.pattern)>=0&&famOf(X.pattern)===famOf(M.pattern);
+      if(!ov&&!fam) continue; const sc=ov*3+(fam?5:0)+(X.pattern===M.pattern?2:0)+Math.max(0,3-Math.abs(m.i-wi));
+      if(sc>bs){ bs=sc; best=m; } }
+    if(!best) continue; best.used=true; const re=best.e; const from=re.exId;
+    const orig=re.swappedFrom||from; if(orig===x.exId) delete re.swappedFrom; else re.swappedFrom=orig;
+    re.exId=x.exId; re.note=''; re.swappedAt=Date.now(); (re.sets||[]).forEach(s=>{ s.w=''; });
+    out.push({from,to:x.exId});
+  }
+  if(out.length){ r.updated=Date.now(); Store.put('routines',r.id,r); }
+  return out;
+}
+function syncAllRoutines(){
+  const log=[]; for(const r of routinesSorted()){ const w=lastRoutineWorkout(r); const ch=syncRoutineFromWorkout(r,w); if(ch.length) log.push({r:r.id,name:r.name,ch}); }
+  // today's workout: swap exercises you haven't started yet
+  const a=st.active; if(a&&a.routineId){ const hit=log.find(l=>l.r===a.routineId); if(hit){ let n=0; for(const c of hit.ch){ const e=a.exercises.find(x=>x.exId===c.from&&!x.sets.some(s=>s.done)); if(e){ e.exId=c.to; e.cue=''; e.swapNote=`Matched to your last ${st.routines[a.routineId].name}: ${getEx(c.to).name} instead of ${getEx(c.from).name}.`; e.sets.forEach(s=>{ s.pw=''; }); delete e.push; delete e.coach; n++; } } if(n){ applyCoach(a,true); Store.saveActive(); } } }
+  return log;
+}
 function buildFromRoutine(from){
   const u=st.settings.unit;
   const a={id:uid(),name:from?from.name:defaultName(),start:Date.now(),unit:u,dunit:st.settings.dist,routineId:from&&!from.tpl?from.id:null,notes:'',plan:from&&from.notes||'',exercises:[]};
@@ -5034,6 +5066,7 @@ const A={
   editRoutine:(d)=>{ const r=st.routines[d.id]; if(r) push({name:'redit',obj:convertObjUnit(clone(r),st.settings.unit)}); },
   aiRoutine:()=>openSheet({kind:'airoutine',text:''}),
   openW:(d)=>push({name:'wview',id:d.id}),
+  syncLogOk:()=>{ delete st.settings.swapSyncLog; Store.saveSettings(); render(); },
   pvToggle:(d)=>{ ui.pvOpen= ui.pvOpen===d.id? null : d.id; render(); },
   dayStep:(d)=>{ ui.dayOff=(ui.dayOff||0)+(+d.v); render(); },
   dayPick:(d)=>{ st.settings.upNext={f:d.f,id:d.id,after:(workoutsSorted()[0]||{start:0}).start}; Store.saveSettings(); ui.dayOff=0; toast(`${st.routines[d.id].name} is up next`); render(); },
@@ -5137,7 +5170,7 @@ const A={
     obj.exercises[i]={exId:d.id,rest:e.rest,note:'',ss:e.ss,sets:e.sets.filter(s=>!s.done||isRoutine).map(s=>({type:s.type||'n',w:'',r:isRoutine?s.r:'',t:isRoutine?s.t:'',d:'',done:false}))};
     if(!obj.exercises[i].sets.length) obj.exercises[i].sets=[newSet(),newSet(),newSet()];
     if(!obj.exercises[i].ss) delete obj.exercises[i].ss;
-    let kept=null; if(p.rt!==false&&host.name==='active') kept=rememberSwap(obj,old.id,d.id);
+    let kept=null; if(p.rt!==false&&host.name==='active') kept=rememberSwap(obj,old.id,d.id); else if(host.name==='active') obj.exercises[i].tempSwap=true;
     if(kept) obj.exercises[i].swapNote=`Swapped in for ${old.name}. Saved to ${kept.name} for next time.`;
     if(host.name==='active'){ delete obj.exercises[i].push; delete obj.exercises[i].coach; applyCoach(obj,true); }
     ui.stack.pop(); changed(true); toast(`Swapped in ${nx.name}${kept?' · saved for next time':''}`); },
@@ -5236,7 +5269,7 @@ const A={
   discard:()=>confirmSheet('Discard this workout?','Nothing from this session will be saved.','Discard',()=>A.doDiscard()),
   doDiscard:()=>{ st.active=null; Store.saveActive(true); ui.rest=null; wake(false); ui.stack=[]; ui.tab='home'; render(); },
   saveWorkout:()=>{
-    const a=clone(st.active); const n=$('#wname'); if(n&&n.value.trim()) a.name=n.value.trim(); const nt=$('#wnotes'); if(nt) a.notes=nt.value;
+    const a=clone(st.active); a.tempSwaps=a.exercises.filter(e=>e.tempSwap).map(e=>e.exId); if(!a.tempSwaps.length) delete a.tempSwaps; const n=$('#wname'); if(n&&n.value.trim()) a.name=n.value.trim(); const nt=$('#wnotes'); if(nt) a.notes=nt.value;
     a.end=Date.now();
     { let pl=0, sk=0; for(const e of a.exercises){ if(e.bonus&&!e.sets.some(x=>x.done)) continue; for(const s of e.sets){ if(s.type==='w') continue; pl++; if(!s.done) sk++; } } a.planned=pl; a.skipped=sk; }
     { let tgt=0, ok=0; for(const e of a.exercises){ if(e.bonus&&!e.sets.some(x=>x.done)) continue; for(const s of e.sets){ if(s.type==='w') continue; const pw=num(s.pw), pr=num(s.pr), pt=num(s.pt); if(!pw&&!pr&&!pt) continue; tgt++; if(s.done && (!pw||num(s.w)>=pw-0.01) && (!pr||num(s.r)>=pr) && (!pt||num(s.t)>=pt)) ok++; } } a.hit= tgt>0 && ok===tgt; }
@@ -5246,6 +5279,7 @@ const A={
     if(!a.exercises.length){ toast('Check off at least one set.'); return; }
     a.prs=computePRs(a);
     Store.put('workouts',a.id,a);
+    if(srcR){ const ch=syncRoutineFromWorkout(st.routines[a.routineId],a); if(ch.length){ a.routineSynced=ch; Store.put('workouts',a.id,a); } }
     st.active=null; Store.saveActive(true); ui.rest=null; wake(false);
     ui.tab='home'; ui.stack=[{name:'done',id:a.id}]; render(); $('#main').scrollTop=0;
     if(Social.user) Social.syncAll();
@@ -5805,12 +5839,14 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 (function boot(){
   render();
-  Store.init().then(()=>{ render(); if(st.active) wake(true); });
+  Store.init().then(()=>{
+    if(!st.settings.swapSync1){ try{ const log=syncAllRoutines(); st.settings.swapSync1=Date.now(); if(log.length) st.settings.swapSyncLog=log; Store.saveSettings(); }catch(e){ console.warn('swap sync',e); } }
+    render(); if(st.active) wake(true); });
 })();
 
 </script>
 <script>
-window.WH_BUILD='202611250807';
+window.WH_BUILD='202611250810';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
