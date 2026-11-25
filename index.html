@@ -637,6 +637,7 @@ textarea{resize:vertical;line-height:1.4}
 .pts-items{display:flex;flex-wrap:wrap;gap:6px}.pts-items span{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface2)}.pts-items b{color:var(--good)}.pts-items .neg b{color:#f5a524}
 .pts-bar{height:12px;border-radius:999px;background:var(--surface2);overflow:hidden}.pts-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--good));transition:width .8s ease}
 .pts-foot{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.swapnote .ic{color:var(--accent)!important}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -4452,6 +4453,7 @@ function exCard(obj,e,i,mode){
     ${mode!=='edit'&&!hasGear(ex)&&!e.sets.some(s=>s.done)?`<button class="nogear" data-a="swapOpen" data-e="${i}">${ic('swap','sm')}<span>Your gym doesn't have <b>${esc(ex.equipment||'this gear')}</b>. Tap to swap.</span></button>`:''}
     ${e.ss?`<button class="ssbadge" data-a="exMenu" data-e="${i}">Superset ${esc(e.ss)}</button>`:''}
     ${mode!=='routine'&&e.cue?`<p class="cue">${ic('list','sm')}<span>${esc(e.cue)}</span></p>`:''}
+    ${mode==='active'&&e.swapNote&&!e.sets.some(s=>s.done)?`<p class="wunote swapnote">${ic('swap','sm')}<span>${esc(e.swapNote)}</span></p>`:''}
     ${mode==='active'&&e.wuNote&&!e.sets.some(s=>s.done)?`<p class="wunote">${ic('flame','sm')}<span>${esc(e.wuNote)}</span></p>`:''}
     ${mode==='active'&&e.coach&&e.coach.msg?`<div class="coachchip k-${esc(e.coach.kind)}">${ic('spark','sm')}<span><b>Coach:</b> ${esc(e.coach.msg)}${e.coach.swap?`<button class="btn sm primary swapbtn" data-a="coachSwap" data-e="${i}" data-id="${esc(e.coach.swap.id)}">Swap to ${esc(e.coach.swap.name)} (${esc(e.coach.swap.t)} tier)</button>`:''}</span></div>`:''}
     ${mode==='active'&&e.push?`<p class="pushline">${ic('flame','sm')}<span><b>How hard:</b> ${esc(e.push)}</span></p>`:''}
@@ -4681,11 +4683,19 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; t.c
 /* ---------- Workout lifecycle ---------- */
 function defaultName(){ const h=new Date().getHours(); return h<5?'Night Workout':h<12?'Morning Workout':h<17?'Afternoon Workout':h<21?'Evening Workout':'Night Workout'; }
 function newSet(){ return {type:'n',w:'',r:'',t:'',d:'',done:false}; }
+/* Swaps made during a routine workout stick: the routine is updated so next time starts with your pick */
+function rememberSwap(obj,oldId,newId){
+  if(!obj||!obj.routineId) return null; const r=st.routines[obj.routineId]; if(!r) return null;
+  const re=r.exercises.find(x=>x.exId===oldId); if(!re) return null;
+  const orig=re.swappedFrom||oldId; if(orig===newId) delete re.swappedFrom; else re.swappedFrom=orig;
+  re.exId=newId; re.note=''; re.swappedAt=Date.now(); (re.sets||[]).forEach(s=>{ s.w=''; });
+  r.updated=Date.now(); Store.put('routines',r.id,r); return r;
+}
 function buildFromRoutine(from){
   const u=st.settings.unit;
   const a={id:uid(),name:from?from.name:defaultName(),start:Date.now(),unit:u,dunit:st.settings.dist,routineId:from&&!from.tpl?from.id:null,notes:'',plan:from&&from.notes||'',exercises:[]};
   for(const e of from.exercises||[]){
-    a.exercises.push({exId:e.exId,rest:e.rest,note:'',cue:e.note||'',ss:e.ss||undefined,sets:(e.sets||[newSet()]).map(s=>({type:s.type||'n',w:'',r:'',t:'',d:'',done:false,pw:s.w!==''&&s.w!=null?round1(convW(num(s.w),from.unit||'lb',u)):'',pr:s.r??'',pt:s.t??'',pd:s.d??''}))});
+    a.exercises.push({exId:e.exId,rest:e.rest,note:'',cue:e.note||'',ss:e.ss||undefined,swapNote:e.swappedFrom&&getEx(e.swappedFrom)?`Kept your swap: ${getEx(e.exId).name} instead of ${getEx(e.swappedFrom).name}.`:undefined,sets:(e.sets||[newSet()]).map(s=>({type:s.type||'n',w:'',r:'',t:'',d:'',done:false,pw:s.w!==''&&s.w!=null?round1(convW(num(s.w),from.unit||'lb',u)):'',pr:s.r??'',pt:s.t??'',pd:s.d??''}))});
   }
   a.feel='normal'; a.knees='good'; applyCoach(a); return a;
 }
@@ -4711,12 +4721,6 @@ function startWorkout(from){
   if(from){ st.active=buildFromRoutine(from); Store.saveActive(true); ui.stack=[{name:'active'}]; render(); $('#main').scrollTop=0; wake(true); return; }
   const u=st.settings.unit;
   const a={id:uid(),name:from?from.name:defaultName(),start:Date.now(),unit:u,dunit:st.settings.dist,routineId:from&&!from.tpl?from.id:null,notes:'',plan:from&&from.notes||'',exercises:[]};
-  if(from){
-    for(const e of from.exercises||[]){
-      a.exercises.push({exId:e.exId,rest:e.rest,note:'',cue:e.note||'',ss:e.ss||undefined,sets:(e.sets||[newSet()]).map(s=>({type:s.type||'n',w:'',r:'',t:'',d:'',done:false,pw:s.w!==''&&s.w!=null?round1(convW(num(s.w),from.unit||'lb',u)):'',pr:s.r??'',pt:s.t??'',pd:s.d??''}))});
-    }
-    a.feel='normal'; a.knees='good'; applyCoach(a);
-  }
   st.active=a; Store.saveActive(true);
   ui.stack=[{name:'active'}]; render(); $('#main').scrollTop=0; wake(true);
 }
@@ -5095,7 +5099,8 @@ const A={
     const p=cur(); const host=ui.stack[ui.stack.length-2]; const obj= host.name==='active'? st.active : host.obj; if(!obj) return;
     const mode=host.name==='redit'?'routine':host.name;
     const mk=id=>{ const prev=mode!=='routine'? prevSetsFor(id):null; const n=prev? Math.min(prev.sets.length,8) : mode==='routine'?3:1; return {exId:id,note:'',sets:Array.from({length:n},()=>newSet())}; };
-    if(p.replace!=null && p.sel[0]){ const old=obj.exercises[p.replace]; obj.exercises[p.replace]={...mk(p.sel[0]),rest:old.rest}; }
+    if(p.replace!=null && p.sel[0]){ const old=obj.exercises[p.replace]; obj.exercises[p.replace]={...mk(p.sel[0]),rest:old.rest};
+      if(host.name==='active'&&!old.sets.some(s=>s.done)){ const kept=rememberSwap(obj,old.exId,p.sel[0]); if(kept){ obj.exercises[p.replace].swapNote=`Swapped in for ${getEx(old.exId).name}. Saved to ${kept.name} for next time.`; toast('Saved for next time'); } } }
     else for(const id of p.sel) obj.exercises.push(mk(id));
     if(host.name==='active') applyCoach(obj);
     ui.stack.pop(); changed(true);
@@ -5109,6 +5114,8 @@ const A={
     {label:'Move up',icon:'up',fn:()=>{ if(i>0){ obj.exercises.splice(i-1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
     {label:'Move down',icon:'down',fn:()=>{ if(i<obj.exercises.length-1){ obj.exercises.splice(i+1,0,obj.exercises.splice(i,1)[0]); changed(true);} }},
     {label:'Swap for an alternative',icon:'swap',fn:()=>A.swapOpen({e:i})},
+    ...((()=>{ if(cur().name!=='active'||!obj.routineId||!st.routines[obj.routineId]) return []; const r=st.routines[obj.routineId]; const re=r.exercises.find(x=>x.exId===e.exId); if(!re||!re.swappedFrom||!getEx(re.swappedFrom)) return [];
+      const back=re.swappedFrom; return [{label:`Go back to ${getEx(back).name} next time`,icon:'history',fn:()=>{ re.exId=back; delete re.swappedFrom; re.swappedAt=Date.now(); (re.sets||[]).forEach(s=>{ s.w=''; }); r.updated=Date.now(); Store.put('routines',r.id,r); e.swapNote=`${getEx(back).name} will be back in ${r.name} next time.`; changed(true); toast('Restored for next time'); }}]; })()),
     ...(i<obj.exercises.length-1&&!(e.ss&&obj.exercises[i+1].ss===e.ss)?[{label:'Superset with next exercise',icon:'link',fn:()=>{ const nx=obj.exercises[i+1]; const used=new Set(obj.exercises.map(x=>x.ss).filter(Boolean)); let L=e.ss||nx.ss; if(!L){ L='A'; while(used.has(L)) L=String.fromCharCode(L.charCodeAt(0)+1); } e.ss=L; nx.ss=L; changed(true); }}]:[]),
     ...(e.ss?[{label:'Remove from superset',icon:'x',fn:()=>{ const L=e.ss; delete e.ss; const rest=obj.exercises.filter(x=>x.ss===L); if(rest.length<2) rest.forEach(x=>delete x.ss); changed(true); }}]:[]),
     {label:'How to do it',icon:'play',fn:()=>push({name:'exd',id:e.exId,tab:'how'})},
@@ -5130,9 +5137,10 @@ const A={
     obj.exercises[i]={exId:d.id,rest:e.rest,note:'',ss:e.ss,sets:e.sets.filter(s=>!s.done||isRoutine).map(s=>({type:s.type||'n',w:'',r:isRoutine?s.r:'',t:isRoutine?s.t:'',d:'',done:false}))};
     if(!obj.exercises[i].sets.length) obj.exercises[i].sets=[newSet(),newSet(),newSet()];
     if(!obj.exercises[i].ss) delete obj.exercises[i].ss;
-    if(p.rt&&host.name==='active'&&obj.routineId&&st.routines[obj.routineId]){ const r=st.routines[obj.routineId]; const re=r.exercises.find(x=>x.exId===old.id); if(re){ re.exId=d.id; re.note=''; r.updated=Date.now(); Store.put('routines',r.id,r); } }
+    let kept=null; if(p.rt!==false&&host.name==='active') kept=rememberSwap(obj,old.id,d.id);
+    if(kept) obj.exercises[i].swapNote=`Swapped in for ${old.name}. Saved to ${kept.name} for next time.`;
     if(host.name==='active'){ delete obj.exercises[i].push; delete obj.exercises[i].coach; applyCoach(obj,true); }
-    ui.stack.pop(); changed(true); toast(`Swapped in ${nx.name}${p.rt?' (routine updated too)':''}`); },
+    ui.stack.pop(); changed(true); toast(`Swapped in ${nx.name}${kept?' · saved for next time':''}`); },
   swapAlt:(d)=>{ const obj=curObj(); const i=+d.e; const e=obj.exercises[i]; const alts=alternativesFor(getEx(e.exId));
     menu('Swap '+getEx(e.exId).name+' for…',alts.map(a=>({label:`${a.t} tier · ${a.e.name}`,fn:()=>{
       const isRoutine=cur().name==='redit';
@@ -5693,7 +5701,7 @@ PAGES.swap=function(p){
   return {hdr:hdr('Swap exercise',{left:backBtn}),body:`<section class="gut stack">
     <div class="card swapfrom">${thumb(ex)}<div class="minw"><span class="muted small">Replacing</span><b>${esc(ex.name)}</b><span class="muted small">${esc((ex.primary||[]).join(', '))} · ${esc(ex.equipment||'')}</span></div></div>
     ${eqs.length>1?`<div class="chips swapchips"><button class="chip ${!f?'on':''}" data-a="swapEq" data-v="">Best matches</button>${eqs.map(q=>`<button class="chip ${f===q?'on':''}" data-a="swapEq" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>`:''}
-    ${canRoutine?`<label class="swaprt"><input type="checkbox" data-f="swapRt" ${p.rt?'checked':''}> Also change it in <b>${esc(st.routines[obj.routineId].name)}</b></label>`:''}
+    ${canRoutine?`<label class="swaprt"><input type="checkbox" data-f="swapRt" ${p.rt!==false?'checked':''}> Keep this swap in <b>${esc(st.routines[obj.routineId].name)}</b> for next time</label>`:''}
     ${list.length?`<ul class="exlist card">${list.map((x,k)=>`<li><button class="exrow" data-a="swapTo" data-id="${esc(x.e.id)}">${thumb(x.e)}<span class="exrow-t"><b>${esc(x.e.name)}</b><span class="muted small">${esc([x.e.equipment,...x.why].filter(Boolean).join(' · '))}${x.done?` · done ${x.done}×`:''}</span></span>${!f&&k===0?'<span class="toppick">Top pick</span>':''}${x.t&&TIER_ORDER[x.t]<=1?`<span class="tier t${x.t}">${x.t}</span>`:''}</button></li>`).join('')}</ul>`:`<p class="muted">No close matches${f?' with '+esc(f):''}.</p>`}
     ${hid?`<p class="muted small center">Hiding ${hid} that need gear your gym doesn't have · <button class="linkbtn acc" data-a="swapAllGear">Show them</button> · <button class="linkbtn acc" data-a="openGym">My gym</button></p>`:missingGear().length?'':`<p class="muted small center"><button class="linkbtn acc" data-a="openGym">${ic('dumbbell','xs')} Set what your gym has</button></p>`}
     <button class="btn wide" data-a="swapSearch">${ic('search','sm')} Search all exercises</button>
@@ -5802,7 +5810,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611241016';
+window.WH_BUILD='202611250807';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
