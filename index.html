@@ -639,6 +639,7 @@ textarea{resize:vertical;line-height:1.4}
 .pts-foot{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 .swapnote .ic{color:var(--accent)!important}
 .synclog{display:grid;gap:6px;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}.synclog p{margin:0}.synclog .btn{justify-self:start}
+.pickrt{margin-bottom:8px;background:var(--surface);padding:8px 12px;border-radius:12px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2716,8 +2717,27 @@ function brainGlobal(unit){
   const rate=(ok+2)/(j+3); return {exercises:n,jumps:j,succ:ok,rate,style:j>=8?(rate>=0.85?'bold':rate<=0.5?'careful':'normal'):'learning',hardIsMed:hm>=3,easyIsMed:em>=3,tiredFine:tf>=3,workouts:workoutsSorted().length};
 }
 function brainStyle(exId,unit){ const L=learnFor(exId,unit); if(L.style!=='learning') return {style:L.style,src:'lift',L}; const G=brainGlobal(unit); return {style:G.style==='learning'?'normal':G.style,src:'all',L,G}; }
+/* First time on an exercise: estimate a starting weight from a similar lift you've done (same movement, overlapping muscles),
+   adjusted for equipment, and on the light side. Today's result then drives normal coaching. */
+const EQ_F={'Barbell':1,'Smith Machine':0.9,'Trap Bar':1.1,'EZ Bar':0.95,'Dumbbell':0.4,'Kettlebell':0.4,'Cable':0.6,'Machine':0.9,'Plate':0.35};
+function estimateStart(ex,note,unit){
+  if(!['wr'].includes(ex.type)||EQ_F[ex.equipment]==null) return null;
+  const fam=famOf(ex.pattern); const S=stats(); let best=null;
+  for(const id of Object.keys(S.byEx)){ if(id===ex.id) continue; const X=getEx(id); if(!X||X.type!=='wr'||EQ_F[X.equipment]==null) continue;
+    const sameFam=fam>=0&&famOf(X.pattern)===fam; const ov=(X.primary||[]).filter(m=>(ex.primary||[]).includes(m)).length; if(!sameFam||!ov) continue;
+    const h=S.byEx[id][0]; if(!h||Date.now()-h.w.start>120*DAY) continue; const t=topOf(h.e,h.w.unit,unit); if(!t||!t.W||!t.reps.length) continue;
+    const sc=ov*3+(X.pattern===ex.pattern?4:0)+(X.equipment===ex.equipment?2:0)-(Date.now()-h.w.start)/(30*DAY);
+    if(!best||sc>best.sc) best={sc,X,t,h}; }
+  if(!best) return null;
+  const [lo,hi]=repRange(note,ex); const reps=Math.round((lo+hi)/2);
+  const fOf=X=>X.pattern==='legpress'?1.6:EQ_F[X.equipment];
+  const one=e1rm(best.t.W,Math.min(...best.t.reps))*(fOf(ex)/fOf(best.X))*0.85;
+  const step=weightStep(ex,unit,one); let w=roundTo(one/(1+reps/30),step); if(w<step) w=step;
+  return {w,r:reps,msg:`First time on this one. Estimated from your ${best.X.name} (${fw(best.t.W)} ${unit} × ${Math.min(...best.t.reps)}): start at ${fw(w)} ${unit} × ${reps} and adjust if it feels off. The coach takes it from today's numbers.`,kind:'est',est:true};
+}
 function coachPlan(exId,note,check,unit){
   const ex=getEx(exId); const hist=sessionsFor(exId,4);
+  if(!hist.length){ const est=estimateStart(ex,note,unit); if(est) return est; }
   if(!hist.length) return {msg: noReps(ex)? (colsFor(ex).includes('w')?'First time: pick a load you can move the whole distance with good posture. The coach takes it from there.':'First time: find a pace you can hold the whole way. The coach takes it from there.') : 'First time: pick a weight that leaves 1–2 good reps in the tank. The coach takes it from there.',kind:'new'};
   const last=hist[0], lastT=topOf(last.e,last.w.unit,unit); if(!lastT) return null;
   const prev=hist[1]? topOf(hist[1].e,hist[1].w.unit,unit) : null;
@@ -4050,7 +4070,7 @@ home(){
     body+=`<div class="empty"><div class="empty-fig">${figSVG(BUILTIN.deadlift,{anim:'deadlift'})}</div><h2>Your first workout starts here</h2><p>Log sets, beat your numbers, and watch the pounds add up. Pick a routine or start empty.</p>
       <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-tab="routines">Browse routines</button></div></div>`;
   } else {
-    if(st.settings.swapSyncLog&&st.settings.swapSyncLog.length) body+=`<div class="card synclog"><b>${ic('swap','sm')} Routines matched to your last workouts</b>${st.settings.swapSyncLog.map(l=>`<p class="small"><b>${esc(l.name)}:</b> ${l.ch.map(c=>`${esc((getEx(c.from)||{}).name||'?')} → ${esc((getEx(c.to)||{}).name||'?')}`).join(', ')}</p>`).join('')}<p class="muted small">From now on, whatever you do in a workout is saved to its routine when you finish.</p><button class="btn sm" data-a="syncLogOk">Got it</button></div>`;
+    if(st.settings.swapSyncLog&&st.settings.swapSyncLog.length) body+=`<div class="card synclog"><b>${ic('swap','sm')} Routines matched to your last workouts</b>${st.settings.swapSyncLog.map(l=>`<p class="small"><b>${esc(l.name)}:</b> ${l.ch.map(c=>c.added?`+ ${esc((getEx(c.to)||{}).name||'?')}`:`${esc((getEx(c.from)||{}).name||'?')} → ${esc((getEx(c.to)||{}).name||'?')}`).join(', ')}</p>`).join('')}<p class="muted small">From now on, whatever you do in a workout is saved to its routine when you finish.</p><button class="btn sm" data-a="syncLogOk">Got it</button></div>`;
     body+=homeFeed(ws);
   }
   body+='</section>';
@@ -4165,7 +4185,7 @@ redit(p){ return loggerPage(p.obj,'routine'); },
 picker(p){
   const n=(p.sel||[]).length;
   return {hdr:hdr(p.replace!=null?'Replace exercise':'Add exercises',{left:backBtn}),
-   body:exerciseBrowser(true)+`<div class="floatbar gut"><button class="btn primary wide" data-a="pickDone" ${n?'':'disabled'}>${p.replace!=null?'Replace':'Add'}${n?` ${n} exercise${n>1?'s':''}`:''}</button></div>`};
+   body:exerciseBrowser(true)+`<div class="floatbar gut">${(()=>{ const host=ui.stack[ui.stack.length-2]; if(p.replace!=null||!host||host.name!=='active'||!st.active||!st.active.routineId||!st.routines[st.active.routineId]) return ''; return `<label class="swaprt pickrt"><input type="checkbox" data-f="pickRt" ${p.rt!==false?'checked':''}> Save to <b>${esc(st.routines[st.active.routineId].name)}</b> for next time</label>`; })()}<button class="btn primary wide" data-a="pickDone" ${n?'':'disabled'}>${p.replace!=null?'Replace':'Add'}${n?` ${n} exercise${n>1?'s':''}`:''}</button></div>`};
 },
 
 save(p){
@@ -4213,7 +4233,7 @@ done(p){
     ${worldCompare(vol)?`<p class="center lead">${worldCompare(vol)}</p>`:cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
     <div class="kv3"><div><label>Duration</label><b>${fmtDur(dur)}</b></div><div><label>Sets</label><b>${workoutSets(w)}</b></div><div><label>Streak</label><b>${streak} wk</b></div></div>
     ${prs.length?`<div class="card"><h3 class="gold-t">${ic('trophy','sm')} ${prs.length} new personal record${prs.length>1?'s':''}</h3><ul class="prlist">${prs.map(p=>`<li><span>${esc(getEx(p.exId).name)}</span><span class="muted small">${PR_LABEL[p.kind]}</span><b>${prValue(p)}</b></li>`).join('')}</ul></div>`:''}
-    ${w.routineSynced&&w.routineSynced.length?`<p class="muted small center">${ic('swap','sm')} Saved your exercise picks to <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b>: ${w.routineSynced.map(c=>esc(getEx(c.to).name)).join(', ')}.</p>`:''}
+    ${w.routineSynced&&w.routineSynced.length?`<p class="muted small center">${ic('swap','sm')} Saved to <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> for next time: ${w.routineSynced.map(c=>c.added?`added ${esc(getEx(c.to).name)}`:`${esc(getEx(c.to).name)} (swap)`).join(', ')}.</p>`:''}
     ${w.routineUpdated?`<p class="muted small center">${ic('spark','sm')} The coach saved today's weights into <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> and will set next session's targets from them.</p>`:''}
     <button class="btn wide strava" data-a="strava" data-id="${esc(w.id)}">${ic('share')} Share to Strava</button>
     <button class="btn primary wide" data-a="doneClose">Done</button>
@@ -4714,6 +4734,11 @@ function syncRoutineFromWorkout(r,w,skip){
     re.exId=x.exId; re.note=''; re.swappedAt=Date.now(); (re.sets||[]).forEach(s=>{ s.w=''; });
     out.push({from,to:x.exId});
   }
+  // exercises you added (not standing in for anything) join the routine in the spot you did them
+  for(const x of extras){ if(out.some(o=>o.to===x.exId)) continue; const wi=w.exercises.indexOf(x);
+    let at=r.exercises.length; for(let k=wi-1;k>=0;k--){ const pi=r.exercises.findIndex(e=>e.exId===w.exercises[k].exId); if(pi>=0){ at=pi+1; break; } }
+    const sets=x.sets.filter(s=>s.done!==false).map(s=>({type:s.type||'n',w:'',r:s.r??'',t:s.t??'',d:s.d??''}));
+    r.exercises.splice(at,0,{exId:x.exId,rest:x.rest,note:'',sets:sets.length?sets:[newSet()],addedAt:Date.now()}); out.push({from:null,to:x.exId,added:true}); }
   if(out.length){ r.updated=Date.now(); Store.put('routines',r.id,r); }
   return out;
 }
@@ -5134,7 +5159,7 @@ const A={
     const mk=id=>{ const prev=mode!=='routine'? prevSetsFor(id):null; const n=prev? Math.min(prev.sets.length,8) : mode==='routine'?3:1; return {exId:id,note:'',sets:Array.from({length:n},()=>newSet())}; };
     if(p.replace!=null && p.sel[0]){ const old=obj.exercises[p.replace]; obj.exercises[p.replace]={...mk(p.sel[0]),rest:old.rest};
       if(host.name==='active'&&!old.sets.some(s=>s.done)){ const kept=rememberSwap(obj,old.exId,p.sel[0]); if(kept){ obj.exercises[p.replace].swapNote=`Swapped in for ${getEx(old.exId).name}. Saved to ${kept.name} for next time.`; toast('Saved for next time'); } } }
-    else for(const id of p.sel) obj.exercises.push(mk(id));
+    else for(const id of p.sel){ const ne=mk(id); if(host.name==='active'&&p.rt===false) ne.tempSwap=true; obj.exercises.push(ne); }
     if(host.name==='active') applyCoach(obj);
     ui.stack.pop(); changed(true);
     setTimeout(()=>{ const m=$('#main'); if(m&&p.replace==null) m.scrollTop=m.scrollHeight; },30);
@@ -5386,6 +5411,7 @@ function onField(ev,commit){
       changed(false); return; }
     case 'exnote': curObj().exercises[+el.dataset.e].note=v; changed(false); return;
     case 'swapRt': p.rt=!!v; return;
+    case 'pickRt': p.rt=!!v; return;
     case 'gymEq': { const m=new Set(missingGear()); const q=el.dataset.v; v? m.delete(q) : m.add(q); st.settings.noEquip=EQUIP.filter(x=>m.has(x)); Store.saveSettings(); render(); return; }
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
@@ -5846,7 +5872,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611250810';
+window.WH_BUILD='202611250826';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
