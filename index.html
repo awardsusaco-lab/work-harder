@@ -647,6 +647,18 @@ textarea{resize:vertical;line-height:1.4}
 .kcal-bw{display:flex;gap:8px}.kcal-bw input{flex:1;min-width:0}
 .kcal-why{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:8px}.kcal-why ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .kcal-why li{display:flex;gap:8px;font-size:13px}.kcal-why li span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kcal-why li b{min-width:34px;text-align:right}
+.pgcard{display:grid;gap:8px}
+.pg-h{display:flex;align-items:center;justify-content:space-between;gap:8px}.pg-h b{display:flex;align-items:center;gap:6px}
+.seg.sm{display:inline-flex;background:var(--surface2);border-radius:999px;padding:3px}.seg.sm button{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;cursor:pointer}.seg.sm button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.pg-hero{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}.pg-num{font-family:var(--f-display);font-size:30px;line-height:1.05}
+.pg-delta{font-size:13px;font-weight:800;padding:3px 9px;border-radius:999px}.pg-delta.up,.pg-tip .up{color:var(--good)}.pg-delta.up{background:var(--good-bg)}.pg-delta.down,.pg-tip .down{color:#e8873a}.pg-delta.down{background:rgba(232,135,58,.13)}
+.pg-svg{width:100%;height:auto;display:block;overflow:visible}
+.pg-grid{stroke:var(--line);stroke-width:1}.pg-ax{fill:var(--muted);font-size:10px;font-family:inherit}
+.pg-bar{fill:color-mix(in srgb,var(--accent) 55%,transparent)}.pg-bar.cur{fill:color-mix(in srgb,var(--accent) 30%,transparent);stroke:var(--accent);stroke-width:1.5;stroke-dasharray:3 2}.pg-bar.sel{fill:var(--accent)}.pg-bar.cur.sel{fill:color-mix(in srgb,var(--accent) 70%,transparent)}
+.pg-line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.pg-area{fill:color-mix(in srgb,var(--accent) 14%,transparent)}
+.pg-dot{fill:var(--accent);stroke:var(--surface);stroke-width:2}.pg-dot.sel{stroke:var(--text);stroke-width:2}
+.pg-hit{fill:transparent;cursor:pointer}
+.pg-tip{margin:0;min-height:1.4em}.pg-best{margin:0;display:flex;align-items:center;gap:6px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3550,6 +3562,7 @@ Object.assign(I,{
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4M17.5 14.8c2.2.6 3.6 2.4 4 5.2"/>',
   chev:'<path d="m9 5 7 7-7 7"/>',
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
   grip:'<path d="M4 8h16M4 12h16M4 16h16"/>',
   swap:'<path d="M7 4 3.5 7.5 7 11M3.5 7.5H17M17 13l3.5 3.5L17 20M20.5 16.5H7"/>',
   heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
@@ -4078,6 +4091,7 @@ home(){
       <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-tab="routines">Browse routines</button></div></div>`;
   } else {
     if(st.settings.swapSyncLog&&st.settings.swapSyncLog.length) body+=`<div class="card synclog"><b>${ic('swap','sm')} Routines matched to your last workouts</b>${st.settings.swapSyncLog.map(l=>`<p class="small"><b>${esc(l.name)}:</b> ${l.ch.map(c=>c.added?`+ ${esc((getEx(c.to)||{}).name||'?')}`:`${esc((getEx(c.from)||{}).name||'?')} → ${esc((getEx(c.to)||{}).name||'?')}`).join(', ')}</p>`).join('')}<p class="muted small">From now on, whatever you do in a workout is saved to its routine when you finish.</p><button class="btn sm" data-a="syncLogOk">Got it</button></div>`;
+    body+=progressCard();
     body+=homeFeed(ws);
   }
   body+='</section>';
@@ -5112,6 +5126,8 @@ const A={
   aiRoutine:()=>openSheet({kind:'airoutine',text:''}),
   openW:(d)=>push({name:'wview',id:d.id}),
   syncLogOk:()=>{ delete st.settings.swapSyncLog; Store.saveSettings(); render(); },
+  pgMode:(d)=>{ ui.pgMode=d.v; ui.pgSel=null; render(); },
+  pgTip:(d)=>{ ui.pgSel=+d.i; render(); },
   pvToggle:(d)=>{ ui.pvOpen= ui.pvOpen===d.id? null : d.id; render(); },
   dayStep:(d)=>{ ui.dayOff=(ui.dayOff||0)+(+d.v); render(); },
   dayPick:(d)=>{ st.settings.upNext={f:d.f,id:d.id,after:(workoutsSorted()[0]||{start:0}).start}; Store.saveSettings(); ui.dayOff=0; toast(`${st.routines[d.id].name} is up next`); render(); },
@@ -5710,6 +5726,59 @@ function homeFeed(ws){
   if(!posts.length) h+='<p class="muted small">No workouts yet. Finish one and it shows up here for your friends.</p>';
   return h;
 }
+/* Home progress card: weekly totals (bars) or recent workouts (line), single accent hue, tap a mark for details */
+function progressCard(){
+  const ws=workoutsSorted(); if(ws.length<2) return '';
+  const u=st.settings.unit; const V=w=>convW(workoutVolumeLb(w),'lb',u); const mode=ui.pgMode||'weeks';
+  const short=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e4?Math.round(n/1e3)+'k':n>=1e3?(n/1e3).toFixed(1)+'k':Math.round(n)+'';
+  const md=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  const W=340,H=150,PL=34,PR=10,PT=14,PB=24, iw=W-PL-PR, ih=H-PT-PB;
+  let pts=[], head='', sub='', delta=null, svg='';
+  if(mode==='weeks'){
+    const now=weekStart(Date.now()); const N=8;
+    pts=[...Array(N)].map((_,k)=>{ const ws0=now-(N-1-k)*7*DAY; const inW=ws.filter(w=>weekStart(w.start)===ws0); return {t:ws0,v:inW.reduce((a,w)=>a+V(w),0),n:inW.length,cur:k===N-1}; });
+    const cur=pts[N-1], prev=pts[N-2];
+    head=`${fmtN(Math.round(cur.v))} ${u}`; sub=`this week · ${cur.n} workout${cur.n===1?'':'s'}`;
+    // fair comparison mid-week: last week up to the same day and time
+    const into=Date.now()-cur.t; const prevTD=ws.filter(w=>weekStart(w.start)===prev.t&&w.start-prev.t<=into).reduce((a,w)=>a+V(w),0);
+    if(prevTD>0){ const d=(cur.v-prevTD)/prevTD; delta={d,txt:`${d>=0?'▲':'▼'} ${Math.abs(Math.round(d*100))}% vs this point last week`}; }
+    else if(prev.v>0&&cur.v>0) delta={d:1,txt:'▲ ahead of last week\'s pace'};
+  } else {
+    pts=ws.slice(0,10).reverse().map(w=>({t:w.start,v:V(w),w}));
+    const last=pts[pts.length-1]; const sameR=ws.slice(1).find(x=>x.routineId&&x.routineId===last.w.routineId||norm(x.name)===norm(last.w.name));
+    head=`${fmtN(Math.round(last.v))} ${u}`; sub=`last workout · ${esc(last.w.name||'Workout')}`;
+    if(sameR){ const pv=V(sameR); if(pv>0){ const d=(last.v-pv)/pv; delta={d,txt:`${d>=0?'▲':'▼'} ${Math.abs(Math.round(d*100))}% vs last ${esc(last.w.name||'time')}`}; } }
+  }
+  const max=Math.max(1,...pts.map(p=>p.v)); const nice=(()=>{ const m=max*1.08; const p10=Math.pow(10,Math.floor(Math.log10(m/3))); const st_=[1,2,2.5,5,10].map(x=>x*p10).find(x=>x*3>=m)||p10*10; return st_*3; })();
+  const y=v=>PT+ih-(v/nice)*ih; const grid=[0,1,2,3].map(k=>{ const gv=nice*k/3; return `<line x1="${PL}" x2="${W-PR}" y1="${y(gv)}" y2="${y(gv)}" class="pg-grid"/><text x="${PL-6}" y="${y(gv)+3.5}" class="pg-ax" text-anchor="end">${short(gv)}</text>`; }).join('');
+  const sel=ui.pgSel!=null&&ui.pgSel<pts.length? ui.pgSel : pts.length-1;
+  if(mode==='weeks'){
+    const bw=iw/pts.length; const barW=Math.min(22,bw-6);
+    svg=pts.map((p,k)=>{ const x=PL+k*bw+(bw-barW)/2; const h=Math.max(p.v?3:0,(p.v/nice)*ih); const yy=PT+ih-h;
+      return `<path d="${h?`M${x},${PT+ih} V${yy+Math.min(4,h)} Q${x},${yy} ${x+Math.min(4,barW/2)},${yy} H${x+barW-Math.min(4,barW/2)} Q${x+barW},${yy} ${x+barW},${yy+Math.min(4,h)} V${PT+ih} Z`:''}" class="pg-bar${p.cur?' cur':''}${k===sel?' sel':''}"/>
+        ${k%2===(pts.length-1)%2?`<text x="${x+barW/2}" y="${H-8}" class="pg-ax" text-anchor="middle">${k===pts.length-1?'This wk':md(p.t)}</text>`:''}
+        <rect x="${PL+k*bw}" y="${PT}" width="${bw}" height="${ih+PB}" class="pg-hit" data-a="pgTip" data-i="${k}"><title>${md(p.t)}: ${fmtN(Math.round(p.v))} ${u}</title></rect>`; }).join('');
+  } else {
+    const step=iw/Math.max(1,pts.length-1); const X=k=>PL+k*step;
+    const line=pts.map((p,k)=>`${k?'L':'M'}${X(k).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
+    const area=`${line} L${X(pts.length-1)},${PT+ih} L${PL},${PT+ih} Z`;
+    svg=`<path d="${area}" class="pg-area"/><path d="${line}" class="pg-line"/>`+pts.map((p,k)=>`<circle cx="${X(k)}" cy="${y(p.v)}" r="${k===sel?5.5:4}" class="pg-dot${k===sel?' sel':''}"/>
+      ${k===0||k===pts.length-1?`<text x="${X(k)}" y="${H-8}" class="pg-ax" text-anchor="${k?'end':'start'}">${md(p.t)}</text>`:''}
+      <rect x="${X(k)-step/2}" y="${PT}" width="${step}" height="${ih+PB}" class="pg-hit" data-a="pgTip" data-i="${k}"><title>${md(p.t)}: ${fmtN(Math.round(p.v))} ${u}</title></rect>`).join('');
+  }
+  const sp=pts[sel]; let tip='';
+  if(mode==='weeks'){ const pv=pts[sel-1]; tip=`<b>${sel===pts.length-1?'This week':'Week of '+md(sp.t)}</b> · ${fmtN(Math.round(sp.v))} ${u} · ${sp.n} workout${sp.n===1?'':'s'}${pv&&pv.v&&sel<pts.length-1?` · <span class="${sp.v>=pv.v?'up':'down'}">${sp.v>=pv.v?'▲':'▼'} ${fmtN(Math.abs(Math.round(sp.v-pv.v)))} ${u}</span> vs week before`:''}`; }
+  else { const prevSame=ws.find(x=>x.start<sp.w.start&&(x.routineId&&x.routineId===sp.w.routineId||norm(x.name)===norm(sp.w.name))); const pv=prevSame?V(prevSame):0;
+    tip=`<b>${esc(sp.w.name||'Workout')}</b> · ${md(sp.t)} · ${fmtN(Math.round(sp.v))} ${u}${pv?` · <span class="${sp.v>=pv?'up':'down'}">${sp.v>=pv?'▲':'▼'} ${fmtN(Math.abs(Math.round(sp.v-pv)))} ${u}</span> vs last time`:''}`; }
+  const best= mode==='weeks'? (()=>{ const all={}; for(const w of ws){ const k=weekStart(w.start); all[k]=(all[k]||0)+V(w); } const e=Object.entries(all).sort((a,b)=>b[1]-a[1])[0]; return e?`Best week ever: <b>${fmtN(Math.round(e[1]))} ${u}</b> (${md(+e[0])})`:''; })() : '';
+  return `<div class="card pgcard">
+    <div class="pg-h"><b>${ic('chart','sm')} Weight lifted</b><div class="seg sm">${[['weeks','Weeks'],['workouts','Workouts']].map(([k,l])=>`<button class="${mode===k?'on':''}" data-a="pgMode" data-v="${k}">${l}</button>`).join('')}</div></div>
+    <div class="pg-hero"><span class="pg-num">${head}</span><span class="muted small">${sub}</span>${delta?`<span class="pg-delta ${delta.d>=0?'up':'down'}">${delta.txt}</span>`:''}</div>
+    <svg viewBox="0 0 ${W} ${H}" class="pg-svg" role="img" aria-label="${mode==='weeks'?'Weekly weight lifted, last 8 weeks':'Weight lifted per workout, last 10 workouts'}">${grid}${svg}</svg>
+    <p class="pg-tip small" aria-live="polite">${tip}</p>
+    ${best?`<p class="muted small pg-best">${ic('trophy','xs')} ${best}</p>`:''}
+  </div>`;
+}
 function findShared(fid,id){ const list= fid? ((Social.friends.find(x=>x.uid===fid)||{}).shared||[]) : (Social.myShared||[]); return list.find(x=>x.id===id); }
 function sharedRow(it,fid){
   const kind=it.type==='workout'?'Workout':it.type==='folder'?`Folder · ${it.routines} routines`:'Routine';
@@ -5959,7 +6028,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611260754';
+window.WH_BUILD='202611260759';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
