@@ -681,6 +681,10 @@ textarea{resize:vertical;line-height:1.4}
 .ht{display:flex;gap:6px}.ht input{min-width:0;flex:1}
 .wt-dot{fill:color-mix(in srgb,var(--accent) 45%,transparent)}
 .legendline{display:flex;align-items:center;gap:6px;margin:0}.lg-dot{width:8px;height:8px;border-radius:50%;background:color-mix(in srgb,var(--accent) 45%,transparent)}.lg-line{width:16px;height:2px;background:var(--accent);margin-left:8px}
+.focuschips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.focuschips .chip{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.pcard{display:grid;gap:8px}.pch{display:flex;gap:10px;align-items:flex-start}.pch .minw{display:flex;flex-direction:column;min-width:0}
+.pch-k{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-weight:900;background:var(--good-bg);color:var(--good)}.pch-k.set{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.msg .btn{margin-top:6px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -5970,7 +5974,17 @@ function coachSay(text){
   const notStarted=a? a.exercises.filter(e=>!e.sets.some(s=>s.done)) : [];
   // goals
   const gmap=[['lean',/lose (weight|fat)|losing weight|cut(ting)?\b|fat loss|lean(er)? out|drop weight/],['strength',/strong(er)?|strength|power|1 ?rep|max out/],['define',/defin|tone|toned|shred|ripped|cut up/],['endurance',/endurance|hunt|hike|hiking|pack|condition|stamina|mountain/],['muscle',/muscle|bulk|size|bigger|hypertroph|mass/],['general',/general|overall|healthy|just fit/]];
-  if(/goal|want to|trying to|i'm|im |focus/.test(t)||gmap.some(([,r])=>r.test(t))&&!/hurt|pain/.test(t)){ const g=gmap.find(([,r])=>r.test(t)); if(g&&/goal|want|trying|focus|switch|change|i'm|im |^(build|get|lose|more)/.test(t)){ st.settings.goalType=g[0]; Store.saveSettings(); acted=true; out.push(`Goal set: <b>${GOALS[g[0]].label}</b>. ${GOALS[g[0]].blurb} Your next workout is built this way${a?' (today\'s stays as it started)':''}.`); } }
+  { const pain=/hurt|pain|injur|tweak|ache/.test(t);
+    const fo=[]; if(/knee/.test(t)&&!pain) fo.push('knees'); if(/round(ed)? shoulder|posture|hunch|slouch|shoulders? back|upper back/.test(t)) fo.push('posture'); if(/hunt|season|elk|pack(ing)? out|mountain|backcountry/.test(t)) fo.push('hunt');
+    const wantsGoal=/goal|want|trying|focus|switch|change|need|help|get me|i'm|im |^(build|get|lose|more|bring)/.test(t);
+    let g=null; if(/lose (weight|fat)|losing weight|fat loss|cut(ting)?\b|drop weight|lean/.test(t)) g='lean'; else if(/defin|tone|toned|shred|ripped/.test(t)) g='define'; else if(/muscle|bulk|size|bigger|hypertroph|mass/.test(t)) g='muscle'; else if(/strong(er)?|strength|power/.test(t)) g='strength'; else if(fo.length===1&&fo[0]==='hunt'&&!/lose|defin/.test(t)) g='endurance';
+    if((g||fo.length)&&wantsGoal&&!(pain&&!g&&!fo.length)){
+      if(g){ st.settings.goalType=g; } const F=planFocus(); for(const k of fo) if(!F.includes(k)) F.push(k); Store.saveSettings(); acted=true;
+      const both=/lose|weight|fat/.test(t)&&/defin|tone/.test(t);
+      out.push(`Got it. Main goal: <b>${GOALS[goalKey()].label}</b>${both?' (definition comes with it: heavy lifting while you lean out)':''}${F.length?`, with focus on <b>${F.map(k=>FOCUS[k].label.toLowerCase()).join('</b>, <b>')}</b>`:''}.`);
+      const ch=planChanges(planFolder(),F); out.push(ch.length?`I'd restructure your ${planFolder()?'<b>'+esc(planFolder())+'</b> plan':'routines'} with ${ch.length} change${ch.length>1?'s':''}: ${[...new Set(ch.map(c=>getEx(c.exId).name))].slice(0,4).map(esc).join(', ')}${ch.length>4?'…':''}. <button class="btn sm primary" data-a="planReview">Review changes</button>`:'Your routines already cover that. Rep ranges, rest and finishers adjust automatically.');
+    }
+  }
   // time
   const mm=t.match(/(\d{2,3})\s*(min|minutes|m\b)/); if(/short on time|in a hurry|quick|only have|limited time|running late/.test(t)||mm&&/have|got|only/.test(t)){ if(needA()){ const m=mm?+mm[1]:35; a.timeCap=m; applyCoach(a,true); Store.saveActive(); acted=true; const nb=a.exercises.filter(e=>e.bonus&&!e.goalAdd).length; out.push(nb?`Got it, about ${m} minutes. I moved ${nb} lower-priority exercise${nb>1?'s':''} to <b>Bonus</b> at the end. Main lifts stay.`:`About ${m} minutes fits today's plan as is. Keep rests tight.`); } }
   // feel
@@ -6000,7 +6014,9 @@ PAGES.coach=function(){
   const log=ui.coachLog||(ui.coachLog=[{who:'c',html:`Hey${Social.profile&&Social.profile.name?' '+esc(Social.profile.name.split(' ')[0]):''}. Tell me how today's going or what you're training for, and I'll adjust the plan.`}]);
   const chips= ui.coachAsk==='pain'? Object.keys(PAIN_MAP).map(k=>[`My ${k} hurts`,k[0].toUpperCase()+k.slice(1)]) : st.active? [['I only have 40 minutes','40 min only'],["I'm tired today","I'm tired"],['Feeling great today','Feeling great'],['Something hurts','Something hurts'],['Too easy','Too easy'],['Too heavy','Too heavy'],['Why this plan?','Why this plan?']] : [['I want to build muscle','Build muscle'],['I want to get stronger','Get stronger'],['I want to lose fat','Lose fat'],['I want definition','Definition'],['Train for hunting season','Hunting fitness']];
   return {hdr:hdr('Coach',{left:backBtn}),body:`<section class="gut stack coachpg">
-    <div class="card goalpick"><div class="muted small">Training goal</div><div class="goalgrid">${Object.entries(GOALS).map(([k,g])=>`<button class="goalopt ${goalKey()===k?'on':''}" data-a="setGoal" data-v="${k}">${ic(g.icon,'sm')}<span>${g.label}</span></button>`).join('')}</div><p class="small muted">${esc(GOALS[goalKey()].blurb)}</p></div>
+    <div class="card goalpick"><div class="muted small">Training goal</div><div class="goalgrid">${Object.entries(GOALS).map(([k,g])=>`<button class="goalopt ${goalKey()===k?'on':''}" data-a="setGoal" data-v="${k}">${ic(g.icon,'sm')}<span>${g.label}</span></button>`).join('')}</div><p class="small muted">${esc(GOALS[goalKey()].blurb)}</p>
+      <div class="muted small" style="margin-top:8px">Also focus on</div><div class="chips focuschips">${Object.entries(FOCUS).map(([k,f])=>`<button class="chip ${planFocus().includes(k)?'on':''}" data-a="focusToggle" data-v="${k}">${ic(f.icon,'xs')} ${f.label}</button>`).join('')}</div>
+      <div class="row2"><button class="btn sm" data-a="planReview">${ic('spark','sm')} Rebuild my routines</button>${st.settings.planBackup?`<button class="btn sm ghost" data-a="planUndo">${ic('history','sm')} Undo last rebuild</button>`:''}</div></div>
     <div class="chatlog" id="chatlog">${log.map(m=>`<div class="msg ${m.who==='me'?'me':'c'}">${m.who==='me'?esc(m.html):m.html}</div>`).join('')}</div>
     <div class="chips coachchips">${chips.map(([v,l])=>`<button class="chip" data-a="coachChip" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div>
     <div class="cbox chatbox"><input id="coachin" placeholder="Tell the coach…" autocomplete="off" enterkeyhint="send"><button class="btn primary sm" data-a="coachSend">Send</button></div>
@@ -6346,6 +6362,76 @@ Object.assign(A,{
   fuelWeigh:()=>{ const v=num(($('#wtin')||{}).value); if(!v) return; const t=Date.now(); const today=startOfDay(t); st.body.entries=(st.body.entries||[]).filter(e=>startOfDay(e.t)!==today); st.body.entries.push({t,w:v,u:st.settings.unit}); st.settings.bodyW=v; Store.saveSettings(); Store.saveBody(); toast('Weight saved'); render(); },
 });
 
+/* ===================== PLAN RESTRUCTURE: the coach rebuilds routines around your goals ===================== */
+const FOCUS={
+  knees:{label:'Healthy knees',icon:'shield',why:'Strong quads, tibialis and controlled single-leg work protect the knees (knee-over-toe style training).'},
+  posture:{label:'Shoulders back',icon:'back',why:'More pulling than pushing, plus rear delts and rotator cuff, pulls rounded shoulders back.'},
+  hunt:{label:'Hunting season',icon:'mountain',why:'Carries, sleds, step-ups, single-leg strength and uphill conditioning for packing in and out.'},
+};
+const PULL_PAT=/row|pull|chin|facepull|revfly|revpec|reardelt|rear|ext_rot|y_raise|shrug|pulldown/; const PUSH_PAT=/bench|press|incline|ohp|dip|pushup|fly(?!.*rev)|tri|landmine|seatpress/;
+function dayKind(r){ let up=0,lo=0; for(const e of r.exercises){ const X=getEx(e.exId); if(!X) continue; const P=X.primary||[]; if(P.some(m=>['Quads','Hamstrings','Glutes','Calves','Adductors','Abductors'].includes(m))) lo++; if(P.some(m=>['Chest','Lats','Upper Back','Shoulders','Biceps','Triceps','Traps'].includes(m))) up++; } return /pack|conditioning/i.test(r.name)? 'pack' : lo>up? 'lower' : up>lo? 'upper' : 'full'; }
+function hasAny(r,ids){ return r.exercises.some(e=>ids.includes(e.exId)); }
+function planHas(list,ids){ return list.some(r=>hasAny(r,ids)); }
+function mkSets(n,o){ return [...Array(n)].map(()=>({type:'n',w:'',r:o.r??'',t:o.t??'',d:o.d??''})); }
+function planFocus(){ return st.settings.focus||(st.settings.focus=[]); }
+/* Build the list of changes (nothing is saved until you approve) */
+function planChanges(folder,focus){
+  const list=routinesSorted().filter(r=>folder? r.folder===folder : true); if(!list.length) return [];
+  const ch=[]; const add=(r,exId,sets,why,front)=>{ if(!getEx(exId)||hasAny(r,[exId])||ch.some(c=>c.rid===r.id&&c.exId===exId)) return; ch.push({rid:r.id,kind:'add',exId,sets,why,front:!!front}); };
+  const uppers=list.filter(r=>['upper','full'].includes(dayKind(r))), lowers=list.filter(r=>['lower','full'].includes(dayKind(r))), pack=list.find(r=>dayKind(r)==='pack');
+  if(focus.includes('posture')) for(const r of uppers){
+    if(!hasAny(r,['facepull','facepull_lying','revfly','sidefacing_reardelt','band_pullapart','revpecdeck','cable_y_raise','incline_y_raise'])) add(r,'facepull',mkSets(3,{r:15}),'Rear delts and upper back: the main fix for rounded shoulders',true);
+    if(!r.exercises.some(e=>/row/.test(e.exId)||/row/.test(getEx(e.exId).pattern||''))) add(r,'chest_supported_row',mkSets(3,{r:10}),'Chest-supported rowing builds the mid-back without loading your lower back');
+    let pull=0,push=0; for(const e of r.exercises){ const n=e.sets.filter(s=>s.type!=='w').length; if(PULL_PAT.test(e.exId)) pull+=n; else if(PUSH_PAT.test(e.exId)) push+=n; }
+    const adds=ch.filter(c=>c.rid===r.id).reduce((a,c)=>a+c.sets.length,0); if(push&&(pull+adds)/push<1.5){ const row=r.exercises.find(e=>/row/.test(e.exId)); if(row) ch.push({rid:r.id,kind:'set',exId:row.exId,why:`More pulling than pushing (now ${pull+adds+1} pull vs ${push} push sets)`}); }
+  }
+  if(focus.includes('posture')&&uppers[0]){ if(!planHas(list,['ext_rotation','cable_y_raise','incline_y_raise','cuban_press'])) add(uppers[0],'ext_rotation',mkSets(2,{r:15}),'Rotator cuff: keeps the shoulders healthy as they open up'); if(!planHas(list,['shoulder_dislocate','thoracic_rot'])) add(uppers[0],'shoulder_dislocate',mkSets(2,{r:12}),'Opens the chest and upper back as a warm-up',true); }
+  if(focus.includes('knees')) for(const r of lowers){
+    if(!hasAny(r,['tib_raise'])) add(r,'tib_raise',mkSets(2,{r:20}),'Tibialis raises strengthen the front of the shin: a classic knee-health warm-up',true);
+    if(!hasAny(r,['wallsit','reverse_nordic','sl_legext','legext','spanish_squat','bss','split_squat','stepup','reverse_lunge'])) add(r,'wallsit',mkSets(2,{t:45}),'Quad isometric: builds the quads and usually calms cranky knees');
+  }
+  if(focus.includes('knees')&&lowers[0]&&!planHas(list,['stepup','reverse_lunge','split_squat'])) add(lowers[0],'stepup',mkSets(3,{r:8}),'Slow, controlled step-ups build knee strength through a full range');
+  if(focus.includes('hunt')){ const tgt=i=>pack||lowers[i%Math.max(1,lowers.length)]||list[0];
+    if(!planHas(list,['farmers','suitcase_carry','sandbag_carry'])) add(tgt(0),'farmers',mkSets(3,{d:40}),'Loaded carries: grip, core and legs for packing meat out');
+    if(!planHas(list,['sled_drag','sledpush'])) add(tgt(1),'sled_drag',mkSets(3,{d:40}),'Sled work: leg drive and knee-friendly conditioning');
+    if(!planHas(list,['stepup'])) add(tgt(0),'stepup',mkSets(3,{r:8}),'Step-ups: the movement of climbing in the mountains');
+    if(!planHas(list,['bss','split_squat','reverse_lunge','sl_rdl','walklunge','lunge_db'])) add(tgt(1),'reverse_lunge',mkSets(3,{r:8}),'Single-leg strength for uneven ground');
+    if(!planHas(list,['incline_walk','ruck','stairs'])) add(tgt(0),'ruck',mkSets(1,{t:1200}),'Rucking: uphill conditioning with weight on your back');
+    if(!planHas(list,['calf_stand','sl_calf','calf_seat','donkey_calf','leg_press_calf'])) add(tgt(1),'sl_calf',mkSets(3,{r:12}),'Calves and ankles for steep sidehills');
+  }
+  return ch;
+}
+function applyPlanChanges(ch){
+  const backup={at:Date.now(),routines:{}}; for(const c of ch) if(!backup.routines[c.rid]) backup.routines[c.rid]=clone(st.routines[c.rid]);
+  st.settings.planBackup=backup;
+  for(const c of ch){ const r=st.routines[c.rid]; if(!r) continue;
+    if(c.kind==='add'){ const e={exId:c.exId,rest:c.front?45:90,note:'',sets:clone(c.sets),addedBy:'coach'}; if(c.front) r.exercises.unshift(e); else r.exercises.push(e); }
+    if(c.kind==='set'){ const e=r.exercises.find(x=>x.exId===c.exId); if(e){ const w=e.sets.filter(s=>s.type!=='w'); const last=w[w.length-1]; if(last) e.sets.push({...clone(last)}); } }
+    r.updated=Date.now(); }
+  for(const id of Object.keys(backup.routines)) Store.put('routines',id,st.routines[id]); Store.saveSettings();
+}
+function planFolder(){ const a=st.active; if(a&&a.routineId&&st.routines[a.routineId]) return st.routines[a.routineId].folder||null; const nx=typeof upNext==='function'? upNext() : null; return nx&&nx.f||null; }
+PAGES.planChange=function(){
+  const f=planFolder(); const focus=planFocus(); const ch=planChanges(f,focus); const G=GOALS[goalKey()];
+  const byR={}; for(const c of ch) (byR[c.rid]=byR[c.rid]||[]).push(c);
+  const cap=+st.settings.maxEx||0;
+  return {hdr:hdr('Plan changes',{left:backBtn}),body:`<section class="gut stack">
+    <div class="card"><b>${ic(G.icon,'sm')} ${esc(G.label)}${focus.length?' + '+focus.map(k=>FOCUS[k].label).join(', '):''}</b><p class="muted small">${esc(G.blurb)}${focus.map(k=>' '+FOCUS[k].why).join('')}</p>
+      <p class="small">Rep ranges, rest times and finishers for <b>${esc(G.label)}</b> apply automatically every workout. Below are the changes to the routines themselves${f?` in <b>${esc(f)}</b>`:''}.</p></div>
+    ${ch.length? Object.entries(byR).map(([rid,cs])=>{ const r=st.routines[rid]; const n=r.exercises.length+cs.filter(c=>c.kind==='add').length;
+      return `<div class="card pcard"><b>${esc(r.name)}</b>${cs.map(c=>`<div class="pch"><span class="pch-k ${c.kind}">${c.kind==='add'?'+':'↑'}</span><span class="minw"><b>${esc(getEx(c.exId).name)}</b><span class="muted small">${c.kind==='add'?`${c.sets.length} × ${c.sets[0].r?c.sets[0].r+' reps':c.sets[0].t?fmtTime(c.sets[0].t):c.sets[0].d+' '+st.settings.dist}${c.front?' · at the start':''}`:'+1 set'} · ${esc(c.why)}</span></span></div>`).join('')}
+        ${cap&&n>cap?`<p class="muted small">${n} exercises with your cap of ${cap}: the lowest-priority ones go to Bonus on short days.</p>`:''}</div>`; }).join('')
+      : `<div class="card"><p class="small">${ic('check','sm')} Your plan already covers ${focus.length?'these goals':'this goal'}. Nothing to add.</p></div>`}
+    ${ch.length?`<button class="btn primary wide big" data-a="planApply">${ic('check')} Apply ${ch.length} change${ch.length>1?'s':''}</button><p class="muted small center">You can undo this from the Coach screen.</p>`:''}
+  </section>`};
+};
+Object.assign(A,{
+  planReview:()=>push({name:'planChange'}),
+  planApply:()=>{ const ch=planChanges(planFolder(),planFocus()); if(!ch.length) return; applyPlanChanges(ch); ui.stack.pop(); (ui.coachLog||(ui.coachLog=[])).push({who:'c',html:`Done. I made ${ch.length} change${ch.length>1?'s':''} to your routines. Your next workouts use the new structure. <button class="linkbtn acc" data-a="planUndo">Undo</button>`}); toast('Plan updated'); render(); },
+  planUndo:()=>{ const b=st.settings.planBackup; if(!b) return; for(const [id,r] of Object.entries(b.routines)){ st.routines[id]=r; Store.put('routines',id,r); } delete st.settings.planBackup; Store.saveSettings(); (ui.coachLog||(ui.coachLog=[])).push({who:'c',html:'Undone. Your routines are back to how they were.'}); toast('Plan changes undone'); render(); },
+  focusToggle:(d)=>{ const f=planFocus(); const i=f.indexOf(d.v); if(i>=0) f.splice(i,1); else f.push(d.v); Store.saveSettings(); render(); },
+});
+
 (function boot(){
   render();
   Store.init().then(()=>{
@@ -6355,7 +6441,7 @@ Object.assign(A,{
 
 </script>
 <script>
-window.WH_BUILD='202611260811';
+window.WH_BUILD='202611260813';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
