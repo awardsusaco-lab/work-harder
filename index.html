@@ -5623,8 +5623,10 @@ const Social={
     try{
       const me={...this.myStatus(),name:(this.profile&&this.profile.name)||'',updatedAt:Date.now()};
       await this.api.setProfile(this.user.uid,me); this.profile={...(this.profile||{}),...me};
-      const ws=workoutsSorted().slice(0,10);
+      // first sync on this version: share every workout logged in the app (not old imports), with corrected points
+      const full=!st.settings.feedBackfill2; const ws= full? workoutsSorted().filter(w=>!w.imported).slice(0,60) : workoutsSorted().slice(0,10);
       for(const w of ws){ await this.api.putFeed(this.user.uid,w.id,this.feedItem(w)); }
+      if(full){ st.settings.feedBackfill2=Date.now(); Store.saveSettings(); }
       this.syncedAt=Date.now(); this.err='';
     }catch(e){ this.err=e.message||String(e); console.warn('sync',e); }
   },
@@ -5706,7 +5708,7 @@ const Social={
   async loadFriends(){
     if(!this.user) return; this.loading=true;
     try{ const ids=await this.api.listFriends(this.user.uid); const out=[];
-      for(const id of ids){ try{ const p=await this.api.getProfile(id); if(!p) continue; const feed=await this.api.listFeed(id,8); out.push({uid:id,...p,feed,shared:[]}); }catch(e){} }
+      for(const id of ids){ try{ const p=await this.api.getProfile(id); if(!p) continue; const feed=await this.api.listFeed(id,15); out.push({uid:id,...p,feed,shared:[]}); }catch(e){} }
       this.friends=out.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
       try{ this.myShared=await this.api.listShared(this.user.uid,30); await this.migrateShares(); }catch(e){}
       try{ const inbox=await this.api.listInbox(this.user.uid,40); for(const f of this.friends) f.shared=inbox.filter(x=>x.fromUid===f.uid); }catch(e){}
@@ -6463,7 +6465,7 @@ setInterval(()=>{ if(document.visibilityState==='visible'&&typeof Social!=='unde
 
 </script>
 <script>
-window.WH_BUILD='202611261132';
+window.WH_BUILD='202611261134';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
