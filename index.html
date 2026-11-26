@@ -5417,7 +5417,7 @@ const A={
     if(srcR){ const ch=syncRoutineFromWorkout(st.routines[a.routineId],a); if(ch.length){ a.routineSynced=ch; Store.put('workouts',a.id,a); } }
     st.active=null; Store.saveActive(true); ui.rest=null; wake(false);
     ui.tab='home'; ui.stack=[{name:'done',id:a.id}]; render(); $('#main').scrollTop=0;
-    if(Social.user) Social.syncAll();
+    if(Social.user) Social.syncAll(); else if(Social.configured()){ Social.pendingSync=true; Social.init(); }
   },
   doneClose:()=>{ ui.stack=[]; ui.tab='home'; render(); },
   editSave:()=>{ const p=cur(); const o=clone(p.obj); normalizeSets(o,true); o.saved=true; if(!o.name) o.name='Workout'; o.prs=computePRs(o); Store.put('workouts',o.id,o); ui.stack.pop(); toast('Workout updated'); render(); },
@@ -5604,7 +5604,7 @@ const Social={
         delComment:(owner,fid,cid)=>fs.deleteDoc(D('users',owner,'feed',fid,'comments',cid)),
       };
     }
-    this.api.onAuth(async u=>{ this.user=u; this.ready=true; if(u){ await this.loadMe(); this.syncAll(); this.loadFriends(); } else { this.profile=null; this.friends=[]; } softRender(true); });
+    this.api.onAuth(async u=>{ this.user=u; this.ready=true; if(u){ await this.loadMe(); await this.syncAll(); this.pendingSync=false; this.loadFriends(); } else { this.profile=null; this.friends=[]; } softRender(true); });
   },
   async loadMe(){ try{ this.profile=await this.api.getProfile(this.user.uid); if(!this.profile||!this.profile.code){ await this.ensureCode(); } }catch(e){ this.err=e.message; } },
   async ensureCode(){
@@ -6460,12 +6460,15 @@ setInterval(()=>{ if(document.visibilityState==='visible'&&typeof Social!=='unde
   render();
   Store.init().then(()=>{
     if(!st.settings.swapSync1){ try{ const log=syncAllRoutines(); st.settings.swapSync1=Date.now(); if(log.length) st.settings.swapSyncLog=log; Store.saveSettings(); }catch(e){ console.warn('swap sync',e); } }
-    render(); if(st.active) wake(true); });
+    render(); if(st.active) wake(true);
+    // connect to Friends at every launch so finished workouts always upload (it used to wait for the Friends tab)
+    try{ if(Social.configured()&&!Social.ready) Social.init(); }catch(e){}
+  });
 })();
 
 </script>
 <script>
-window.WH_BUILD='202611261134';
+window.WH_BUILD='202611261207';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
