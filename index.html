@@ -686,6 +686,8 @@ textarea{resize:vertical;line-height:1.4}
 .pch-k{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-weight:900;background:var(--good-bg);color:var(--good)}.pch-k.set{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
 .msg .btn{margin-top:6px}
 .syncline{display:flex;justify-content:center;align-items:center;gap:6px}.warn-t{color:#e8873a}
+.conncheck summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none}.conncheck summary::-webkit-details-marker{display:none}
+.cc-list{list-style:none;margin:10px 0;padding:0;display:grid;gap:6px;font-size:13px}.cc-list li{display:flex;justify-content:space-between;gap:10px}.cc-list span{color:var(--muted)}.cc-list b{text-align:right;overflow-wrap:anywhere}.cc-err b{color:#e8873a}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3489,7 +3491,7 @@ function currentPlan(){
   for(const w of workoutsSorted()){ const k=pointsKeyOf(w); if(k) return k; }
   const nx=upNext(); return nx&&nx.r.folder? nx.r.folder : null;
 }
-function planStart(key){ const ps=st.settings.planStarts||{}; if(key&&ps[key]) return ps[key]; const ws=key? workoutsSorted().filter(w=>pointsKeyOf(w)===key) : workoutsSorted().filter(w=>!w.imported); return ws.length? ws[ws.length-1].start : Date.now(); }
+function planStart(key){ const ps=st.settings.planStarts||{}; if(key&&ps[key]) return ps[key]; let ws=key? workoutsSorted().filter(w=>pointsKeyOf(w)===key) : []; if(!ws.length) ws=workoutsSorted().filter(w=>!w.imported&&pointsKeyOf(w)===null); return ws.length? ws[ws.length-1].start : Date.now(); }
 function trophyPoints(until){
   const key=currentPlan(); const from=planStart(key); const goal=st.settings.goal||4;
   const ws=workoutsSorted().filter(w=>w.start>=from&&(until==null||w.start<=until)&&(!key||pointsKeyOf(w)===key||pointsKeyOf(w)===null));
@@ -5569,7 +5571,9 @@ const Social={
   ready:false, user:null, profile:null, friends:[], myShared:[], posts:[], reacts:{}, myFeed:[], loading:false, err:'', api:null,
   configured(){ return !!(window.WH_MOCK_FB || (FB_CONFIG && window.WH_STANDALONE)); },
   async init(){
-    if(this.api||!this.configured()) return;
+    if(this.api||!this.configured()||this._initing) return; this._initing=true; try{ return await this._init(); }catch(e){ this.initErr=String(e&&e.message||e); (window.WH_ERRS||[]).push('connect: '+this.initErr); } finally{ this._initing=false; }
+  },
+  async _init(){
     if(window.WH_MOCK_FB){ this.api=window.WH_MOCK_FB; }
     else {
       const [app,auth,fs]=await Promise.all([import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${FBV}/firebase-firestore.js`)]);
@@ -5618,17 +5622,20 @@ const Social={
     const names= wk==='hunt'? TROPHY[trophyKind()].stages : wk==='mil'? BRANCHES[branchKey()].ranks : WORLDS[wk].stages;
     return {world:wk,kind,stage:stg,stageName:names[stg],pts:tp.pts,theme:st.settings.theme||'steel'};
   },
+  /* Upload my status + workouts. Each step is separate so one failure can't block the rest; a short diagnostic rides along so problems can be seen from the Firebase console. */
   async syncAll(){
-    if(!this.user) return; this._lastSync=Date.now();
-    try{
-      const me={...this.myStatus(),name:(this.profile&&this.profile.name)||'',updatedAt:Date.now()};
-      await this.api.setProfile(this.user.uid,me); this.profile={...(this.profile||{}),...me};
-      // first sync on this version: share every workout logged in the app (not old imports), with corrected points
-      const full=!st.settings.feedBackfill2; const ws= full? workoutsSorted().filter(w=>!w.imported).slice(0,60) : workoutsSorted().slice(0,10);
-      for(const w of ws){ await this.api.putFeed(this.user.uid,w.id,this.feedItem(w)); }
-      if(full){ st.settings.feedBackfill2=Date.now(); Store.saveSettings(); }
-      this.syncedAt=Date.now(); this.err='';
-    }catch(e){ this.err=e.message||String(e); console.warn('sync',e); }
+    if(!this.user) return; this._lastSync=Date.now(); const uid=this.user.uid; const errs=[];
+    const clean=o=>JSON.parse(JSON.stringify(o,(k,v)=> typeof v==='number'&&!isFinite(v)? 0 : v));
+    const tmo=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timed out (no connection?)')),ms))]);
+    let me={}; try{ me=this.myStatus(); }catch(e){ errs.push('status: '+(e.message||e)); }
+    const all=workoutsSorted(); const full=!st.settings.feedBackfill2; const ws= full? all.filter(w=>!w.imported).slice(0,60) : all.slice(0,10);
+    const diag={ver:String(window.WH_BUILD||''),at:Date.now(),workouts:all.length,inApp:all.filter(w=>!w.imported).length,app:!!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)),ua:navigator.userAgent.slice(0,140),lastErr:(window.WH_ERRS||[]).slice(-2).join(' | ').slice(0,300)};
+    try{ await tmo(this.api.setProfile(uid,clean({...me,name:(this.profile&&this.profile.name)||'',updatedAt:Date.now(),diag})),20000); this.profile={...(this.profile||{}),...me}; }catch(e){ errs.push('profile: '+(e.code||e.message||e)); }
+    let ok=0; for(const w of ws){ try{ await tmo(this.api.putFeed(uid,w.id,clean(this.feedItem(w))),20000); ok++; }catch(e){ errs.push(`workout "${w.name||''}": `+(e.code||e.message||e)); if(errs.length>=4) break; } }
+    this.sharedCount=ok; this.sharedOf=ws.length;
+    if(full&&ok===ws.length){ st.settings.feedBackfill2=Date.now(); Store.saveSettings(); }
+    this.err=errs[0]||''; this.errs=errs; if(!errs.length||ok) this.syncedAt=Date.now();
+    if(errs.length){ console.warn('sync',errs); try{ await tmo(this.api.setProfile(uid,clean({diag:{...diag,syncErr:errs.slice(0,3).join(' | ').slice(0,400)}})),10000); }catch(e){} }
   },
   async freshen(force){
     if(!this.user||this._fresh) return; const now=Date.now(); if(!force&&now-(this._lastFresh||0)<45000) return;
@@ -5768,6 +5775,16 @@ TABS.friends=function(){
       return all.length?`<h2 class="sec">${ic('share')} Shared with you</h2><ul class="shlist card">${all.map(x=>sharedRow(x.it,x.fid)).join('')}</ul>`:''; })()}
     <h2 class="sec">${ic('upload')} You've shared <span class="muted small">${(Social.myShared||[]).length}</span></h2>
     ${(Social.myShared||[]).length?`<ul class="shlist card">${Social.myShared.map(it=>sharedRow(it,null)).join('')}</ul>`:`<p class="muted small">Share a routine, folder or workout from its ⋯ menu and pick which friends get it.</p>`}
+    <details class="card conncheck"><summary><b>${ic('shield','sm')} Connection check</b> <span class="muted small">${Social.err?'problem found':'all good'}</span></summary>
+      <ul class="cc-list">
+        <li><span>Signed in as</span><b>${esc(Social.user&&Social.user.email||'?')}</b></li>
+        <li><span>App version</span><b>${esc(String(window.WH_BUILD||'?'))}</b></li>
+        <li><span>Installed home-screen app</span><b>${navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)?'Yes':'No (browser tab)'}</b></li>
+        <li><span>Workouts on this phone</span><b>${workoutsSorted().length} (${workoutsSorted().filter(w=>!w.imported).length} logged in this app)</b></li>
+        <li><span>Last share</span><b>${Social.syncedAt?esc(agoTxt(Social.syncedAt))+(Social.sharedOf?` · ${Social.sharedCount}/${Social.sharedOf} workouts`:''):'not yet'}</b></li>
+        ${(Social.errs||[]).map(e=>`<li class="cc-err"><span>Error</span><b>${esc(e)}</b></li>`).join('')}
+      </ul>
+      <button class="btn sm" data-a="refreshFriends">${ic('upload','sm')} Share now</button></details>
     <p class="muted small center syncline">${Social.err?`<span class="warn-t">${ic('x','xs')} Last share failed: ${esc(Social.err.slice(0,80))}</span>`:Social.syncedAt?`${ic('check','xs')} Your workouts shared ${esc(agoTxt(Social.syncedAt))}`:'Sharing your workouts…'}</p>
     <button class="btn ghost wide sm" data-a="refreshFriends">${ic('history','sm')} Refresh</button>
     <button class="btn ghost wide sm danger-t" data-a="signOut">Sign out</button>`;
@@ -6454,6 +6471,7 @@ Object.assign(A,{
   focusToggle:(d)=>{ const f=planFocus(); const i=f.indexOf(d.v); if(i>=0) f.splice(i,1); else f.push(d.v); Store.saveSettings(); render(); },
 });
 
+window.WH_ERRS=[]; window.addEventListener('error',e=>{ try{ WH_ERRS.push(String(e.message||e).slice(0,140)); if(WH_ERRS.length>5) WH_ERRS.shift(); }catch(_){} }); window.addEventListener('unhandledrejection',e=>{ try{ WH_ERRS.push('promise: '+String(e.reason&&e.reason.message||e.reason).slice(0,140)); if(WH_ERRS.length>5) WH_ERRS.shift(); }catch(_){} });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&typeof Social!=='undefined') Social.freshen(); });
 setInterval(()=>{ if(document.visibilityState==='visible'&&typeof Social!=='undefined'&&['home','friends'].includes(ui.tab)&&!ui.stack.length) Social.freshen(); },90000);
 (function boot(){
@@ -6468,7 +6486,7 @@ setInterval(()=>{ if(document.visibilityState==='visible'&&typeof Social!=='unde
 
 </script>
 <script>
-window.WH_BUILD='202611261207';
+window.WH_BUILD='202611261211';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
