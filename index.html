@@ -642,6 +642,11 @@ textarea{resize:vertical;line-height:1.4}
 .pickrt{margin-bottom:8px;background:var(--surface);padding:8px 12px;border-radius:12px}
 .btn.health{background:linear-gradient(135deg,#ff375f,#ff6b81);color:#fff;border:0}
 .hsteps{margin:0;padding-left:22px;display:grid;gap:12px}.hsteps p{margin:4px 0 0;color:var(--muted)}
+.kcal{display:grid;gap:6px}.kcal p{margin:0}
+.kcal-top{display:flex;align-items:baseline;gap:6px}.kcal-top .ic{color:#ff7a45;align-self:center}.kcal-big{font-family:var(--f-display);font-size:34px;line-height:1}.kcal-u{font-weight:700;flex:1}
+.kcal-bw{display:flex;gap:8px}.kcal-bw input{flex:1;min-width:0}
+.kcal-why{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:8px}.kcal-why ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.kcal-why li{display:flex;gap:8px;font-size:13px}.kcal-why li span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kcal-why li b{min-width:34px;text-align:right}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -4234,6 +4239,14 @@ done(p){
     <div class="liftbig"><span class="num">${fmtN(convW(vol,'lb',u))}</span><span class="unit">${u} lifted</span></div>
     ${worldCompare(vol)?`<p class="center lead">${worldCompare(vol)}</p>`:cmp?`<p class="center lead">That's about <b>${cmp.n} ${esc(cmp.thing)}</b>.</p>`:`<p class="center lead">Every rep counts.</p>`}
     <div class="kv3"><div><label>Duration</label><b>${fmtDur(dur)}</b></div><div><label>Sets</label><b>${workoutSets(w)}</b></div><div><label>Streak</label><b>${streak} wk</b></div></div>
+    ${(()=>{ const c=calorieEstimate(w); const u=st.settings.unit;
+      if(!c) return `<div class="card kcal"><div class="kcal-top">${ic('flame')} <b>Calories burned</b></div><p class="muted small">Add your body weight to estimate calories for this workout.</p><div class="kcal-bw"><input type="number" inputmode="decimal" data-f="setNum" data-k="bodyW" placeholder="Body weight (${u})"><button class="btn sm" data-a="kcalBw">Save</button></div></div>`;
+      const open=ui.kcalOpen===w.id;
+      return `<div class="card kcal"><div class="kcal-top">${ic('flame')} <span class="kcal-big">≈ ${c.kcal}</span><span class="kcal-u">kcal</span><button class="linkbtn acc small" data-a="kcalWhy" data-id="${esc(w.id)}">${open?'Hide':'How?'}</button></div>
+        <p class="muted small">Likely ${c.lo}–${c.hi} kcal · ${c.min} min at ${fw(+st.settings.bodyW)} ${u}</p>
+        ${open?`<div class="kcal-why"><p class="small">Uses the ACSM formula <b>kcal = MET × 3.5 × body kg ÷ 200 × minutes</b>. Each exercise gets a MET from the 2024 Compendium of Physical Activities (weight training 3.5, squats/deadlifts 5.0, supersets 5.8). Your minutes are split by the sets you did, Hard/Max ratings add up to 15%, and ${c.densF>1?'your short rests added 10%':c.densF<1?'long rests took off 8%':'your rest times were typical'}.</p>
+          <ul>${c.parts.slice(0,6).map(x=>`<li><span>${esc(x.name)}</span><span class="muted">${x.met} MET · ${Math.round(x.mins)} min</span><b>${Math.round(x.k)}</b></li>`).join('')}</ul>
+          <p class="muted small">It's an estimate (about ±20%). A heart-rate watch will be more accurate for you.</p></div>`:''}</div>`; })()}
     ${prs.length?`<div class="card"><h3 class="gold-t">${ic('trophy','sm')} ${prs.length} new personal record${prs.length>1?'s':''}</h3><ul class="prlist">${prs.map(p=>`<li><span>${esc(getEx(p.exId).name)}</span><span class="muted small">${PR_LABEL[p.kind]}</span><b>${prValue(p)}</b></li>`).join('')}</ul></div>`:''}
     ${w.routineSynced&&w.routineSynced.length?`<p class="muted small center">${ic('swap','sm')} Saved to <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> for next time: ${w.routineSynced.map(c=>c.added?`added ${esc(getEx(c.to).name)}`:`${esc(getEx(c.to).name)} (swap)`).join(', ')}.</p>`:''}
     ${w.routineUpdated?`<p class="muted small center">${ic('spark','sm')} The coach saved today's weights into <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> and will set next session's targets from them.</p>`:''}
@@ -4282,6 +4295,7 @@ wview(p){
   return {hdr:hdr('Workout',{left:backBtn,right:`<button class="iconbtn" data-a="wMenu" data-id="${esc(w.id)}" aria-label="Workout options">${ic('more')}</button>`}),
   body:`<section class="gut stack">
    <div><h2 class="h2">${esc(w.name)}</h2><div class="muted small">${esc(fmtWhen(w.start))}</div></div>
+   ${(()=>{ const c=calorieEstimate(w); return c?`<p class="muted small center kcalline">${ic('flame','xs')} ≈ <b>${c.kcal} kcal</b> burned (likely ${c.lo}–${c.hi})</p>`:''; })()}
    <div class="kv3"><div><label>Time</label><b>${fmtDur(dur)}</b></div><div><label>Volume</label><b>${fmtN(convW(vol,'lb',u))} ${u}</b></div><div class="${prs.length?'gold':''}"><label>Records</label><b>${prs.length?ic('trophy','sm')+' ':''}${prs.length}</b></div></div>
    ${w.notes?`<p class="notes">${esc(w.notes)}</p>`:''}
    ${(w.exercises||[]).map(e=>{const X=getEx(e.exId);return `<div class="card">${e.cue?`<p class="cue small">${esc(e.cue)}</p>`:''}
@@ -5192,6 +5206,8 @@ const A={
   exAllGear:()=>{ ui.exq.allGear=!ui.exq.allGear; render(); },
   openGym:()=>push({name:'gym'}),
   openHealthHelp:()=>push({name:'healthHelp'}),
+  kcalWhy:(d)=>{ ui.kcalOpen= ui.kcalOpen===d.id? null : d.id; render(); },
+  kcalBw:()=>{ const el=$('.kcal-bw input'); const v=el&&num(el.value); if(v){ st.settings.bodyW=v; Store.saveSettings(); render(); } },
   toHealth:(d)=>{ const w=st.workouts[d.id]; if(!w) return; w.healthSent=Date.now(); Store.put('workouts',w.id,w); openHealthShortcut(w); },
   healthTest:()=>{ const now=Date.now(); openHealthShortcut({name:'Work Harder test',start:now-60000,end:now}); },
   reorderDone:()=>{ reorderApply(); const host=ui.stack[ui.stack.length-2]; ui.stack.pop(); if(host&&host.name==='active') changed(true); else render(); toast('Order saved'); },
@@ -5753,6 +5769,36 @@ function reorderApply(){
     if(ev.key==='ArrowUp'&&li.previousElementSibling) li.parentElement.insertBefore(li,li.previousElementSibling); else if(ev.key==='ArrowDown'&&li.nextElementSibling) li.parentElement.insertBefore(li.nextElementSibling,li);
     reorderApply(); h.focus(); });
 })();
+/* Calories: ACSM equation kcal/min = MET × 3.5 × kg ÷ 200, with a MET per exercise from the 2024 Adult Compendium of Physical Activities,
+   minutes split by the sets you did, and nudged by your effort ratings and how dense the session was. */
+const HEAVY_LOWER=new Set(['squat','hinge','deadlift','rdl','frontsquat','hipthrust','legpress','lunge','splitsquat','stepup','goodmorning']);
+function exMET(X,e){
+  const c=colsFor(X); const pat=X.pattern||'';
+  if(famOf(pat)>=0&&FAMILIES[famOf(pat)].includes('carry')) return {met:6.5,why:'loaded carry / sled (estimate)'};
+  if(X.type==='cardio'||X.equipment==='Cardio Machine') return {met:6.0,why:'cardio, moderate–vigorous'};
+  if(!c.includes('w')&&c.includes('t')) return {met:2.8,why:'holds / stretching'};
+  if(e&&e.ss) return {met:5.8,why:'resistance training, supersets'};
+  if(X.equipment==='Bodyweight'&&!c.includes('w')) return {met:3.8,why:'calisthenics, moderate'};
+  if(HEAVY_LOWER.has(pat)||/squat|deadlift|hinge/.test(pat)) return {met:5.0,why:'resistance training, squats/deadlifts'};
+  return {met:3.5,why:'resistance training, 8–15 reps'};
+}
+function bodyKg(){ const b=+st.settings.bodyW; if(!b) return 0; return st.settings.unit==='kg'? b : b*0.4536; }
+function calorieEstimate(w){
+  const kg=bodyKg(); if(!kg) return null;
+  const min=Math.max(1,((w.end||w.start)-w.start)/60000);
+  const items=(w.exercises||[]).map(e=>{ const X=getEx(e.exId); const done=e.sets.filter(s=>s.done!==false); return {e,X,n:done.filter(s=>s.type!=='w').length+done.filter(s=>s.type==='w').length*0.5,done}; }).filter(x=>x.n>0);
+  const totalN=items.reduce((a,x)=>a+x.n,0); if(!totalN) return null;
+  const dens= (items.reduce((a,x)=>a+x.done.filter(s=>s.type!=='w').length,0))/min;   // working sets per minute
+  const densF= dens>=0.45? 1.1 : dens<0.2? 0.92 : 1;
+  let kcal=0; const parts=[];
+  for(const x of items){
+    const m=exMET(x.X,x.e); const effs=x.done.map(s=>s.eff).filter(Boolean); const hard=effs.filter(v=>v==='hard'||v==='max').length, easy=effs.filter(v=>v==='easy').length;
+    const effF= effs.length? 1+0.15*(hard/effs.length)-0.1*(easy/effs.length) : 1;
+    const mins=min*x.n/totalN; const k=m.met*effF*densF*3.5*kg/200*mins; kcal+=k; parts.push({name:x.X.name,met:m.met,why:m.why,k,mins});
+  }
+  parts.sort((a,b)=>b.k-a.k);
+  return {kcal:Math.round(kcal),lo:Math.round(kcal*0.8/5)*5,hi:Math.round(kcal*1.2/5)*5,parts,min:Math.round(min),kg,dens,densF};
+}
 const HEALTH_SC='WH to Health';
 function healthPayload(w){
   const min=Math.max(1,Math.round(((w.end||w.start)-w.start)/60000)); const kg=st.settings.bodyW? (st.settings.unit==='kg'?+st.settings.bodyW:+st.settings.bodyW*0.4536) : 0;
@@ -5913,7 +5959,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611260751';
+window.WH_BUILD='202611260754';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
