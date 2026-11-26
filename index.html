@@ -4383,7 +4383,7 @@ settings(){
    <div class="field"><label>Scenery on Home</label><div class="scenes">${[['rotate','Rotate daily'],['elk','Elk mountains'],['buck','Whitetail woods'],['marsh','Duck marsh'],['river','Trout river'],['off','Off']].map(([v,l])=>`<button class="scn ${ (s.scene||'rotate')===v?'on':''}" data-a="setS" data-k="scene" data-v="${v}">${v==='off'||v==='rotate'?`<span class="scn-ic">${ic(v==='off'?'x':'history')}</span>`:(()=>{const sc=sceneSVGOut(v); return `<svg class="trophy-svg" viewBox="0 0 360 150" aria-hidden="true">${sc.bg}${sc.fg}</svg>`;})()}<span>${l}</span></button>`).join('')}</div></div>
    </div></div><h2 class="sec">${ic('link')} Connected apps</h2>
    <div class="card conn"><div class="conn-h"><b>Strava</b><span class="badge">Share</span></div><p class="muted small">After each workout, tap <b>Share to Strava</b>. Work Harder writes the title and a full set breakdown for you to paste into Strava's manual activity form.</p></div>
-   <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge ${s.health?'':'off'}">${s.health?'On':'Off'}</span></div><p class="muted small">Sends each finished workout to Apple Health as Traditional Strength Training (time, calories) through a one-time Shortcut.</p>
+   <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge ${s.health?'':'off'}">${s.health?'On':'Off'}</span></div><p class="muted small">Sends each finished workout's length to Apple Health as Traditional Strength Training, using a one-action Shortcut you set up once.</p>
      <label class="toggle"><input type="checkbox" data-f="setChk" data-k="health" ${s.health?'checked':''}><span>Show "Send to Apple Health" after workouts</span></label>
      <div class="field"><label>Body weight (for calorie estimate)</label><input type="number" inputmode="decimal" data-f="setNum" data-k="bodyW" value="${esc(s.bodyW||'')}" placeholder="${s.unit==='kg'?'e.g. 95':'e.g. 210'}"></div>
      <div class="row2"><button class="btn" data-a="openHealthHelp">${ic('list','sm')} How to set up</button><button class="btn" data-a="healthTest">${ic('play','sm')} Test</button></div></div>
@@ -5759,24 +5759,28 @@ function healthPayload(w){
   const kcal= kg? Math.round(5*3.5*kg/200*min) : 0;   // ~5 METs for lifting with rests
   const d=new Date(w.start); const p2=n=>String(n).padStart(2,'0');
   const start=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
-  return {min,kcal,start,text:`${min}|${kcal}|${start}|${(w.name||'Workout').replace(/\|/g,'/')}`};
+  return {min,kcal,start,text:String(min)};   // just the minutes: keeps the Shortcut to one action
 }
 function openHealthShortcut(w){ const P=healthPayload(w); location.href=`shortcuts://run-shortcut?name=${encodeURIComponent(HEALTH_SC)}&input=text&text=${encodeURIComponent(P.text)}`; }
 PAGES.healthHelp=function(){
   const steps=[
-    ['Open the Shortcuts app','It comes with your iPhone. Tap <b>+</b> to make a new shortcut and name it exactly <b>'+HEALTH_SC+'</b>.'],
-    ['Let it receive text','Tap the <b>ⓘ</b> (or the shortcut name at the top) and make sure it can receive <b>Text</b> as input.'],
-    ['Split the text','Add the action <b>Split Text</b>. Set it to split <b>Shortcut Input</b> by <b>Custom</b> and type a single <b>|</b> (vertical bar).'],
-    ['Pull out the numbers','Add <b>Get Item from List</b> three times: <b>Item at Index 1</b> (minutes), <b>Index 2</b> (calories), <b>Index 3</b> (start time).'],
-    ['Log the workout','Add <b>Log Workout</b>. Type: <b>Traditional Strength Training</b>. Duration: the index-1 item, in <b>minutes</b>. Calories: the index-2 item. Date: the index-3 item.'],
-    ['Allow Health','Run it once from Work Harder with <b>Test</b> in Settings. When asked, allow Shortcuts to write <b>Workouts</b> and <b>Active Energy</b> to Health.'],
+    ['Open the <b>Shortcuts</b> app and tap <b>+</b>','Top-right corner. A blank shortcut opens. If an Apple Intelligence box offers to build it for you, close it and do it by hand.'],
+    ['Name it <b>'+HEALTH_SC+'</b>','Tap the name at the very top → <b>Rename</b> → type <b>'+HEALTH_SC+'</b> exactly (capital W, H and H) → Done.'],
+    ['Add the action <b>Log Workout</b>','Tap the search bar at the bottom (<i>Search for apps and actions</i>), type <b>Log Workout</b>, and tap it. It\'s the only action you need.'],
+    ['Pick the workout type','In the action, tap the blue <b>Workout</b> word → choose <b>Traditional Strength Training</b>.'],
+    ['Set the duration to what Work Harder sends','Tap the blue <b>Duration</b> field. Above the keyboard tap <b>Shortcut Input</b> (or tap <b>Select Variable</b> → <b>Shortcut Input</b>). Make sure the unit says <b>min</b>.'],
+    ['Tap <b>Done</b>, then test','Back in Work Harder, tap <b>Send a test workout</b> below. The first time, allow Shortcuts to write <b>Workouts</b> to Health.'],
   ];
   return {hdr:hdr('Apple Health setup',{left:backBtn}),body:`<section class="gut stack">
-    <p class="muted">Apple only lets App Store apps write to Health directly, so Work Harder hands your workout to a Shortcut you make once (about 3 minutes). After that, tap <b>Send to Apple Health</b> on the finish screen.</p>
-    <ol class="hsteps">${steps.map(([t,d],i)=>`<li><b>${t}</b><p class="small">${d}</p></li>`).join('')}</ol>
-    <div class="card"><p class="small"><b>What gets sent:</b> date and time, duration, and estimated calories (needs your body weight in Settings). Sets and weights stay in Work Harder.</p>
-    <p class="muted small">After it logs, Shortcuts stays open. Swipe back to Work Harder. If Health shows 0 minutes, check Settings → Health → Data Access & Devices → Shortcuts and turn on Workouts.</p></div>
-    <button class="btn primary wide" data-a="healthTest">${ic('play')} Send a test workout</button>
+    <p class="muted">You only build this once. It's a single action: Work Harder sends how many minutes you trained, and the shortcut logs it as a strength workout in Health.</p>
+    <ol class="hsteps">${steps.map(([t,d])=>`<li><b>${t}</b><p class="small">${d}</p></li>`).join('')}</ol>
+    <button class="btn primary wide" data-a="healthTest">${ic('play')} Send a test workout (1 min)</button>
+    <div class="card"><p class="small"><b>Didn't work?</b></p>
+      <p class="muted small">• "Shortcut not found": the name must be exactly <b>${HEALTH_SC}</b>.</p>
+      <p class="muted small">• Logged 0 minutes: open iPhone <b>Settings → Health → Data Access &amp; Devices → Shortcuts</b> and turn on <b>Workouts</b>.</p>
+      <p class="muted small">• A gray line <i>"Receive Any input from Nowhere"</i> at the top is fine. If the test still logs nothing, tap <b>Nowhere</b> and turn on <b>Share Sheet</b>.</p>
+      <p class="muted small">• After it runs, Shortcuts stays open. Swipe back to Work Harder.</p></div>
+    <div class="card"><p class="small"><b>No-setup option</b></p><p class="muted small">Wear your Apple Watch and start a <b>Traditional Strength Training</b> workout on it when you start in Work Harder. Health gets heart rate and real calories that way, too.</p></div>
   </section>`};
 };
 PAGES.gym=function(){
@@ -5909,7 +5913,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611260734';
+window.WH_BUILD='202611260751';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
