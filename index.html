@@ -666,6 +666,21 @@ textarea{resize:vertical;line-height:1.4}
 .chatlog{display:flex;flex-direction:column;gap:8px}
 .msg{max-width:85%;padding:10px 12px;border-radius:16px;font-size:15px;line-height:1.4}.msg.c{align-self:flex-start;background:var(--surface);border-bottom-left-radius:4px}.msg.me{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:4px}
 .coachchips{display:flex;flex-wrap:wrap;gap:6px}.coachchips .chip{cursor:pointer;padding:7px 12px;font-size:13px}
+.libseg{padding-top:8px}.seg.sm.wide{display:flex}.seg.sm.wide button{flex:1}
+.fuelseg{display:flex}.fuelseg button{flex:1}
+.fuelsum{display:grid;gap:8px}.fs-row{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}.fs-big{font-family:var(--f-display);font-size:34px;line-height:1;margin-right:6px}.fs-side{text-align:right}.fs-why{margin:0}
+.fbar{height:10px;border-radius:999px;background:var(--surface2);overflow:hidden}.fbar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .6s}.fbar.prot i{background:var(--good)}.fbar.over i{background:#e8873a}
+.fuelrec{display:grid;gap:6px}.fuelrec p{margin:0}.quicklist{display:grid;gap:6px}
+.qfood{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);color:inherit;font:inherit;cursor:pointer}.qfood .minw{flex:1;display:flex;flex-direction:column;min-width:0}.qfood>.ic{color:var(--accent)}
+.qlist{list-style:none;margin:0;padding:6px;display:grid;gap:6px}
+.foodlog{list-style:none;margin:0;padding:4px 0}.foodlog li{display:flex;align-items:center;gap:10px;padding:10px 12px}.foodlog li+li{border-top:1px solid var(--line)}.foodlog .minw{flex:1;display:flex;flex-direction:column;min-width:0}
+.fl-n{font-weight:800;font-variant-numeric:tabular-nums;text-align:right;min-width:44px}.fl-n small{display:block;font-size:10px;font-weight:600;color:var(--muted)}
+.recrow{display:flex;flex-direction:row!important;align-items:center;gap:12px;width:100%;text-align:left;border:0;color:inherit;font:inherit;cursor:pointer}.recrow .minw{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.recp{flex:none;text-align:center;font-weight:800;color:var(--good);font-size:18px;line-height:1}.recp small{display:block;font-size:10px;color:var(--muted);font-weight:600}
+.ing{margin:6px 0 0;padding-left:20px;display:grid;gap:4px}
+.ht{display:flex;gap:6px}.ht input{min-width:0;flex:1}
+.wt-dot{fill:color-mix(in srgb,var(--accent) 45%,transparent)}
+.legendline{display:flex;align-items:center;gap:6px;margin:0}.lg-dot{width:8px;height:8px;border-radius:50%;background:color-mix(in srgb,var(--accent) 45%,transparent)}.lg-line{width:16px;height:2px;background:var(--accent);margin-left:8px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -925,7 +940,7 @@ button,.chip,.slab,#nav,.exhead,.folder-h{-webkit-user-select:none;user-select:n
     <button data-tab="home"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/></svg>Home</button>
     <button data-tab="friends"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.6-5.5 6.5-5.5s5.5 2 6.5 5.5"/><circle cx="17" cy="9" r="2.8"/><path d="M15.5 14.6c2.6.2 4.6 2 5.5 5"/></svg>Friends</button>
     <button data-tab="routines"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Routines</button>
-    <button data-tab="exercises"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>Exercises</button>
+    <button data-tab="fuel"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M7 3v5"/><path d="M17 21V3c-2 1.5-3 4-3 7v4h3"/></svg>Fuel</button>
     <button data-tab="profile"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Profile</button>
   </nav>
 </div>
@@ -3145,7 +3160,7 @@ const ic=(n,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true">
 function cur(){ return ui.stack[ui.stack.length-1]||null; }
 function push(page){ saveScroll(); ui.stack.push(page); ui.navDir='push'; render(); $('#main').scrollTop=0; }
 function pop(){ ui.stack.pop(); ui.navDir='pop'; render(); restoreScroll(); }
-function setTab(t){ saveScroll(); if(t!==ui.tab) ui.dayOff=0; if(t!==ui.tab||ui.stack.length) ui.navDir='tab'; ui.tab=t; ui.stack=[]; render(); restoreScroll(); }
+function setTab(t){ saveScroll(); if(t==='exercises'){ ui.libView='exercises'; t='routines'; } if(t!==ui.tab) ui.dayOff=0; if(t!==ui.tab||ui.stack.length) ui.navDir='tab'; ui.tab=t; ui.stack=[]; render(); restoreScroll(); }
 function pageKey(){ const p=cur(); return p? p.name+':'+(p.id||'') : 'tab:'+ui.tab; }
 function saveScroll(){ const m=$('#main'); if(m) ui.scroll[pageKey()]=m.scrollTop; }
 function restoreScroll(){ const m=$('#main'); if(m) m.scrollTop=ui.scroll[pageKey()]||0; }
@@ -5498,6 +5513,10 @@ function onField(ev,commit){
     case 'pickRt': p.rt=!!v; return;
     case 'setChk': st.settings[el.dataset.k]=!!v; Store.saveSettings(); render(); return;
     case 'setNum': if(!commit) return; st.settings[el.dataset.k]= v===''? '' : (num(v)??''); Store.saveSettings(); return;
+    case 'fq': if(commit) return; ui.fq=v; clearTimeout(ui._fqT); ui._fqT=setTimeout(()=>{ const n0=$('#fq'); const pos=n0?n0.selectionStart:0; render(); const n=$('#fq'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} } },120); return;
+    case 'nutNum': if(!commit) return; fuel().nut[el.dataset.k]= v===''? '' : num(v); Store.saveBody(); setTimeout(render,0); return;
+    case 'nutHt': if(!commit) return; { const N=fuel().nut; const ft=el.dataset.k==='ft'? num(v)||0 : Math.floor((N.heightIn||0)/12); const inch=el.dataset.k==='in'? num(v)||0 : (N.heightIn||0)%12; N.heightIn=ft*12+inch||''; Store.saveBody(); setTimeout(render,0); } return;
+    case 'nutW': if(!commit) return; { const w=num(v); if(w){ const t=Date.now(); const today=startOfDay(t); st.body.entries=(st.body.entries||[]).filter(e=>startOfDay(e.t)!==today); st.body.entries.push({t,w,u:st.settings.unit}); st.settings.bodyW=w; Store.saveSettings(); Store.saveBody(); setTimeout(render,0); } } return;
     case 'gymEq': { const m=new Set(missingGear()); const q=el.dataset.v; v? m.delete(q) : m.add(q); st.settings.noEquip=EQUIP.filter(x=>m.has(x)); Store.saveSettings(); render(); return; }
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
@@ -5894,7 +5913,7 @@ function exMET(X,e){
   if(HEAVY_LOWER.has(pat)||/squat|deadlift|hinge/.test(pat)) return {met:5.0,why:'resistance training, squats/deadlifts'};
   return {met:3.5,why:'resistance training, 8–15 reps'};
 }
-function bodyKg(){ const b=+st.settings.bodyW; if(!b) return 0; return st.settings.unit==='kg'? b : b*0.4536; }
+function bodyKg(){ const lb=typeof latestWeightLb==='function'? latestWeightLb() : 0; if(lb) return lb*0.4536; const b=+st.settings.bodyW; if(!b) return 0; return st.settings.unit==='kg'? b : b*0.4536; }
 function calorieEstimate(w){
   const kg=bodyKg(); if(!kg) return null;
   const min=Math.max(1,((w.end||w.start)-w.start)/60000);
@@ -6109,6 +6128,224 @@ Object.assign(A,{
 });
 document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&ev.target.matches('[data-f=photoFile]')){ const f=ev.target.files[0]; if(!f) return; try{ ui.newPhoto=await resizePhoto(f); render(); }catch(e){ toast('Could not read that photo'); } } });
 
+/* Routines tab holds both your routines and the exercise library */
+(function(){ const R=TABS.routines, E=TABS.exercises;
+  TABS.routines=function(){ const ex=ui.libView==='exercises'; const x=(ex?E:R).call(TABS);
+    x.body=`<div class="gut libseg"><div class="seg sm wide">${[['routines','Routines'],['exercises','Exercise library']].map(([v,l])=>`<button class="${(ui.libView||'routines')===v?'on':''}" data-a="libView" data-v="${v}">${l}</button>`).join('')}</div></div>`+x.body; return x; };
+  TABS.exercises=function(){ ui.libView='exercises'; return TABS.routines(); };
+})();
+A.libView=(d)=>{ ui.libView=d.v; render(); };
+/* ===================== FUEL: calories, protein, recovery food, recipes, weigh-ins ===================== */
+/* Food values: typical serving, kcal and protein (g), from USDA FoodData Central / package labels, rounded. */
+const FOODS=[
+ // proteins
+ ['chk','Chicken breast, cooked','6 oz',280,52,['protein','recovery']],['rot','Rotisserie chicken (Costco), no skin','4 oz',190,25,['protein','costco']],
+ ['gb93','Ground beef 93% lean, cooked','4 oz',200,25,['protein']],['gb80','Ground beef 80/20, cooked','4 oz',290,22,['protein']],
+ ['gt','Ground turkey 93% lean, cooked','4 oz',190,22,['protein']],['sirl','Sirloin steak, cooked','6 oz',310,48,['protein']],
+ ['elk','Elk / venison steak, cooked','6 oz',270,51,['protein','hunt']],['gelk','Ground elk / venison, cooked','4 oz',210,28,['protein','hunt']],
+ ['salm','Salmon, cooked','6 oz',350,38,['protein']],['shr','Shrimp, cooked','6 oz',170,36,['protein']],['tuna','Tuna, canned in water','1 can (5 oz)',120,27,['protein','quick']],
+ ['pork','Pork tenderloin, cooked','6 oz',240,44,['protein']],['deli','Deli turkey','4 oz',120,22,['protein','quick']],
+ ['egg','Egg, large','1 egg',70,6,['protein','breakfast']],['ew','Egg whites','1 cup',125,26,['protein','breakfast']],
+ ['gy','Greek yogurt, nonfat plain','1 cup',130,23,['protein','recovery','quick']],['cc','Cottage cheese, 2%','1 cup',180,24,['protein','quick']],
+ ['whey','Whey protein','1 scoop',120,24,['protein','recovery','quick']],['prem','Premier Protein shake','1 bottle',160,30,['protein','recovery','quick','costco']],
+ ['cpow','Fairlife Core Power (26 g)','1 bottle',170,26,['protein','recovery','quick']],['kbar','Kirkland protein bar','1 bar',190,21,['protein','quick','costco']],
+ ['jerk','Beef jerky','1 oz',80,11,['protein','quick','hunt']],['scheese','String cheese','1 stick',80,7,['protein','quick']],
+ // carbs
+ ['rice','White rice, cooked','1 cup',205,4,['carb','recovery']],['brice','Brown rice, cooked','1 cup',220,5,['carb']],
+ ['pot','Potato, baked','1 medium',160,4,['carb','recovery']],['swp','Sweet potato, baked','1 medium',105,2,['carb']],
+ ['oats','Oats, dry','1/2 cup',150,5,['carb','breakfast']],['bread','Whole-wheat bread','1 slice',80,4,['carb']],
+ ['tort','Flour tortilla, large','1',210,6,['carb']],['pasta','Pasta, cooked','1 cup',220,8,['carb']],['bagel','Bagel, plain','1',270,10,['carb']],
+ ['ban','Banana','1 medium',105,1,['carb','fruit','recovery','quick']],['apple','Apple','1 medium',95,0,['fruit','quick']],
+ ['berr','Berries','1 cup',85,1,['fruit']],['rcake','Rice cakes','2 cakes',70,2,['carb','quick']],['popc','Popcorn, air-popped','3 cups',95,3,['snack']],
+ ['beans','Black beans, canned','1/2 cup',110,7,['carb']],
+ // fats & dairy
+ ['avo','Avocado','1/2',120,2,['fat']],['pb','Peanut butter','2 tbsp',190,7,['fat']],['alm','Almonds','1 oz',165,6,['fat','quick']],
+ ['ched','Cheddar cheese','1 oz',115,7,['fat']],['oil','Olive oil','1 tbsp',120,0,['fat']],['butter','Butter','1 tbsp',100,0,['fat']],
+ ['milk2','Milk, 2%','1 cup',120,8,['dairy','recovery']],['cmilk','Chocolate milk, low-fat','1 cup',160,8,['dairy','recovery']],
+ // veg
+ ['broc','Broccoli, cooked','1 cup',55,4,['veg']],['gbean','Green beans','1 cup',45,2,['veg']],['salad','Salad greens','2 cups',15,1,['veg']],['vmix','Frozen veggie mix','1 cup',60,3,['veg']],
+ // out & drinks
+ ['cbowl','Chipotle chicken bowl (rice, beans, salsa, cheese)','1 bowl',660,50,['out']],['cbake','Costco chicken bake','1',770,46,['out','costco']],
+ ['cpiz','Costco cheese pizza','1 slice',710,38,['out','costco']],['bigmac','Big Mac','1',590,25,['out']],
+ ['beer','Beer, regular','12 oz',150,2,['drink']],['lbeer','Light beer','12 oz',100,1,['drink']],['soda','Soda','12 oz',140,0,['drink']],
+];
+const FOODMAP=Object.fromEntries(FOODS.map(f=>[f[0],{id:f[0],name:f[1],srv:f[2],kcal:f[3],p:f[4],tags:f[5]}]));
+const RECIPES=[
+ {id:'rotbowl',name:'Rotisserie Chicken Rice Bowls',tags:['prep','costco','protein'],srv:4,kcal:520,p:42,min:15,
+  ing:['1 Costco rotisserie chicken, meat pulled (skin off)','3 cups cooked white or jasmine rice','1 bag frozen veggie mix, steamed','1 cup salsa or 4 tbsp teriyaki sauce'],
+  steps:['Pull the chicken while it\'s warm and split it into 4 containers.','Add 3/4 cup rice and a big scoop of veggies to each.','Top with salsa or teriyaki. Microwave 2 min to eat.']},
+ {id:'yobowl',name:'Greek Yogurt Protein Bowl',tags:['quick','recovery','protein'],srv:1,kcal:400,p:48,min:3,
+  ing:['1 cup nonfat Greek yogurt','1 scoop whey (vanilla or chocolate)','1 cup berries','1 tbsp honey'],
+  steps:['Stir the whey into the yogurt until smooth.','Top with berries and honey.']},
+ {id:'scramwrap',name:'Egg Scramble Wrap',tags:['quick','protein'],srv:1,kcal:540,p:38,min:8,
+  ing:['2 eggs + 1/2 cup egg whites','1 large flour tortilla','1 oz cheddar','Salsa, hot sauce'],
+  steps:['Scramble the eggs and whites in a hot pan.','Fill the tortilla with eggs, cheese and salsa, roll it up, and crisp it 1 min per side.']},
+ {id:'shake',name:'Post-Lift Recovery Shake',tags:['quick','recovery'],srv:1,kcal:360,p:35,min:2,
+  ing:['1 Premier Protein shake','1 banana','1 tbsp peanut butter','Ice'],
+  steps:['Blend everything 30 seconds. Drink within a couple of hours after lifting.']},
+ {id:'oats',name:'Overnight Protein Oats',tags:['prep','recovery'],srv:1,kcal:445,p:38,min:5,
+  ing:['1/2 cup oats','1 scoop whey','1 cup 2% milk','1/2 banana, sliced'],
+  steps:['Mix oats, whey and milk in a jar.','Refrigerate overnight; top with banana.']},
+ {id:'turktaco',name:'Turkey Taco Skillet',tags:['prep','protein'],srv:6,kcal:450,p:40,min:25,
+  ing:['2 lb 93% lean ground turkey','1 packet taco seasoning','1 can black beans, rinsed','2 cups cooked rice','1 cup salsa','1 cup shredded cheese'],
+  steps:['Brown the turkey with the taco seasoning.','Stir in beans, rice and salsa; heat through.','Top with cheese, cover 2 min to melt. Splits into 6.']},
+ {id:'steakpot',name:'Sheet-Pan Steak (or Elk) & Potatoes',tags:['protein','hunt'],srv:1,kcal:565,p:56,min:35,
+  ing:['6 oz sirloin or elk steak','1 medium potato, cubed','1 cup broccoli','1 tsp olive oil, salt, pepper, garlic'],
+  steps:['Toss potato in oil and seasoning; roast at 425°F for 20 min.','Add broccoli and the seasoned steak; roast 8–12 min to your doneness.','Rest the steak 5 min, then slice.']},
+ {id:'elkchili',name:'Elk Chili',tags:['prep','hunt','protein'],srv:6,kcal:405,p:43,min:45,
+  ing:['2 lb ground elk or venison','2 cans kidney beans, drained','2 cans diced tomatoes','1 onion, diced','Chili powder, cumin, garlic, salt'],
+  steps:['Brown the meat with the onion.','Add beans, tomatoes and spices; simmer 30 min.','Portion into 6 containers.']},
+ {id:'tunastack',name:'Tuna Rice-Cake Stacks',tags:['quick','protein'],srv:1,kcal:280,p:34,min:5,
+  ing:['1 can tuna, drained','2 tbsp Greek yogurt + mustard','4 rice cakes','Pickles or hot sauce'],
+  steps:['Mix tuna with yogurt and mustard.','Pile onto rice cakes and top with pickles.']},
+ {id:'salmonrice',name:'Salmon, Rice & Green Beans',tags:['protein'],srv:1,kcal:600,p:44,min:20,
+  ing:['6 oz salmon fillet','1 cup cooked rice','1 cup green beans','Lemon, salt, pepper'],
+  steps:['Season salmon; bake at 400°F for 12–15 min.','Steam green beans; serve over rice with lemon.']},
+ {id:'fajita',name:'Sheet-Pan Chicken Fajita Wraps',tags:['prep','protein'],srv:4,kcal:480,p:42,min:30,
+  ing:['1.5 lb chicken breast, sliced','3 bell peppers + 1 onion, sliced','1 packet fajita seasoning, 1 tbsp oil','4 large tortillas','Salsa, Greek yogurt (as sour cream)'],
+  steps:['Toss chicken and veg with oil and seasoning.','Roast at 425°F for 20 min.','Fill tortillas; top with salsa and yogurt.']},
+ {id:'ccplate',name:'Cottage Cheese Snack Plate',tags:['quick','protein'],srv:1,kcal:265,p:25,min:2,
+  ing:['1 cup 2% cottage cheese','1 cup berries or pineapple'],steps:['Top cottage cheese with fruit. Good before bed.']},
+];
+function fuel(){ const b=st.body||(st.body={entries:[]}); if(!b.food) b.food={}; if(!b.myFoods) b.myFoods={}; if(!b.nut) b.nut={}; return b; }
+function dayKey(t){ const d=new Date(t); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function latestWeightLb(){ const en=(st.body&&st.body.entries||[]).filter(e=>e&&e.w).sort((a,b)=>b.t-a.t); if(en[0]) return toLb(en[0].w,en[0].u||'lb'); const b=+st.settings.bodyW; return b? (st.settings.unit==='kg'?b/0.4536:b) : 0; }
+/* Targets: Mifflin–St Jeor BMR × daily-life factor, plus today's logged training, adjusted for the goal. Protein from ISSN ranges. */
+function fuelTargets(t){
+  const N=fuel().nut; const lb=latestWeightLb(); if(!lb||!N.age||!N.heightIn) return null; const kg=lb*0.4536, cm=N.heightIn*2.54;
+  const bmr=10*kg+6.25*cm-5*N.age+(N.sex==='f'?-161:5);
+  const life={low:1.25,mid:1.4,high:1.6}[N.life||'mid'];
+  const dayW=workoutsSorted().filter(w=>dayKey(w.start)===dayKey(t||Date.now())); const train=dayW.reduce((a,w)=>{ const c=calorieEstimate(w); return a+(c? c.kcal*0.8 : 0); },0); // ~80% is on top of resting burn
+  const tdee=bmr*life+train; const g=goalKey(); const rate=N.rate==null?1:+N.rate;
+  let adj= ['lean','define'].includes(g)? -500*rate : g==='muscle'? 250 : 0;
+  const floor= Math.max(N.sex==='f'?1200:1500, bmr*1.05); let kcal=Math.max(floor,tdee+adj); const capped=kcal===floor&&tdee+adj<floor;
+  const pPerKg= ['lean','define'].includes(g)? 2.0 : g==='muscle'||g==='strength'? 1.8 : 1.6; const protein=Math.round(Math.min(kg*pPerKg,250));
+  return {kcal:Math.round(kcal/10)*10,protein,bmr:Math.round(bmr),tdee:Math.round(tdee),train:Math.round(train),adj:Math.round(adj),capped,kg,lb};
+}
+function dayLog(k){ const F=fuel().food; return F[k]||(F[k]=[]); }
+function dayTotals(k){ return (fuel().food[k]||[]).reduce((a,x)=>({kcal:a.kcal+x.kcal*x.q,p:a.p+x.p*x.q}),{kcal:0,p:0}); }
+function logFood(f,q=1,meal){ const k=dayKey(Date.now()); dayLog(k).push({id:uid(),fid:f.id||null,name:f.name,srv:f.srv||'',kcal:+f.kcal||0,p:+f.p||0,q,t:Date.now()}); const R=fuel().recent||(fuel().recent=[]); const key=f.id||f.name; const i=R.indexOf(key); if(i>=0) R.splice(i,1); R.unshift(key); R.length=Math.min(R.length,12); Store.saveBody(); }
+function foodById(id){ return FOODMAP[id]||fuel().myFoods[id]||(RECIPES.find(r=>'r_'+r.id===id)&&(()=>{ const r=RECIPES.find(r=>'r_'+r.id===id); return {id,name:r.name,srv:'1 serving',kcal:r.kcal,p:r.p}; })()); }
+function bar(v,max,cls){ const p=max?Math.min(100,v/max*100):0; return `<div class="fbar ${cls||''}"><i style="width:${p.toFixed(1)}%"></i></div>`; }
+function weightTrend(){
+  const en=(st.body.entries||[]).filter(e=>e&&e.w).map(e=>({t:e.t,lb:toLb(e.w,e.u||'lb')})).sort((a,b)=>a.t-b.t); if(en.length<2) return {en,rate:null};
+  const avg=t=>{ const w=en.filter(e=>e.t<=t&&e.t>t-7*DAY); return w.length? w.reduce((a,e)=>a+e.lb,0)/w.length : null; };
+  const now=en[en.length-1].t, a1=avg(now), a0=avg(now-14*DAY); return {en,avgNow:a1,rate: a0&&a1? (a1-a0)/2 : null};
+}
+function weightChart(en){
+  if(en.length<2) return ''; const u=st.settings.unit; const cv=lb=>u==='kg'?lb*0.4536:lb; const pts=en.slice(-30).map(e=>({t:e.t,v:cv(e.lb)}));
+  const W=340,H=120,PL=34,PR=10,PT=10,PB=20; const lo=Math.min(...pts.map(p=>p.v)), hi=Math.max(...pts.map(p=>p.v)); const pad=Math.max(1,(hi-lo)*0.15); const y0=Math.floor(lo-pad), y1=Math.ceil(hi+pad);
+  const t0=pts[0].t, t1=pts[pts.length-1].t||t0+1; const X=t=>PL+(t-t0)/Math.max(1,t1-t0)*(W-PL-PR); const Y=v=>PT+(1-(v-y0)/(y1-y0))*(H-PT-PB);
+  const avgPts=pts.map(p=>{ const w=pts.filter(q=>q.t<=p.t&&q.t>p.t-7*DAY); return {t:p.t,v:w.reduce((a,q)=>a+q.v,0)/w.length}; });
+  const md=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  return `<svg viewBox="0 0 ${W} ${H}" class="pg-svg" role="img" aria-label="Body weight trend">${[y0,(y0+y1)/2,y1].map(v=>`<line x1="${PL}" x2="${W-PR}" y1="${Y(v)}" y2="${Y(v)}" class="pg-grid"/><text x="${PL-6}" y="${Y(v)+3.5}" class="pg-ax" text-anchor="end">${Math.round(v)}</text>`).join('')}
+    ${pts.map(p=>`<circle cx="${X(p.t)}" cy="${Y(p.v)}" r="3" class="wt-dot"><title>${md(p.t)}: ${fw(Math.round(p.v*10)/10)} ${u}</title></circle>`).join('')}
+    <path d="${avgPts.map((p,k)=>`${k?'L':'M'}${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ')}" class="pg-line"/>
+    <text x="${PL}" y="${H-5}" class="pg-ax">${md(t0)}</text><text x="${W-PR}" y="${H-5}" class="pg-ax" text-anchor="end">${md(t1)}</text></svg>
+    <p class="muted small legendline"><span class="lg-dot"></span> daily weigh-in <span class="lg-line"></span> 7-day average</p>`;
+}
+TABS.fuel=function(){
+  const F=fuel(); const k=dayKey(Date.now()); const T=fuelTargets(); const tot=dayTotals(k); const u=st.settings.unit; const view=ui.fuelView||'today';
+  const seg=`<div class="seg sm fuelseg">${[['today','Today'],['recipes','Recipes'],['weight','Weight']].map(([v,l])=>`<button class="${view===v?'on':''}" data-a="fuelView" data-v="${v}">${l}</button>`).join('')}</div>`;
+  let body='';
+  if(view==='today'){
+    if(!T) body+=`<div class="card nudge"><b>${ic('flame','sm')} Set up your targets</b><p class="muted small">Age, height and weight give you a daily calorie and protein target matched to your goal (${esc(GOALS[goalKey()].label)}) and your training.</p><button class="btn primary sm" data-a="fuelSetup">Set up (1 min)</button></div>`;
+    else { const left=T.kcal-tot.kcal, pl=T.protein-tot.p;
+      body+=`<div class="card fuelsum"><div class="fs-row"><div><span class="fs-big">${Math.round(Math.abs(left))}</span><span class="muted small">${left>=0?'kcal left':'kcal over'}</span></div><div class="fs-side muted small">${Math.round(tot.kcal)} eaten<br>of ${T.kcal} target</div></div>${bar(tot.kcal,T.kcal,left<0?'over':'')}
+        <div class="fs-row"><div><b>${Math.round(tot.p)}</b><span class="muted small"> / ${T.protein} g protein</span></div><div class="muted small">${pl>0?`${Math.round(pl)} g to go`:'Protein goal hit ✓'}</div></div>${bar(tot.p,T.protein,'prot')}
+        <p class="muted small fs-why">${T.train?`Includes about ${T.train} kcal from today's training. `:''}${T.adj<0?`${Math.abs(T.adj)} kcal/day under maintenance ≈ ${(Math.abs(T.adj)/500).toFixed(1)} lb/week loss.`:T.adj>0?`Small ${T.adj} kcal surplus for muscle gain.`:'Set at maintenance.'}${T.capped?' (Held at a safe minimum.)':''} <button class="linkbtn acc" data-a="fuelSetup">Adjust</button></p></div>`;
+      // smart suggestions
+      const trainedToday=workoutsSorted().some(w=>dayKey(w.start)===k); const trainedRecent=workoutsSorted().find(w=>Date.now()-w.start<6*3600e3);
+      const picks=[...FOODS.map(f=>FOODMAP[f[0]]),...RECIPES.map(r=>({id:'r_'+r.id,name:r.name,srv:'1 serving',kcal:r.kcal,p:r.p,rec:true,tags:r.tags}))].filter(f=>f.p>=15&&f.kcal<=Math.max(150,left+50)&&!(f.tags||[]).includes('drink')&&!(f.tags||[]).includes('out')).sort((a,b)=>(b.p/b.kcal)-(a.p/a.kcal)).filter((f,i,arr)=>trainedRecent?((f.tags||[]).includes('recovery')||i<2):true).slice(0,4);
+      body+=`<div class="card fuelrec"><b>${ic('spark','sm')} ${trainedRecent?'Recovery: you just trained':pl>20?'Fits what you have left':'Good options'}</b>
+        <p class="muted small">${trainedRecent?'In the next couple of hours, aim for 30–40 g protein plus some carbs, and drink 16–24 oz of water. Your total protein for the day matters most.':pl>20?`You need ${Math.round(pl)} g more protein in ${Math.max(0,Math.round(left))} kcal. These give the most protein per calorie:`:'You\'re on track. Lean protein and veggies keep you full.'}</p>
+        <div class="quicklist">${picks.map(f=>`<button class="qfood" data-a="fuelQuick" data-id="${esc(f.id)}"><span class="minw"><b>${esc(f.name)}</b><span class="muted small">${esc(f.srv)} · ${f.kcal} kcal · ${f.p} g protein</span></span>${ic('plus','sm')}</button>`).join('')}</div></div>`;
+    }
+    // log
+    const L=F.food[k]||[];
+    body+=`<div class="sec-row"><h2 class="sec">${ic('list')} Today's food</h2><button class="btn primary sm" data-a="fuelAdd">${ic('plus','sm')} Add food</button></div>`;
+    body+= L.length? `<ul class="card foodlog">${L.map(x=>`<li><span class="minw"><b>${esc(x.name)}</b><span class="muted small">${x.q!==1?x.q+' × ':''}${esc(x.srv)} · ${new Date(x.t).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</span></span><span class="fl-n">${Math.round(x.kcal*x.q)}<small>kcal</small></span><span class="fl-n">${Math.round(x.p*x.q)}<small>g P</small></span><button class="iconbtn sm" data-a="fuelDel" data-id="${esc(x.id)}" aria-label="Remove ${esc(x.name)}">${ic('x','sm')}</button></li>`).join('')}</ul>`
+      : `<p class="muted small">Nothing logged yet today. Tap <b>Add food</b>, or log a recipe from Recipes.</p>`;
+    const yk=dayKey(Date.now()-DAY); if((F.food[yk]||[]).length&&!L.length) body+=`<button class="btn ghost wide sm" data-a="fuelRepeat">${ic('history','sm')} Copy yesterday's food (${Math.round(dayTotals(yk).kcal)} kcal)</button>`;
+    // week summary
+    const days=[...Array(7)].map((_,i)=>dayKey(Date.now()-(6-i)*DAY)); const logged=days.filter(d=>(F.food[d]||[]).length);
+    if(logged.length>=2&&T){ const avg=logged.reduce((a,d)=>a+dayTotals(d).kcal,0)/logged.length, ap=logged.reduce((a,d)=>a+dayTotals(d).p,0)/logged.length;
+      body+=`<div class="card"><b>${ic('chart','sm')} Last 7 days</b><p class="small">Average <b>${Math.round(avg)} kcal</b> (target ${T.kcal}) and <b>${Math.round(ap)} g protein</b> (target ${T.protein}) on ${logged.length} logged day${logged.length>1?'s':''}.</p></div>`; }
+  }
+  if(view==='recipes'){
+    const f=ui.recTag||''; const tags=[['','All'],['protein','High protein'],['recovery','Post-workout'],['prep','Meal prep'],['quick','Quick'],['hunt','Wild game'],['costco','Costco']];
+    body+=`<div class="chips swapchips">${tags.map(([v,l])=>`<button class="chip ${f===v?'on':''}" data-a="recTag" data-v="${v}">${l}</button>`).join('')}</div>`;
+    body+=RECIPES.filter(r=>!f||r.tags.includes(f)).map(r=>`<button class="card recrow" data-a="openRecipe" data-id="${r.id}"><span class="minw"><b>${esc(r.name)}</b><span class="muted small">${r.kcal} kcal · ${r.p} g protein per serving · ${r.min} min${r.srv>1?` · makes ${r.srv}`:''}</span></span><span class="recp">${Math.round(r.p/r.kcal*100)}<small>g P / 100 kcal</small></span></button>`).join('');
+    body+=`<p class="muted small">Numbers are per serving and approximate. Brands vary.</p>`;
+  }
+  if(view==='weight'){
+    const tr=weightTrend(); const N=F.nut; const last=tr.en[tr.en.length-1];
+    body+=`<div class="card stack"><b>${ic('history','sm')} Weigh in</b><div class="kcal-bw"><input id="wtin" type="number" inputmode="decimal" placeholder="Today's weight (${u})" value=""><button class="btn primary sm" data-a="fuelWeigh">Save</button></div><p class="muted small">Same time each morning, after the bathroom, before food. The 7-day average is what matters; daily numbers bounce 1–3 lb with water and salt.</p></div>`;
+    if(tr.en.length){ const cv=lb=>u==='kg'?lb*0.4536:lb;
+      body+=`<div class="card stack"><div class="pg-hero"><span class="pg-num">${fw(Math.round(cv(tr.avgNow||last.lb)*10)/10)} ${u}</span><span class="muted small">7-day average</span>${tr.rate!=null?`<span class="pg-delta ${tr.rate<=0?'up':'down'}">${tr.rate<=0?'▼':'▲'} ${fw(Math.abs(Math.round(cv(tr.rate)*10)/10))} ${u}/week</span>`:''}</div>${weightChart(tr.en)}
+      ${N.goalW?`<p class="small">${(()=>{ const gl=+N.goalW*(u==='kg'?1/0.4536:1); const rem=(tr.avgNow||last.lb)-gl; if(rem<=0) return `${ic('trophy','xs')} Goal weight reached!`; if(tr.rate!=null&&tr.rate<-0.1){ const wk=rem/Math.abs(tr.rate); return `${fw(Math.round(cv(rem)*10)/10)} ${u} to your goal of ${fw(+N.goalW)} ${u}. At this pace: about <b>${new Date(Date.now()+wk*7*DAY).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</b>.`; } return `${fw(Math.round(cv(rem)*10)/10)} ${u} to your goal of ${fw(+N.goalW)} ${u}.`; })()}</p>`:''}</div>`;
+      body+=`<ul class="card foodlog">${tr.en.slice(-7).reverse().map(e=>`<li><span class="minw"><b>${fw(Math.round(cv(e.lb)*10)/10)} ${u}</b><span class="muted small">${new Date(e.t).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</span></span></li>`).join('')}</ul>`;
+    } else body+=`<p class="muted small">Log a few weigh-ins to see your trend.</p>`;
+  }
+  return {hdr:hdr('Fuel',{right:`<button class="iconbtn" data-a="fuelSetup" aria-label="Nutrition settings">${ic('gear')}</button>`}),body:`<section class="gut stack">${seg}${body}<p class="muted small center">General guidance, not medical advice. Talk to a doctor or dietitian about big changes.</p></section>`};
+};
+PAGES.fuelSetup=function(){
+  const N=fuel().nut; const u=st.settings.unit; const lb=latestWeightLb();
+  const opt=(k,v,l)=>`<button class="chip ${String(N[k])===String(v)?'on':''}" data-a="nutSet" data-k="${k}" data-v="${v}">${l}</button>`;
+  return {hdr:hdr('Nutrition setup',{left:backBtn}),body:`<section class="gut stack">
+    <div class="card stack"><div class="field"><label>Sex (for the calorie formula)</label><div class="chips">${opt('sex','m','Male')}${opt('sex','f','Female')}</div></div>
+    <div class="row2"><div class="field"><label>Age</label><input type="number" inputmode="numeric" data-f="nutNum" data-k="age" value="${esc(N.age||'')}"></div>
+      <div class="field"><label>Height</label><div class="ht"><input type="number" inputmode="numeric" data-f="nutHt" data-k="ft" value="${N.heightIn?Math.floor(N.heightIn/12):''}" placeholder="ft"><input type="number" inputmode="numeric" data-f="nutHt" data-k="in" value="${N.heightIn?N.heightIn%12:''}" placeholder="in"></div></div></div>
+    <div class="row2"><div class="field"><label>Current weight (${u})</label><input type="number" inputmode="decimal" data-f="nutW" value="${lb?fw(Math.round((u==='kg'?lb*0.4536:lb)*10)/10):''}"></div>
+      <div class="field"><label>Goal weight (${u})</label><input type="number" inputmode="decimal" data-f="nutNum" data-k="goalW" value="${esc(N.goalW||'')}"></div></div>
+    <div class="field"><label>Day-to-day activity (outside workouts)</label><div class="chips">${opt('life','low','Mostly sitting')}${opt('life','mid','On my feet some')}${opt('life','high','Physical job')}</div></div>
+    ${['lean','define'].includes(goalKey())?`<div class="field"><label>Weight-loss pace</label><div class="chips">${opt('rate',0.5,'0.5 lb/wk')}${opt('rate',1,'1 lb/wk')}${opt('rate',1.5,'1.5 lb/wk')}</div><p class="muted small">1 lb a week (about 500 kcal/day under) is a solid pace that keeps your strength up.</p></div>`:`<p class="muted small">Your goal is <b>${esc(GOALS[goalKey()].label)}</b>. Change it in Coach to switch to a weight-loss target.</p>`}</div>
+    ${(()=>{ const T=fuelTargets(); return T?`<div class="card"><b>Your daily targets</b><p class="small"><b>${T.kcal} kcal</b> and <b>${T.protein} g protein</b> on a rest day, plus whatever your workout burns on training days.</p><p class="muted small">Resting burn (Mifflin–St Jeor): ${T.bmr} kcal. With daily activity: ${Math.round(T.tdee-T.train)} kcal. Protein: ${(T.protein/T.kg).toFixed(1)} g per kg of body weight, the range research supports for keeping muscle while lifting.</p></div>`:'<p class="muted small">Fill in age, height and weight to see your targets.</p>'; })()}
+    <button class="btn primary wide" data-a="back">Done</button>
+  </section>`};
+};
+PAGES.foodAdd=function(p){
+  const q=(ui.fq||'').toLowerCase(); const F=fuel(); const recent=(F.recent||[]).map(foodById).filter(Boolean);
+  const mine=Object.values(F.myFoods); const all=[...mine,...FOODS.map(f=>FOODMAP[f[0]])];
+  const list= q? all.filter(f=>f.name.toLowerCase().includes(q)).slice(0,30) : null;
+  const row=f=>`<li><button class="qfood" data-a="fuelQuick" data-id="${esc(f.id)}"><span class="minw"><b>${esc(f.name)}</b><span class="muted small">${esc(f.srv||'1 serving')} · ${f.kcal} kcal · ${f.p} g protein</span></span>${ic('plus','sm')}</button></li>`;
+  return {hdr:hdr('Add food',{left:backBtn}),body:`<section class="gut stack">
+    <input id="fq" type="search" data-f="fq" placeholder="Search foods (chicken, rice, shake…)" value="${esc(ui.fq||'')}" autocomplete="off">
+    ${list? (list.length?`<ul class="card qlist">${list.map(row).join('')}</ul>`:'<p class="muted small">No match. Add it as a custom food below.</p>')
+      : `${recent.length?`<h2 class="sec">Recent</h2><ul class="card qlist">${recent.slice(0,8).map(row).join('')}</ul>`:''}
+         <h2 class="sec">High-protein staples</h2><ul class="card qlist">${FOODS.filter(f=>f[5].includes('protein')).slice(0,12).map(f=>row(FOODMAP[f[0]])).join('')}</ul>`}
+    <div class="card stack"><b>${ic('plus','sm')} Quick add / custom food</b>
+      <input id="cfn" placeholder="Name (e.g. Mom's lasagna)"><div class="row2"><input id="cfk" type="number" inputmode="numeric" placeholder="Calories"><input id="cfp" type="number" inputmode="numeric" placeholder="Protein (g)"></div>
+      <label class="toggle"><input id="cfs" type="checkbox" checked><span>Save to my foods</span></label>
+      <button class="btn primary" data-a="fuelCustom">Log it</button></div>
+  </section>`};
+};
+PAGES.recipe=function(p){
+  const r=RECIPES.find(x=>x.id===p.id); if(!r) return PAGES.missing();
+  return {hdr:hdr('Recipe',{left:backBtn}),body:`<section class="gut stack">
+    <div><h2 class="h2">${esc(r.name)}</h2><div class="muted small">${r.min} min${r.srv>1?` · makes ${r.srv} servings`:''}</div></div>
+    <div class="kv3"><div><label>Calories</label><b>${r.kcal}</b></div><div><label>Protein</label><b>${r.p} g</b></div><div><label>Per</label><b>serving</b></div></div>
+    <button class="btn primary wide" data-a="fuelQuick" data-id="r_${r.id}">${ic('plus')} Log 1 serving</button>
+    <div class="card"><b>Ingredients</b><ul class="ing">${r.ing.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
+    <div class="card"><b>Steps</b><ol class="hsteps">${r.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></div>
+    <p class="muted small">Nutrition is approximate and depends on brands and portions.</p>
+  </section>`};
+};
+Object.assign(A,{
+  fuelView:(d)=>{ ui.fuelView=d.v; render(); },
+  fuelSetup:()=>push({name:'fuelSetup'}),
+  fuelAdd:()=>{ ui.fq=''; push({name:'foodAdd'}); },
+  openRecipe:(d)=>push({name:'recipe',id:d.id}),
+  recTag:(d)=>{ ui.recTag=d.v; render(); },
+  nutSet:(d)=>{ fuel().nut[d.k]= d.k==='rate'? +d.v : d.v; Store.saveBody(); render(); },
+  fuelQuick:(d)=>{ const f=foodById(d.id); if(!f) return; logFood(f,1); toast(`Logged ${f.name} · ${f.kcal} kcal`); if(cur().name==='foodAdd'||cur().name==='recipe') ui.stack.pop(); render(); },
+  fuelDel:(d)=>{ const L=dayLog(dayKey(Date.now())); const i=L.findIndex(x=>x.id===d.id); if(i>=0){ L.splice(i,1); Store.saveBody(); render(); } },
+  fuelRepeat:()=>{ const y=fuel().food[dayKey(Date.now()-DAY)]||[]; const L=dayLog(dayKey(Date.now())); for(const x of y) L.push({...x,id:uid(),t:Date.now()}); Store.saveBody(); toast('Copied yesterday'); render(); },
+  fuelCustom:()=>{ const n=($('#cfn')||{}).value||''; const k=num(($('#cfk')||{}).value); const p=num(($('#cfp')||{}).value)||0; if(!n.trim()||!k){ toast('Add a name and calories'); return; }
+    const f={id:'my_'+uid(),name:n.trim(),srv:'1 serving',kcal:k,p}; if(($('#cfs')||{}).checked){ fuel().myFoods[f.id]=f; } logFood(f,1); toast(`Logged ${f.name}`); ui.stack.pop(); render(); },
+  fuelWeigh:()=>{ const v=num(($('#wtin')||{}).value); if(!v) return; const t=Date.now(); const today=startOfDay(t); st.body.entries=(st.body.entries||[]).filter(e=>startOfDay(e.t)!==today); st.body.entries.push({t,w:v,u:st.settings.unit}); st.settings.bodyW=v; Store.saveSettings(); Store.saveBody(); toast('Weight saved'); render(); },
+});
+
 (function boot(){
   render();
   Store.init().then(()=>{
@@ -6118,7 +6355,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611260804';
+window.WH_BUILD='202611260811';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
