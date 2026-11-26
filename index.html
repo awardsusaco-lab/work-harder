@@ -640,6 +640,8 @@ textarea{resize:vertical;line-height:1.4}
 .swapnote .ic{color:var(--accent)!important}
 .synclog{display:grid;gap:6px;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}.synclog p{margin:0}.synclog .btn{justify-self:start}
 .pickrt{margin-bottom:8px;background:var(--surface);padding:8px 12px;border-radius:12px}
+.btn.health{background:linear-gradient(135deg,#ff375f,#ff6b81);color:#fff;border:0}
+.hsteps{margin:0;padding-left:22px;display:grid;gap:12px}.hsteps p{margin:4px 0 0;color:var(--muted)}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -4235,6 +4237,7 @@ done(p){
     ${prs.length?`<div class="card"><h3 class="gold-t">${ic('trophy','sm')} ${prs.length} new personal record${prs.length>1?'s':''}</h3><ul class="prlist">${prs.map(p=>`<li><span>${esc(getEx(p.exId).name)}</span><span class="muted small">${PR_LABEL[p.kind]}</span><b>${prValue(p)}</b></li>`).join('')}</ul></div>`:''}
     ${w.routineSynced&&w.routineSynced.length?`<p class="muted small center">${ic('swap','sm')} Saved to <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> for next time: ${w.routineSynced.map(c=>c.added?`added ${esc(getEx(c.to).name)}`:`${esc(getEx(c.to).name)} (swap)`).join(', ')}.</p>`:''}
     ${w.routineUpdated?`<p class="muted small center">${ic('spark','sm')} The coach saved today's weights into <b>${esc((st.routines[w.routineId]||{}).name||'your routine')}</b> and will set next session's targets from them.</p>`:''}
+    ${st.settings.health?`<button class="btn wide health" data-a="toHealth" data-id="${esc(w.id)}">${ic('heart')} Send to Apple Health</button>`:''}
     <button class="btn wide strava" data-a="strava" data-id="${esc(w.id)}">${ic('share')} Share to Strava</button>
     <button class="btn primary wide" data-a="doneClose">Done</button>
   </section>`};
@@ -4380,7 +4383,10 @@ settings(){
    <div class="field"><label>Scenery on Home</label><div class="scenes">${[['rotate','Rotate daily'],['elk','Elk mountains'],['buck','Whitetail woods'],['marsh','Duck marsh'],['river','Trout river'],['off','Off']].map(([v,l])=>`<button class="scn ${ (s.scene||'rotate')===v?'on':''}" data-a="setS" data-k="scene" data-v="${v}">${v==='off'||v==='rotate'?`<span class="scn-ic">${ic(v==='off'?'x':'history')}</span>`:(()=>{const sc=sceneSVGOut(v); return `<svg class="trophy-svg" viewBox="0 0 360 150" aria-hidden="true">${sc.bg}${sc.fg}</svg>`;})()}<span>${l}</span></button>`).join('')}</div></div>
    </div></div><h2 class="sec">${ic('link')} Connected apps</h2>
    <div class="card conn"><div class="conn-h"><b>Strava</b><span class="badge">Share</span></div><p class="muted small">After each workout, tap <b>Share to Strava</b>. Work Harder writes the title and a full set breakdown for you to paste into Strava's manual activity form.</p></div>
-   <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge off">Not available here</span></div><p class="muted small">Apple only lets native iPhone apps read and write Health data. This needs the installable iPhone version of Work Harder.</p></div>
+   <div class="card conn"><div class="conn-h"><b>Apple Health</b><span class="badge ${s.health?'':'off'}">${s.health?'On':'Off'}</span></div><p class="muted small">Sends each finished workout to Apple Health as Traditional Strength Training (time, calories) through a one-time Shortcut.</p>
+     <label class="toggle"><input type="checkbox" data-f="setChk" data-k="health" ${s.health?'checked':''}><span>Show "Send to Apple Health" after workouts</span></label>
+     <div class="field"><label>Body weight (for calorie estimate)</label><input type="number" inputmode="decimal" data-f="setNum" data-k="bodyW" value="${esc(s.bodyW||'')}" placeholder="${s.unit==='kg'?'e.g. 95':'e.g. 210'}"></div>
+     <div class="row2"><button class="btn" data-a="openHealthHelp">${ic('list','sm')} How to set up</button><button class="btn" data-a="healthTest">${ic('play','sm')} Test</button></div></div>
    <div class="card conn"><div class="conn-h"><b>Garmin Connect</b><span class="badge off">Not available here</span></div><p class="muted small">Garmin's activity upload is limited to approved developer apps, so it also needs a standalone version.</p></div>
    <h2 class="sec">${ic('download')} Your data</h2><div class="card setcard">
    <p class="muted small">${Store.mode==='cloud'?'Synced to your Claude account, so the same workouts show on your phone and your computer.':window.WH_STANDALONE?'Saved on this phone. Export a backup every few weeks and keep it somewhere safe, like iCloud Drive.':'Saved on this device only. Open Work Harder from the Claude app while signed in to sync across devices.'}</p>
@@ -5185,6 +5191,9 @@ const A={
   swapAllGear:()=>{ cur().allGear=true; render(); },
   exAllGear:()=>{ ui.exq.allGear=!ui.exq.allGear; render(); },
   openGym:()=>push({name:'gym'}),
+  openHealthHelp:()=>push({name:'healthHelp'}),
+  toHealth:(d)=>{ const w=st.workouts[d.id]; if(!w) return; w.healthSent=Date.now(); Store.put('workouts',w.id,w); openHealthShortcut(w); },
+  healthTest:()=>{ const now=Date.now(); openHealthShortcut({name:'Work Harder test',start:now-60000,end:now}); },
   reorderDone:()=>{ reorderApply(); const host=ui.stack[ui.stack.length-2]; ui.stack.pop(); if(host&&host.name==='active') changed(true); else render(); toast('Order saved'); },
   openBrain:()=>push({name:'brain'}),
   gymPreset:(d)=>{ const pr=GYM_PRESETS.find(x=>x[0]===d.v); st.settings.noEquip=EQUIP.filter(q=>q!=='Bodyweight'&&!pr[2].includes(q)); Store.saveSettings(); render(); },
@@ -5412,6 +5421,8 @@ function onField(ev,commit){
     case 'exnote': curObj().exercises[+el.dataset.e].note=v; changed(false); return;
     case 'swapRt': p.rt=!!v; return;
     case 'pickRt': p.rt=!!v; return;
+    case 'setChk': st.settings[el.dataset.k]=!!v; Store.saveSettings(); render(); return;
+    case 'setNum': if(!commit) return; st.settings[el.dataset.k]= v===''? '' : (num(v)??''); Store.saveSettings(); return;
     case 'gymEq': { const m=new Set(missingGear()); const q=el.dataset.v; v? m.delete(q) : m.add(q); st.settings.noEquip=EQUIP.filter(x=>m.has(x)); Store.saveSettings(); render(); return; }
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
@@ -5742,6 +5753,32 @@ function reorderApply(){
     if(ev.key==='ArrowUp'&&li.previousElementSibling) li.parentElement.insertBefore(li,li.previousElementSibling); else if(ev.key==='ArrowDown'&&li.nextElementSibling) li.parentElement.insertBefore(li.nextElementSibling,li);
     reorderApply(); h.focus(); });
 })();
+const HEALTH_SC='WH to Health';
+function healthPayload(w){
+  const min=Math.max(1,Math.round(((w.end||w.start)-w.start)/60000)); const kg=st.settings.bodyW? (st.settings.unit==='kg'?+st.settings.bodyW:+st.settings.bodyW*0.4536) : 0;
+  const kcal= kg? Math.round(5*3.5*kg/200*min) : 0;   // ~5 METs for lifting with rests
+  const d=new Date(w.start); const p2=n=>String(n).padStart(2,'0');
+  const start=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  return {min,kcal,start,text:`${min}|${kcal}|${start}|${(w.name||'Workout').replace(/\|/g,'/')}`};
+}
+function openHealthShortcut(w){ const P=healthPayload(w); location.href=`shortcuts://run-shortcut?name=${encodeURIComponent(HEALTH_SC)}&input=text&text=${encodeURIComponent(P.text)}`; }
+PAGES.healthHelp=function(){
+  const steps=[
+    ['Open the Shortcuts app','It comes with your iPhone. Tap <b>+</b> to make a new shortcut and name it exactly <b>'+HEALTH_SC+'</b>.'],
+    ['Let it receive text','Tap the <b>ⓘ</b> (or the shortcut name at the top) and make sure it can receive <b>Text</b> as input.'],
+    ['Split the text','Add the action <b>Split Text</b>. Set it to split <b>Shortcut Input</b> by <b>Custom</b> and type a single <b>|</b> (vertical bar).'],
+    ['Pull out the numbers','Add <b>Get Item from List</b> three times: <b>Item at Index 1</b> (minutes), <b>Index 2</b> (calories), <b>Index 3</b> (start time).'],
+    ['Log the workout','Add <b>Log Workout</b>. Type: <b>Traditional Strength Training</b>. Duration: the index-1 item, in <b>minutes</b>. Calories: the index-2 item. Date: the index-3 item.'],
+    ['Allow Health','Run it once from Work Harder with <b>Test</b> in Settings. When asked, allow Shortcuts to write <b>Workouts</b> and <b>Active Energy</b> to Health.'],
+  ];
+  return {hdr:hdr('Apple Health setup',{left:backBtn}),body:`<section class="gut stack">
+    <p class="muted">Apple only lets App Store apps write to Health directly, so Work Harder hands your workout to a Shortcut you make once (about 3 minutes). After that, tap <b>Send to Apple Health</b> on the finish screen.</p>
+    <ol class="hsteps">${steps.map(([t,d],i)=>`<li><b>${t}</b><p class="small">${d}</p></li>`).join('')}</ol>
+    <div class="card"><p class="small"><b>What gets sent:</b> date and time, duration, and estimated calories (needs your body weight in Settings). Sets and weights stay in Work Harder.</p>
+    <p class="muted small">After it logs, Shortcuts stays open. Swipe back to Work Harder. If Health shows 0 minutes, check Settings → Health → Data Access & Devices → Shortcuts and turn on Workouts.</p></div>
+    <button class="btn primary wide" data-a="healthTest">${ic('play')} Send a test workout</button>
+  </section>`};
+};
 PAGES.gym=function(){
   const miss=new Set(missingGear()); const cnt=allEx().reduce((m,e)=>(m[e.equipment||'Other']=(m[e.equipment||'Other']||0)+1,m),{});
   const preset=GYM_PRESETS.find(([,,have])=>EQUIP.every(q=>have.includes(q)!==miss.has(q)||q==='Bodyweight'));
@@ -5872,7 +5909,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611250826';
+window.WH_BUILD='202611260734';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
