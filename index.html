@@ -659,6 +659,13 @@ textarea{resize:vertical;line-height:1.4}
 .pg-dot{fill:var(--accent);stroke:var(--surface);stroke-width:2}.pg-dot.sel{stroke:var(--text);stroke-width:2}
 .pg-hit{fill:transparent;cursor:pointer}
 .pg-tip{margin:0;min-height:1.4em}.pg-best{margin:0;display:flex;align-items:center;gap:6px}
+.goalbar{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px}.goalbar span{display:flex;align-items:center;gap:6px}
+.coachrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;color:inherit;font:inherit;cursor:pointer}.coachrow .minw{flex:1;display:flex;flex-direction:column;min-width:0}.coachrow>.ic:first-child{color:var(--accent)}
+.goalgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.goalopt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);color:inherit;font:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center}.goalopt.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.goalpick p{margin:0}
+.chatlog{display:flex;flex-direction:column;gap:8px}
+.msg{max-width:85%;padding:10px 12px;border-radius:16px;font-size:15px;line-height:1.4}.msg.c{align-self:flex-start;background:var(--surface);border-bottom-left-radius:4px}.msg.me{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:4px}
+.coachchips{display:flex;flex-wrap:wrap;gap:6px}.coachchips .chip{cursor:pointer;padding:7px 12px;font-size:13px}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -2680,7 +2687,25 @@ const KNEE_PATTERNS=new Set(['squat','lunge','stepup','legext','legpress','sissy
 const COMPOUND_PATTERNS=new Set(['squat','hinge','rdl','goodmorning','lunge','stepup','legpress','bench','incline','seatpress','ohp','seatohp','landmine','pullup','pulldown','row','csrow','cablerow','pendlay','sealrow','dip','pushup','clean','snatch','thruster','floorpress','rackpull']);
 const LOWER_PATTERNS=new Set(['squat','hinge','rdl','goodmorning','lunge','stepup','legpress','bridge','rackpull','kbswing']);
 
-function repRange(note,ex){
+/* Training goal: shifts rep ranges and rest so the same routine trains the way you want */
+const GOALS={
+  muscle:{label:'Build muscle',icon:'dumbbell',blurb:'6–12 reps on big lifts, 10–15 on the rest, normal rests. The coach pushes reps, then weight.',restC:1,restA:1},
+  strength:{label:'Get stronger',icon:'trophy',blurb:'Heavier: 3–6 reps on big lifts, 8–12 on the rest, longer rests (about 3 min on big lifts).',restC:1.4,restA:1.15},
+  lean:{label:'Lose fat',icon:'flame',blurb:'Keep lifting heavy to hold on to muscle, shorter rests, and a 10–15 min incline-walk finisher. Fat loss itself comes from eating in a calorie deficit.',restC:0.8,restA:0.7},
+  define:{label:'Definition / tone',icon:'spark',blurb:'Heavy big lifts, higher-rep accessories (12–18), short rests and a short walk finisher.',restC:0.85,restA:0.65},
+  endurance:{label:'Hunting fitness',icon:'mountain',blurb:'Work capacity for the mountains: higher reps (10–20), short rests and an incline-walk finisher.',restC:0.7,restA:0.6},
+  general:{label:'General fitness',icon:'heart',blurb:'Balanced: keeps your routine exactly as written.',restC:1,restA:1},
+};
+function goalKey(){ return GOALS[st.settings.goalType]? st.settings.goalType : 'general'; }
+function goalRange(lo,hi,ex){
+  const g=goalKey(); const comp=COMPOUND_PATTERNS.has(ex.pattern);
+  if(g==='strength') return comp? [Math.max(3,lo-3),Math.max(5,hi-4)] : [Math.max(6,lo-2),Math.max(10,hi-3)];
+  if(g==='define') return comp? [lo,hi] : [Math.min(lo+2,18),Math.min(hi+3,20)];
+  if(g==='endurance') return comp? [lo+2,hi+4] : [Math.min(lo+4,18),Math.min(hi+5,25)];
+  return [lo,hi];
+}
+function repRange(note,ex){ const [a,b]=repRange0(note,ex); return ['wr','wreps','reps'].includes(ex.type)? goalRange(a,b,ex) : [a,b]; }
+function repRange0(note,ex){
   const m=String(note||'').match(/(\d+)\s*[–\-]\s*(\d+)\s*(reps?|rep\b|each)?/i);
   if(m && !/sec|min|yard|yd|meter/i.test(String(note).slice(m.index,m.index+m[0].length+8))){ const lo=+m[1], hi=+m[2]; if(lo>0&&hi>=lo&&hi<=50) return [lo,hi]; }
   const one=String(note||'').match(/(\d+)\s*reps/i); if(one){ const n=+one[1]; return [Math.max(1,n-2),n]; }
@@ -2956,10 +2981,12 @@ function exValue(a,e,idx,others){
 }
 function applyCap(a){
   const cap=+st.settings.maxEx||0;
-  for(const e of a.exercises) if(e.bonus&&!e.sets.some(s=>s.done)) delete e.bonus;
-  if(!cap||a.capOff) return;
+  for(const e of a.exercises) if(e.bonus&&!e.goalAdd&&!e.sets.some(s=>s.done)) delete e.bonus;
+  if(a.capOff||(!cap&&!a.timeCap)) return;
   let keep=a.exercises.filter(e=>!e.bonus);
-  while(keep.length>cap){
+  if(a.timeCap){ const per=e=>{ const n=e.sets.length; const rest=(e.rest==null?st.settings.rest:e.rest)||90; return n*(45+rest)/60; }; let tot=keep.reduce((x,e)=>x+per(e),0);
+    while(tot>a.timeCap&&keep.length>2){ let worst=null,wv=Infinity; keep.forEach(e=>{ if(e.sets.some(s=>s.done)) return; const v=exValue(a,e,a.exercises.indexOf(e),keep.filter(o=>o!==e)); if(v<wv){wv=v;worst=e;} }); if(!worst) break; worst.bonus=true; keep=keep.filter(e=>e!==worst); tot-=per(worst); } }
+  while(cap&&keep.length>cap){
     let worst=null, wv=Infinity;
     keep.forEach(e=>{ if(e.sets.some(s=>s.done)) return; const idx=a.exercises.indexOf(e); const v=exValue(a,e,idx,keep.filter(o=>o!==e)); if(v<wv){ wv=v; worst=e; } });
     if(!worst) break; worst.bonus=true; keep=keep.filter(e=>e!==worst);
@@ -4091,6 +4118,7 @@ home(){
       <div class="row2"><button class="btn primary" data-a="startEmpty">${ic('plus')} Start empty workout</button><button class="btn" data-a="tab" data-tab="routines">Browse routines</button></div></div>`;
   } else {
     if(st.settings.swapSyncLog&&st.settings.swapSyncLog.length) body+=`<div class="card synclog"><b>${ic('swap','sm')} Routines matched to your last workouts</b>${st.settings.swapSyncLog.map(l=>`<p class="small"><b>${esc(l.name)}:</b> ${l.ch.map(c=>c.added?`+ ${esc((getEx(c.to)||{}).name||'?')}`:`${esc((getEx(c.from)||{}).name||'?')} → ${esc((getEx(c.to)||{}).name||'?')}`).join(', ')}</p>`).join('')}<p class="muted small">From now on, whatever you do in a workout is saved to its routine when you finish.</p><button class="btn sm" data-a="syncLogOk">Got it</button></div>`;
+    body+=`<button class="card coachrow" data-a="openCoach">${ic('chat')}<span class="minw"><b>Coach</b><span class="muted small">Goal: ${esc(GOALS[goalKey()].label)} · tap to change it or talk to the coach</span></span>${ic('chev','sm')}</button>`;
     body+=progressCard();
     body+=homeFeed(ws);
   }
@@ -4446,7 +4474,7 @@ function loggerPage(obj,mode){
   if(mode==='routine') top=`<input id="rname" class="title-in" data-f="rname" value="${esc(obj.name)}" placeholder="Routine title"><div class="field"><label for="rfolder">Folder</label><input id="rfolder" data-f="rfolder" list="folderlist" value="${esc(obj.folder||'')}" placeholder="None (e.g. Hunting)"><datalist id="folderlist">${folderNames().map(f=>`<option value="${esc(f)}">`).join('')}</datalist></div><textarea id="rnotes" data-f="rnotes" rows="2" placeholder="Notes (optional)">${esc(obj.notes||'')}</textarea>`;
   if(mode==='edit') top=`<input id="ename" class="title-in" data-f="ename" value="${esc(obj.name)}"><textarea id="enotes" data-f="enotes" rows="2" placeholder="Description">${esc(obj.notes||'')}</textarea>`;
   const nb=mode==='active'? obj.exercises.filter(e=>e.bonus).length : 0;
-  const cards=obj.exercises.map((e,i)=>(mode==='active'&&e.bonus&&!(obj.exercises[i-1]||{}).bonus?`<div class="bonushdr"><h2 class="sec">${ic('plus')} Bonus · if you have time</h2><p class="muted small">Your cap is ${st.settings.maxEx} exercises, so the coach moved the ${nb===1?'one':nb} that overlap${nb===1?'s':''} most with the rest down here. Skipping ${nb===1?'it':'them'} won't count against you. <button class="linkbtn acc" data-a="capOff">Do them all today</button></p></div>`:'')+exCard(obj,e,i,mode)).join('')
+  const cards=obj.exercises.map((e,i)=>(mode==='active'&&e.bonus&&!(obj.exercises[i-1]||{}).bonus?`<div class="bonushdr"><h2 class="sec">${ic('plus')} Bonus · if you have time</h2><p class="muted small">${obj.timeCap?`You've got about ${obj.timeCap} minutes, so the coach moved the lowest-priority ${nb===1?'one':nb} down here.`:obj.exercises.every(e=>!e.bonus||e.goalAdd)?'Finisher for your goal.':`Your cap is ${st.settings.maxEx} exercises, so the coach moved the ${nb===1?'one':nb} that overlap${nb===1?'s':''} most with the rest down here.`} Skipping ${nb===1?'it':'them'} won't count against you. <button class="linkbtn acc" data-a="capOff">Do them all today</button></p></div>`:'')+exCard(obj,e,i,mode)).join('')
     +(mode==='active'&&obj.capOff&&+st.settings.maxEx&&obj.exercises.length>+st.settings.maxEx?`<p class="muted small center"><button class="linkbtn acc" data-a="capOn">Trim back to ${st.settings.maxEx} exercises</button></p>`:'');
   const empty = obj.exercises.length? '' : `<div class="empty small-empty"><div class="empty-fig">${figSVG(BUILTIN.bench_bb,{anim:'bench_bb'})}</div><h2>${mode==='routine'?'Add exercises to this routine':'Get started'}</h2><p>Add an exercise to start logging.</p></div>`;
   if(mode==='active'&&obj.comeback&&obj.comeback.light){
@@ -4455,6 +4483,7 @@ function loggerPage(obj,mode){
       ? `<div class="card cbcard"><b>Comeback mode is off</b><p class="muted small">Back to normal targets. Tap to ease in again.</p><button class="btn sm" data-a="comebackToggle">Turn comeback mode on</button></div>`
       : `<div class="card cbcard"><b>${ic('spark','sm')} Comeback mode · session ${c.stage+1} of ${cbSessions()}</b><p class="small">${c.stage===0?`${c.gapDays} days off: weights start at ${Math.round(cbStartFactor(c.gapDays)*100)}% with one fewer set.`:`Lifts climb from your ratings: Easy +10%, Medium +5%, Hard holds.`} Rate each set as you go.</p><button class="btn ghost sm cboff" data-a="comebackToggle">I'm ready, turn it off</button></div>`;
   }
+  if(mode==='active') top+=`<div class="goalbar"><span>${ic(GOALS[obj.goal||goalKey()].icon,'sm')} Goal: <b>${esc(GOALS[obj.goal||goalKey()].label)}</b></span><button class="btn sm coachbtn" data-a="openCoach">${ic('chat','sm')} Talk to coach</button></div>`;
   if(mode==='active'&&obj.deload){ top+=`<div class="card cbcard dlcard"><b>${ic('history','sm')} Deload week</b><p class="small">${esc(obj.deload.why)}</p><button class="btn ghost sm cboff" data-a="deloadSkip">Skip the deload, go full</button></div>`; }
   if(mode==='active'&&obj.routineId){
     const opt=(k,v,l)=>`<button class="chip ${obj[k]===v?'on':''}" data-a="checkin" data-k="${k}" data-v="${v}" aria-pressed="${obj[k]===v}">${l}</button>`;
@@ -4787,6 +4816,12 @@ function buildFromRoutine(from){
   const a={id:uid(),name:from?from.name:defaultName(),start:Date.now(),unit:u,dunit:st.settings.dist,routineId:from&&!from.tpl?from.id:null,notes:'',plan:from&&from.notes||'',exercises:[]};
   for(const e of from.exercises||[]){
     a.exercises.push({exId:e.exId,rest:e.rest,note:'',cue:e.note||'',ss:e.ss||undefined,swapNote:e.swappedFrom&&getEx(e.swappedFrom)?`Kept your swap: ${getEx(e.exId).name} instead of ${getEx(e.swappedFrom).name}.`:undefined,sets:(e.sets||[newSet()]).map(s=>({type:s.type||'n',w:'',r:'',t:'',d:'',done:false,pw:s.w!==''&&s.w!=null?round1(convW(num(s.w),from.unit||'lb',u)):'',pr:s.r??'',pt:s.t??'',pd:s.d??''}))});
+  }
+  const G=GOALS[goalKey()]; a.goal=goalKey();
+  if(G.restC!==1||G.restA!==1) for(const e of a.exercises){ const X=getEx(e.exId); const base=e.rest==null?st.settings.rest:e.rest; if(!base) continue; const f=COMPOUND_PATTERNS.has(X.pattern)?G.restC:G.restA; e.rest=Math.min(240,Math.max(30,Math.round(base*f/15)*15)); }
+  if(['lean','define','endurance'].includes(a.goal)&&!a.exercises.some(e=>getEx(e.exId).type==='cardio'||getEx(e.exId).equipment==='Cardio Machine')&&getEx('incline_walk')){
+    const min= a.goal==='endurance'?15 : a.goal==='lean'?12 : 10;
+    a.exercises.push({exId:'incline_walk',rest:0,note:'',cue:'',tempSwap:true,goalAdd:true,bonus:true,swapNote:`Finisher for your ${G.label.toLowerCase()} goal. Skipping it won't cost points.`,sets:[{type:'n',w:'',r:'',t:'',d:'',done:false,pw:'',pr:'',pt:min*60,pd:''}]});
   }
   a.feel='normal'; a.knees='good'; applyCoach(a); return a;
 }
@@ -5221,6 +5256,13 @@ const A={
   swapAllGear:()=>{ cur().allGear=true; render(); },
   exAllGear:()=>{ ui.exq.allGear=!ui.exq.allGear; render(); },
   openGym:()=>push({name:'gym'}),
+  openCoach:()=>{ push({name:'coach'}); setTimeout(()=>{ const l=$('#chatlog'); if(l) l.scrollTop=l.scrollHeight; },50); },
+  setGoal:(d)=>{ st.settings.goalType=d.v; Store.saveSettings(); (ui.coachLog||(ui.coachLog=[])).push({who:'c',html:`Goal set: <b>${GOALS[d.v].label}</b>. ${GOALS[d.v].blurb}`}); render(); },
+  coachChip:(d)=>A.coachSend({text:d.v}),
+  coachSend:(d)=>{ const el=$('#coachin'); const text=(d&&d.text)||(el&&el.value)||''; if(!text.trim()) return; if(el) el.value='';
+    const log=ui.coachLog||(ui.coachLog=[]); log.push({who:'me',html:text}); if(ui.coachAsk==='pain'&&!/hurt|pain/.test(text.toLowerCase())) ui.coachAsk=null; else if(ui.coachAsk==='pain') ui.coachAsk=null;
+    for(const h of coachSay(text)) log.push({who:'c',html:h}); if(log.length>40) log.splice(0,log.length-40);
+    render(); const l=$('#chatlog'); if(l) l.scrollTop=l.scrollHeight; const m=$('#main'); if(m) m.scrollTop=m.scrollHeight; },
   openHealthHelp:()=>push({name:'healthHelp'}),
   kcalWhy:(d)=>{ ui.kcalOpen= ui.kcalOpen===d.id? null : d.id; render(); },
   kcalBw:()=>{ const el=$('.kcal-bw input'); const v=el&&num(el.value); if(v){ st.settings.bodyW=v; Store.saveSettings(); render(); } },
@@ -5425,6 +5467,7 @@ document.addEventListener('click',ev=>{
 document.addEventListener('keydown',ev=>{
   if(ev.key==='Escape'&&ui.sheet){ closeSheet(); return; }
   if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches('article[data-a]')){ ev.preventDefault(); ev.target.click(); }
+  if(ev.key==='Enter'&&ev.target.id==='coachin'){ ev.preventDefault(); A.coachSend({}); return; }
   if(ev.key==='Enter'&&ev.target.matches('.cbox input')){ ev.preventDefault(); const b=ev.target.parentElement.querySelector('[data-a=sendCmt]'); if(b) b.click(); }
   if(ev.key==='Enter'&&ev.target.matches('input.cell')){ ev.preventDefault(); const all=$$('input.cell'); const i=all.indexOf(ev.target); if(all[i+1]) all[i+1].focus(); else ev.target.blur(); }
 });
@@ -5898,6 +5941,53 @@ PAGES.healthHelp=function(){
     <div class="card"><p class="small"><b>No-setup option</b></p><p class="muted small">Wear your Apple Watch and start a <b>Traditional Strength Training</b> workout on it when you start in Work Harder. Health gets heart rate and real calories that way, too.</p></div>
   </section>`};
 };
+/* ---------- Talk to the coach: plain-language requests mapped to real changes in your plan ---------- */
+const PAIN_MAP={shoulder:{m:['Shoulders','Chest','Triceps'],p:['ohp','seatohp','bench','incline','dip','latraise','landmine','pushup','fly']},knee:{m:['Quads'],p:['squat','lunge','stepup','legpress','legext','splitsquat']},
+  back:{m:['Lower Back','Lats'],p:['hinge','rdl','goodmorning','row','squat','deadlift','rackpull']},elbow:{m:['Biceps','Triceps','Forearms'],p:['curl','skull','pushdown','dip','pullup','chinup']},
+  wrist:{m:['Forearms'],p:['curl','bench','pushup','ohp','carry']},hip:{m:['Glutes','Adductors','Abductors'],p:['squat','lunge','hinge','hipthrust','legpress']},neck:{m:['Traps'],p:['shrug','ohp','carry']}};
+function coachSay(text){
+  const t=String(text||'').toLowerCase().trim(); const a=st.active; const out=[]; let acted=false;
+  const needA=()=>{ if(!a){ out.push('Start your workout first and I\'ll change it on the spot.'); return false; } return true; };
+  const notStarted=a? a.exercises.filter(e=>!e.sets.some(s=>s.done)) : [];
+  // goals
+  const gmap=[['lean',/lose (weight|fat)|losing weight|cut(ting)?\b|fat loss|lean(er)? out|drop weight/],['strength',/strong(er)?|strength|power|1 ?rep|max out/],['define',/defin|tone|toned|shred|ripped|cut up/],['endurance',/endurance|hunt|hike|hiking|pack|condition|stamina|mountain/],['muscle',/muscle|bulk|size|bigger|hypertroph|mass/],['general',/general|overall|healthy|just fit/]];
+  if(/goal|want to|trying to|i'm|im |focus/.test(t)||gmap.some(([,r])=>r.test(t))&&!/hurt|pain/.test(t)){ const g=gmap.find(([,r])=>r.test(t)); if(g&&/goal|want|trying|focus|switch|change|i'm|im |^(build|get|lose|more)/.test(t)){ st.settings.goalType=g[0]; Store.saveSettings(); acted=true; out.push(`Goal set: <b>${GOALS[g[0]].label}</b>. ${GOALS[g[0]].blurb} Your next workout is built this way${a?' (today\'s stays as it started)':''}.`); } }
+  // time
+  const mm=t.match(/(\d{2,3})\s*(min|minutes|m\b)/); if(/short on time|in a hurry|quick|only have|limited time|running late/.test(t)||mm&&/have|got|only/.test(t)){ if(needA()){ const m=mm?+mm[1]:35; a.timeCap=m; applyCoach(a,true); Store.saveActive(); acted=true; const nb=a.exercises.filter(e=>e.bonus&&!e.goalAdd).length; out.push(nb?`Got it, about ${m} minutes. I moved ${nb} lower-priority exercise${nb>1?'s':''} to <b>Bonus</b> at the end. Main lifts stay.`:`About ${m} minutes fits today's plan as is. Keep rests tight.`); } }
+  // feel
+  if(/tired|beat|exhausted|run ?down|no sleep|didn'?t sleep|sick|drained|wiped|sore/.test(t)&&!/hurt|pain/.test(t)){ if(needA()){ a.feel='rundown'; applyCoach(a,true); Store.saveActive(); acted=true; out.push(`Understood. For exercises you haven't started, I matched last time instead of adding weight. Quality reps, and stop any set early if form slips.`); } }
+  if(/feel(ing)? (great|good|strong|awesome)|energ|fired up|let'?s go|ready to go/.test(t)){ if(needA()){ const main=a.exercises.find((e,i)=>isMainLift(a,i)&&!e.sets.some(s=>s.done)); if(main){ const w=main.sets.filter(s=>s.type!=='w'); const last=w[w.length-1]; if(last&&!main.volAdj){ main.sets.push({...last,done:false,amrap:true}); main.volAdj=1; } } Store.saveActive(); acted=true; out.push(main?`Love it. I added a set to <b>${esc(getEx(main.exId).name)}</b> and the last one is a push set: go for every rep you can with good form.`:'Love it. Push the last set of each exercise.'); } }
+  // effort today
+  if(/too (easy|light)|easy today|not heavy enough/.test(t)){ if(needA()){ let n=0; for(const e of notStarted){ const X=getEx(e.exId); if(!colsFor(X).includes('w')||e.pain) continue; for(const s of e.sets){ if(s.type==='w'||s.pw==='') continue; s.pw=round1(roundTo(num(s.pw)*1.05,weightStep(X,a.unit,num(s.pw)))); n++; } } Store.saveActive(); acted=true; out.push(n?'Bumped the weights about 5% on exercises you haven\'t started.':'Nothing left to bump. Add reps or slow the tempo on the rest.'); } }
+  if(/too (hard|heavy)|can'?t (do|lift|finish)|struggling/.test(t)){ if(needA()){ let n=0; for(const e of a.exercises){ const X=getEx(e.exId); if(!colsFor(X).includes('w')) continue; for(const s of e.sets){ if(s.done||s.type==='w'||s.pw==='') continue; s.pw=round1(roundTo(num(s.pw)*0.9,weightStep(X,a.unit,num(s.pw)))); n++; } } Store.saveActive(); acted=true; out.push(n?'Dropped the remaining sets about 10%. Hit clean reps; the coach builds back from there.':'Nothing left to lighten.'); } }
+  // pain
+  const part=Object.keys(PAIN_MAP).find(k=>t.includes(k)||(k==='back'&&/lower back|spine/.test(t))||(k==='shoulder'&&/rotator|delt/.test(t)));
+  if(/hurt|pain|injur|tweak|strain|ache|achy|pinch/.test(t)){
+    if(!part){ out.push('Where does it hurt? Tap one below and I\'ll adjust today\'s exercises.'); ui.coachAsk='pain'; acted=true; }
+    else if(needA()){ const P=PAIN_MAP[part]; const hit=notStarted.filter(e=>{ const X=getEx(e.exId); return P.p.some(q=>(X.pattern||'').includes(q))||(X.primary||[]).some(m=>P.m.includes(m)); });
+      for(const e of hit){ const X=getEx(e.exId); for(const s of e.sets){ if(s.type==='w'||s.pw==='') continue; s.pw=round1(roundTo(num(s.pw)*0.8,weightStep(X,a.unit,num(s.pw)))); } e.swapNote=`Your ${part} is bothering you: 20% lighter, pain-free range only. Swap it if it still hurts.`; e.pain=part; }
+      if(part==='knee') a.knees='achy'; Store.saveActive(); acted=true;
+      out.push(hit.length?`I lightened ${hit.length} exercise${hit.length>1?'s':''} that load your ${part} by 20%: ${hit.map(e=>esc(getEx(e.exId).name)).join(', ')}. Use the ⇄ button on any of them to swap to something that doesn't hurt.`:`Nothing left today loads your ${part} much. Keep it pain-free.`);
+      out.push('<span class="muted">If it\'s sharp pain, swelling, numbness or it gets worse, stop and get it checked by a doctor or physical therapist.</span>'); }
+  }
+  // equipment
+  if(/(taken|busy|occupied|no (machine|bench|rack|barbell))/.test(t)){ out.push('Tap the ⇄ swap button on that exercise. You\'ll get alternatives for the same muscles, and you can filter by equipment that\'s free.'); acted=true; }
+  // explain
+  if(/why|explain|what('?s| is) (the|my) plan|how come/.test(t)){ acted=true; if(a){ const lines=a.exercises.filter(e=>e.coach&&e.coach.msg).slice(0,3).map(e=>`<b>${esc(getEx(e.exId).name)}:</b> ${esc(e.coach.msg)}`); out.push(lines.length?lines.join('<br>'):'Today follows your routine with your coach targets.'); } else out.push(`Your goal is <b>${GOALS[goalKey()].label}</b>. ${GOALS[goalKey()].blurb}`); }
+  if(!acted&&!out.length) out.push('I can change things for you. Try: "I only have 40 minutes", "I\'m tired today", "my shoulder hurts", "too easy", "too heavy", "the bench is taken", or tell me your goal, like "I want to lose fat" or "get stronger".');
+  return out;
+}
+PAGES.coach=function(){
+  const log=ui.coachLog||(ui.coachLog=[{who:'c',html:`Hey${Social.profile&&Social.profile.name?' '+esc(Social.profile.name.split(' ')[0]):''}. Tell me how today's going or what you're training for, and I'll adjust the plan.`}]);
+  const chips= ui.coachAsk==='pain'? Object.keys(PAIN_MAP).map(k=>[`My ${k} hurts`,k[0].toUpperCase()+k.slice(1)]) : st.active? [['I only have 40 minutes','40 min only'],["I'm tired today","I'm tired"],['Feeling great today','Feeling great'],['Something hurts','Something hurts'],['Too easy','Too easy'],['Too heavy','Too heavy'],['Why this plan?','Why this plan?']] : [['I want to build muscle','Build muscle'],['I want to get stronger','Get stronger'],['I want to lose fat','Lose fat'],['I want definition','Definition'],['Train for hunting season','Hunting fitness']];
+  return {hdr:hdr('Coach',{left:backBtn}),body:`<section class="gut stack coachpg">
+    <div class="card goalpick"><div class="muted small">Training goal</div><div class="goalgrid">${Object.entries(GOALS).map(([k,g])=>`<button class="goalopt ${goalKey()===k?'on':''}" data-a="setGoal" data-v="${k}">${ic(g.icon,'sm')}<span>${g.label}</span></button>`).join('')}</div><p class="small muted">${esc(GOALS[goalKey()].blurb)}</p></div>
+    <div class="chatlog" id="chatlog">${log.map(m=>`<div class="msg ${m.who==='me'?'me':'c'}">${m.who==='me'?esc(m.html):m.html}</div>`).join('')}</div>
+    <div class="chips coachchips">${chips.map(([v,l])=>`<button class="chip" data-a="coachChip" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div>
+    <div class="cbox chatbox"><input id="coachin" placeholder="Tell the coach…" autocomplete="off" enterkeyhint="send"><button class="btn primary sm" data-a="coachSend">Send</button></div>
+    <p class="muted small">The coach understands common requests (time, energy, pain, too easy or too hard, equipment, goals) and changes your plan right away. It isn't a free-form AI chat.</p>
+  </section>`};
+};
 PAGES.gym=function(){
   const miss=new Set(missingGear()); const cnt=allEx().reduce((m,e)=>(m[e.equipment||'Other']=(m[e.equipment||'Other']||0)+1,m),{});
   const preset=GYM_PRESETS.find(([,,have])=>EQUIP.every(q=>have.includes(q)!==miss.has(q)||q==='Bodyweight'));
@@ -6028,7 +6118,7 @@ document.addEventListener('change',async ev=>{ if(ev.target&&ev.target.matches&&
 
 </script>
 <script>
-window.WH_BUILD='202611260759';
+window.WH_BUILD='202611260804';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
