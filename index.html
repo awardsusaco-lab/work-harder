@@ -685,6 +685,7 @@ textarea{resize:vertical;line-height:1.4}
 .pcard{display:grid;gap:8px}.pch{display:flex;gap:10px;align-items:flex-start}.pch .minw{display:flex;flex-direction:column;min-width:0}
 .pch-k{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-weight:900;background:var(--good-bg);color:var(--good)}.pch-k.set{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
 .msg .btn{margin-top:6px}
+.syncline{display:flex;justify-content:center;align-items:center;gap:6px}.warn-t{color:#e8873a}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -3479,15 +3480,19 @@ const TR_PTS=[0,10,24,42,64,90,120,155,200];
 function planKeyOf(w){ const r=w&&w.routineId&&st.routines[w.routineId]; if(r) return r.folder||('r:'+r.id); return null; }
 const ACCT_TXT={off:'No points come off. Grow at your own pace.',easy:'Lose 3 points for any full week with zero workouts. That\'s it.',normal:'Lose 2 points for a week under your goal, 4 if you skipped the whole week.',max:'Lose 2 points per missed workout each week, 1 for missing the coach\'s targets, and 1 for skipping more than 20% of your sets. Your animal can shrink.'};
 function planName(key){ if(!key) return 'Any workout'; if(key.startsWith('r:')){ const r=st.routines[key.slice(2)]; return r?r.name:'Routine'; } return key; }
+/* Points belong to a plan only when you train from a routine folder. Workouts from loose routines
+   or quick workouts always count toward whatever plan you're on (they used to count for nothing). */
+function agoTxt(t){ const m=Math.round((Date.now()-t)/60000); return m<1?'just now':m<60?`${m} min ago`:m<1440?`${Math.round(m/60)} hr ago`:`${Math.round(m/1440)} days ago`; }
+function pointsKeyOf(w){ const r=w&&w.routineId&&st.routines[w.routineId]; return r&&r.folder||null; }
 function currentPlan(){
-  if(st.settings.planKey) return st.settings.planKey;
-  for(const w of workoutsSorted()){ const k=planKeyOf(w); if(k) return k; }
-  const nx=upNext(); return nx? (nx.r.folder||('r:'+nx.r.id)) : null;
+  const pk=st.settings.planKey; if(pk&&!pk.startsWith('r:')&&folderNames().includes(pk)) return pk;
+  for(const w of workoutsSorted()){ const k=pointsKeyOf(w); if(k) return k; }
+  const nx=upNext(); return nx&&nx.r.folder? nx.r.folder : null;
 }
-function planStart(key){ const ps=st.settings.planStarts||{}; if(ps[key]) return ps[key]; const ws=workoutsSorted().filter(w=>planKeyOf(w)===key); return ws.length? ws[ws.length-1].start : Date.now(); }
+function planStart(key){ const ps=st.settings.planStarts||{}; if(key&&ps[key]) return ps[key]; const ws=key? workoutsSorted().filter(w=>pointsKeyOf(w)===key) : workoutsSorted().filter(w=>!w.imported); return ws.length? ws[ws.length-1].start : Date.now(); }
 function trophyPoints(until){
   const key=currentPlan(); const from=planStart(key); const goal=st.settings.goal||4;
-  const ws=workoutsSorted().filter(w=>w.start>=from&&(until==null||w.start<=until)&&(!key||planKeyOf(w)===key));
+  const ws=workoutsSorted().filter(w=>w.start>=from&&(until==null||w.start<=until)&&(!key||pointsKeyOf(w)===key||pointsKeyOf(w)===null));
   let pts=0, hits=0, prs=0; const byWk={};
   for(const w of ws){ pts+=1; if(w.hit){ pts+=1; hits++; } const p=Math.min(2,(w.prs||[]).length); pts+=p; prs+=p; const k=weekStart(w.start); byWk[k]=(byWk[k]||0)+1; }
   let weeks=0; for(const k in byWk) if(byWk[k]>=goal) weeks++;
@@ -4291,7 +4296,7 @@ done(p){
     ${(()=>{ const wk=worldKey(); const kind=trophyKind(), T= wk==='hunt'?TROPHY[kind]:WORLDS[wk];
       const B=trophyPoints(w.start-1), Aft=trophyPoints(w.start); const gained=Aft.pts-B.pts; const stg=trophyStage(Aft.pts);
       const items=[['Workout done',1]]; if(w.hit) items.push(['Hit coach targets',1]); const pr=Math.min(2,(w.prs||[]).length); if(pr) items.push([`New PR${pr>1?'s':''}`,pr]);
-      const goal=st.settings.goal||4; const inWk=workoutsSorted().filter(x=>x.start<=w.start&&weekStart(x.start)===weekStart(w.start)&&(!Aft.key||planKeyOf(x)===Aft.key)).length; if(inWk===goal) items.push([`Weekly goal hit (${goal}/${goal})`,2]);
+      const goal=st.settings.goal||4; const inWk=workoutsSorted().filter(x=>x.start<=w.start&&weekStart(x.start)===weekStart(w.start)&&(!Aft.key||pointsKeyOf(x)===Aft.key||pointsKeyOf(x)===null)).length; if(inWk===goal) items.push([`Weekly goal hit (${goal}/${goal})`,2]);
       const earned=items.reduce((a,x)=>a+x[1],0); const lo=TR_PTS[stg], hi=TR_PTS[stg+1]; const pct=hi? Math.max(0,Math.min(100,(Aft.pts-lo)/(hi-lo)*100)) : 100;
       return `<div class="card ptscard"><div class="pts-top"><span class="pts-big">+${earned}</span><span class="pts-lbl">points earned</span></div>
         <div class="pts-items">${items.map(([l,v])=>`<span>${esc(l)} <b>+${v}</b></span>`).join('')}${gained<earned?`<span class="neg">Accountability <b>−${earned-gained}</b></span>`:''}</div>
@@ -5614,13 +5619,19 @@ const Social={
     return {world:wk,kind,stage:stg,stageName:names[stg],pts:tp.pts,theme:st.settings.theme||'steel'};
   },
   async syncAll(){
-    if(!this.user) return;
+    if(!this.user) return; this._lastSync=Date.now();
     try{
       const me={...this.myStatus(),name:(this.profile&&this.profile.name)||'',updatedAt:Date.now()};
       await this.api.setProfile(this.user.uid,me); this.profile={...(this.profile||{}),...me};
       const ws=workoutsSorted().slice(0,10);
       for(const w of ws){ await this.api.putFeed(this.user.uid,w.id,this.feedItem(w)); }
-    }catch(e){ this.err=e.message; }
+      this.syncedAt=Date.now(); this.err='';
+    }catch(e){ this.err=e.message||String(e); console.warn('sync',e); }
+  },
+  async freshen(force){
+    if(!this.user||this._fresh) return; const now=Date.now(); if(!force&&now-(this._lastFresh||0)<45000) return;
+    this._fresh=true; this._lastFresh=now;
+    try{ if(force||now-(this._lastSync||0)>60000) await this.syncAll(); await this.loadFriends(); if(['home','friends'].includes(ui.tab)&&!ui.stack.length) softRender(); }catch(e){} finally{ this._fresh=false; }
   },
   feedItem(w){
     const before=trophyPoints(w.start-1).pts, after=trophyPoints(w.start).pts;
@@ -5755,6 +5766,7 @@ TABS.friends=function(){
       return all.length?`<h2 class="sec">${ic('share')} Shared with you</h2><ul class="shlist card">${all.map(x=>sharedRow(x.it,x.fid)).join('')}</ul>`:''; })()}
     <h2 class="sec">${ic('upload')} You've shared <span class="muted small">${(Social.myShared||[]).length}</span></h2>
     ${(Social.myShared||[]).length?`<ul class="shlist card">${Social.myShared.map(it=>sharedRow(it,null)).join('')}</ul>`:`<p class="muted small">Share a routine, folder or workout from its ⋯ menu and pick which friends get it.</p>`}
+    <p class="muted small center syncline">${Social.err?`<span class="warn-t">${ic('x','xs')} Last share failed: ${esc(Social.err.slice(0,80))}</span>`:Social.syncedAt?`${ic('check','xs')} Your workouts shared ${esc(agoTxt(Social.syncedAt))}`:'Sharing your workouts…'}</p>
     <button class="btn ghost wide sm" data-a="refreshFriends">${ic('history','sm')} Refresh</button>
     <button class="btn ghost wide sm danger-t" data-a="signOut">Sign out</button>`;
   }
@@ -6118,7 +6130,7 @@ Object.assign(A,{
     if(Social.profile&&c===Social.profile.code){ toast("That's your code"); return; }
     try{ const uid=await Social.api.lookupCode(c); if(!uid){ Social.err='No one has that code. Double-check it.'; render(); return; } await Social.api.link(Social.user.uid,uid); toast('Friend added'); await Social.loadFriends(); }
     catch(e){ Social.err=e.message; render(); } },
-  refreshFriends:async()=>{ await Social.syncAll(); await Social.loadFriends(); toast('Up to date'); },
+  refreshFriends:async()=>{ await Social.syncAll(); await Social.loadFriends(); toast(Social.err?'Could not share: '+Social.err.slice(0,60):'Up to date'); render(); },
   openFriend:(d)=>push({name:'friend',id:d.id}),
   likePost:(d)=>Social.toggleLike(d.o,d.id),
   togglePost:(d)=>{ ui.openPost= ui.openPost===d.k? null : d.k; render(); if(ui.openPost){ const el=document.getElementById('cmt_'+d.k.split('/')[1]); if(el) el.focus({preventScroll:true}); } },
@@ -6440,6 +6452,8 @@ Object.assign(A,{
   focusToggle:(d)=>{ const f=planFocus(); const i=f.indexOf(d.v); if(i>=0) f.splice(i,1); else f.push(d.v); Store.saveSettings(); render(); },
 });
 
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&typeof Social!=='undefined') Social.freshen(); });
+setInterval(()=>{ if(document.visibilityState==='visible'&&typeof Social!=='undefined'&&['home','friends'].includes(ui.tab)&&!ui.stack.length) Social.freshen(); },90000);
 (function boot(){
   render();
   Store.init().then(()=>{
@@ -6449,7 +6463,7 @@ Object.assign(A,{
 
 </script>
 <script>
-window.WH_BUILD='202611260821';
+window.WH_BUILD='202611261132';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;

@@ -1,5 +1,5 @@
 // Work Harder offline support: the app shell is cached so it opens with no signal at the gym.
-const CACHE='wh-v57';
+const CACHE='wh-v58';
 const SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png?v=3','./icon-512.png?v=3','./apple-touch-icon.png?v=3'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
