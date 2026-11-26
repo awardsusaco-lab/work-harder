@@ -196,7 +196,7 @@ button{cursor:pointer}
 /* exercise list */
 .search{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:var(--r-sm);padding:0 12px;min-height:46px;color:var(--muted)}
 .search input{flex:1;border:0;background:transparent;outline:0;min-width:0;color:var(--fg);font-size:16px}
-select,input:not([type]),input[type="text"],input[type="search"],input[type="email"],input[type="password"],textarea,.title-in{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);min-height:44px;padding:8px 12px;width:100%;color:var(--fg);font-size:16px}
+select,input:not([type]),input[type="text"],input[type="search"],input[type="email"],input[type="password"],input[type="number"],textarea,.title-in{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);min-height:44px;padding:8px 12px;width:100%;color:var(--fg);font-size:16px}
 textarea{resize:vertical;line-height:1.4}
 .title-in{font-family:var(--f-display);font-weight:800;font-size:26px;letter-spacing:.01em;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding-inline:0}
 .exlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -774,6 +774,9 @@ textarea.note-in{resize:none;field-sizing:content;min-height:30px!important}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:var(--surface2);font-size:13px;font-weight:600;border:0}
 .chip.soft{background:transparent;box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .chips.pick .chip{cursor:pointer}
+button.chip{cursor:pointer;color:inherit;font:inherit;font-size:14px;font-weight:700;min-height:36px;padding:6px 14px;border:1px solid var(--line);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button.chip:active{transform:scale(.97)}
+button.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .chips.pick .chip.on{background:var(--accent);color:var(--on-accent);box-shadow:none}
 .chips.pick .chip.on.soft{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--fg)}
 .seg{display:flex;background:var(--surface);border-radius:var(--r-sm);padding:3px;gap:3px}
@@ -6446,7 +6449,7 @@ Object.assign(A,{
 
 </script>
 <script>
-window.WH_BUILD='202611260819';
+window.WH_BUILD='202611260821';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
