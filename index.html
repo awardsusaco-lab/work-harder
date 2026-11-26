@@ -688,6 +688,8 @@ textarea{resize:vertical;line-height:1.4}
 .syncline{display:flex;justify-content:center;align-items:center;gap:6px}.warn-t{color:#e8873a}
 .conncheck summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none}.conncheck summary::-webkit-details-marker{display:none}
 .cc-list{list-style:none;margin:10px 0;padding:0;display:grid;gap:6px;font-size:13px}.cc-list li{display:flex;justify-content:space-between;gap:10px}.cc-list span{color:var(--muted)}.cc-list b{text-align:right;overflow-wrap:anywhere}.cc-err b{color:#e8873a}
+.whenrow{display:grid;grid-template-columns:1.35fr 1.2fr .7fr;gap:6px}.whenrow .field{margin:0}.whenrow input{min-width:0;width:100%}
+input[type="date"],input[type="time"]{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);min-height:44px;padding:8px 10px;color:inherit;font:inherit}
 /* compact top-of-workout cards */
 .cbcard .cboff{align-self:flex-start;padding:0;min-height:30px}
 .checkin{padding-block:10px}
@@ -4149,6 +4151,7 @@ home(){
     if(st.settings.swapSyncLog&&st.settings.swapSyncLog.length) body+=`<div class="card synclog"><b>${ic('swap','sm')} Routines matched to your last workouts</b>${st.settings.swapSyncLog.map(l=>`<p class="small"><b>${esc(l.name)}:</b> ${l.ch.map(c=>c.added?`+ ${esc((getEx(c.to)||{}).name||'?')}`:`${esc((getEx(c.from)||{}).name||'?')} → ${esc((getEx(c.to)||{}).name||'?')}`).join(', ')}</p>`).join('')}<p class="muted small">From now on, whatever you do in a workout is saved to its routine when you finish.</p><button class="btn sm" data-a="syncLogOk">Got it</button></div>`;
     body+=`<button class="card coachrow" data-a="openCoach">${ic('chat')}<span class="minw"><b>Coach</b><span class="muted small">Goal: ${esc(GOALS[goalKey()].label)} · tap to change it or talk to the coach</span></span>${ic('chev','sm')}</button>`;
     body+=progressCard();
+    body+=`<p class="center small"><button class="linkbtn acc" data-a="logPast">${ic('history','xs')} Forgot to log a workout? Add it here</button></p>`;
     body+=homeFeed(ws);
   }
   body+='</section>';
@@ -4195,6 +4198,7 @@ profile(){
      <div>${ic('scale','sm')}<span class="num">${fmtN(convW(totalLb,'lb',u))}</span><label>${u} lifted</label></div>
      <div>${ic('clock','sm')}<span class="num">${fmtN(totalSec/3600,0)}</span><label>Hours</label></div>
    </div>
+   <button class="btn wide" data-a="logPast">${ic('history','sm')} Log a past workout</button>
    ${trophyCard()}
    ${badgesCard()}
    ${coachCard()}
@@ -4495,13 +4499,19 @@ function loggerPage(obj,mode){
     head=hdr('Log workout',{left:`<button class="iconbtn" data-a="minimize" aria-label="Minimize">${ic('down')}</button>`,right:`<button class="btn primary sm" data-a="finish">${ic('check','sm')} Finish</button>`})
       +`<div class="statbar gut"><div><label>Duration</label><b data-clock="${obj.start}">${fmtTime((Date.now()-obj.start)/1000)}</b></div><div><label>Volume</label><b id="livevol">${fmtN(convW(vol,'lb',u))} ${u}</b></div><div><label>Sets</label><b id="livesets">${done}</b></div></div>`;
   } else if(mode==='edit'){
-    head=hdr('Edit workout',{left:backBtn,right:`<button class="btn primary sm" data-a="editSave">Save</button>`});
+    head=hdr(cur().isNew?'Log past workout':'Edit workout',{left:backBtn,right:`<button class="btn primary sm" data-a="editSave">Save</button>`});
   } else {
     head=hdr(cur().isNew?'New routine':'Edit routine',{left:backBtn,right:`<button class="btn primary sm" data-a="routineSave">Save</button>`});
   }
   let top='';
   if(mode==='routine') top=`<input id="rname" class="title-in" data-f="rname" value="${esc(obj.name)}" placeholder="Routine title"><div class="field"><label for="rfolder">Folder</label><input id="rfolder" data-f="rfolder" list="folderlist" value="${esc(obj.folder||'')}" placeholder="None (e.g. Hunting)"><datalist id="folderlist">${folderNames().map(f=>`<option value="${esc(f)}">`).join('')}</datalist></div><textarea id="rnotes" data-f="rnotes" rows="2" placeholder="Notes (optional)">${esc(obj.notes||'')}</textarea>`;
-  if(mode==='edit') top=`<input id="ename" class="title-in" data-f="ename" value="${esc(obj.name)}"><textarea id="enotes" data-f="enotes" rows="2" placeholder="Description">${esc(obj.notes||'')}</textarea>`;
+  if(mode==='edit'){ const d=new Date(obj.start); const p2=n=>String(n).padStart(2,'0');
+    top=`<input id="ename" class="title-in" data-f="ename" value="${esc(obj.name)}">
+    <div class="whenrow"><div class="field"><label>Date</label><input type="date" data-f="edate" value="${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}" max="${dayKey(Date.now())}"></div>
+      <div class="field"><label>Start</label><input type="time" data-f="etime" value="${p2(d.getHours())}:${p2(d.getMinutes())}"></div>
+      <div class="field"><label>Minutes</label><input type="number" inputmode="numeric" data-f="edur" value="${Math.max(1,Math.round(((obj.end||obj.start)-obj.start)/60000))}"></div></div>
+    <textarea id="enotes" data-f="enotes" rows="2" placeholder="Description">${esc(obj.notes||'')}</textarea>
+    ${cur().isNew?`<p class="muted small">${ic('check','xs')} Every set below is saved as done. Change weights and reps to what you actually did, or delete sets you skipped.</p>`:''}`; }
   const nb=mode==='active'? obj.exercises.filter(e=>e.bonus).length : 0;
   const cards=obj.exercises.map((e,i)=>(mode==='active'&&e.bonus&&!(obj.exercises[i-1]||{}).bonus?`<div class="bonushdr"><h2 class="sec">${ic('plus')} Bonus · if you have time</h2><p class="muted small">${obj.timeCap?`You've got about ${obj.timeCap} minutes, so the coach moved the lowest-priority ${nb===1?'one':nb} down here.`:obj.exercises.every(e=>!e.bonus||e.goalAdd)?'Finisher for your goal.':`Your cap is ${st.settings.maxEx} exercises, so the coach moved the ${nb===1?'one':nb} that overlap${nb===1?'s':''} most with the rest down here.`} Skipping ${nb===1?'it':'them'} won't count against you. <button class="linkbtn acc" data-a="capOff">Do them all today</button></p></div>`:'')+exCard(obj,e,i,mode)).join('')
     +(mode==='active'&&obj.capOff&&+st.settings.maxEx&&obj.exercises.length>+st.settings.maxEx?`<p class="muted small center"><button class="linkbtn acc" data-a="capOn">Trim back to ${st.settings.maxEx} exercises</button></p>`:'');
@@ -5422,7 +5432,17 @@ const A={
     if(Social.user) Social.syncAll(); else if(Social.configured()){ Social.pendingSync=true; Social.init(); }
   },
   doneClose:()=>{ ui.stack=[]; ui.tab='home'; render(); },
-  editSave:()=>{ const p=cur(); const o=clone(p.obj); normalizeSets(o,true); o.saved=true; if(!o.name) o.name='Workout'; o.prs=computePRs(o); Store.put('workouts',o.id,o); ui.stack.pop(); toast('Workout updated'); render(); },
+  editSave:()=>{ const p=cur(); const o=clone(p.obj); normalizeSets(o,true); if(!o.exercises.some(e=>e.sets.length)){ toast('Add at least one set'); return; } o.saved=true; if(!o.name) o.name='Workout'; o.prs=computePRs(o); if(p.isNew) o.logged='past';
+    Store.put('workouts',o.id,o); ui.stack.pop(); toast(p.isNew?`Logged ${o.name} for ${new Date(o.start).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}`:'Workout updated');
+    if(p.isNew){ ui.tab='home'; ui.stack=[{name:'done',id:o.id}]; } render();
+    if(Social.user) Social.syncAll(); else if(Social.configured()){ Social.pendingSync=true; Social.init(); } },
+  logPast:()=>push({name:'pastNew'}),
+  pastPick:(d)=>{ const u=st.settings.unit; const r=d.id? st.routines[d.id] : null; const start=Date.now()-DAY; const s0=new Date(start); s0.setHours(17,30,0,0);
+    const o={id:uid(),name:r?r.name:'Workout',start:s0.getTime(),end:s0.getTime()+(r?estMin(r):45)*60000,unit:u,dunit:st.settings.dist,routineId:r?r.id:null,notes:'',exercises:[]};
+    if(r) for(const e of r.exercises){ const pv=prevSetsFor(e.exId,null); const ps=pv?pv.sets.filter(x=>x.type!=='w'):[];
+      o.exercises.push({exId:e.exId,rest:e.rest,note:'',sets:(e.sets||[newSet()]).map((x,i)=>{ const last=ps[Math.min(i,ps.length-1)]; const w= last&&last.w!==''? round1(convW(num(last.w),pv.unit,u)) : (x.w!==''&&x.w!=null? round1(convW(num(x.w),r.unit||'lb',u)) : '');
+        return {type:x.type||'n',w,r: last&&last.r!==''? last.r : (x.r??''),t: last&&last.t? last.t : (x.t??''),d: last&&last.d? last.d : (x.d??''),done:true}; })}); }
+    ui.stack.pop(); push({name:'wedit',obj:o,isNew:true}); },
   routineSave:()=>{ const p=cur(); const o=clone(p.obj); o.name=(o.name||'').trim()||'Untitled routine'; normalizeSets(o,false); for(const e of o.exercises) for(const s of e.sets) delete s.done; o.updated=Date.now(); if(o.order==null) o.order=routinesSorted().length; if(!o.folder) delete o.folder; Store.put('routines',o.id,o); ui.stack.pop(); toast('Routine saved'); render(); },
   routineDelete:()=>{ const p=cur(); confirmSheet('Delete this routine?','Past workouts stay in your history.','Delete',()=>{ Store.del('routines',p.obj.id); ui.stack.pop(); ui.stack=ui.stack.filter(x=>!(x.name==='rview'&&x.id===p.obj.id)); render(); }); },
 
@@ -5533,6 +5553,10 @@ function onField(ev,commit){
     case 'nutW': { const w=num(v); if(w&&commit){ const t=Date.now(); const today=startOfDay(t); st.body.entries=(st.body.entries||[]).filter(e=>startOfDay(e.t)!==today); st.body.entries.push({t,w,u:st.settings.unit}); st.settings.bodyW=w; Store.saveSettings(); Store.saveBody(); refreshNutTargets(); } } return;
     case 'gymEq': { const m=new Set(missingGear()); const q=el.dataset.v; v? m.delete(q) : m.add(q); st.settings.noEquip=EQUIP.filter(x=>m.has(x)); Store.saveSettings(); render(); return; }
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
+    case 'edate': case 'etime': { if(!commit&&el.type!=='date'&&el.type!=='time') return; const o=p.obj; const dur=(o.end||o.start)-o.start; const d=new Date(o.start);
+      if(el.dataset.f==='edate'&&v){ const [y,m,dd]=v.split('-').map(Number); d.setFullYear(y,m-1,dd); } if(el.dataset.f==='etime'&&v){ const [h,mi]=v.split(':').map(Number); d.setHours(h,mi,0,0); }
+      if(d.getTime()>Date.now()){ toast("That's in the future"); return; } o.start=d.getTime(); o.end=o.start+dur; } return;
+    case 'edur': { const m=num(v); if(m>0){ p.obj.end=p.obj.start+m*60000; } } return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
     case 'wname': st.active.name=v; Store.saveActive(); return; case 'wnotes': st.active.notes=v; Store.saveActive(); return;
     case 'exname': p.draft.name=v; return;
@@ -6057,6 +6081,14 @@ PAGES.coach=function(){
     <p class="muted small">The coach understands common requests (time, energy, pain, too easy or too hard, equipment, goals) and changes your plan right away. It isn't a free-form AI chat.</p>
   </section>`};
 };
+PAGES.pastNew=function(){
+  const rs=routinesSorted(); const byF={}; for(const r of rs) (byF[r.folder||'']=byF[r.folder||'']||[]).push(r);
+  return {hdr:hdr('Log past workout',{left:backBtn}),body:`<section class="gut stack">
+    <p class="muted">Forgot to log one, or it didn't save? Pick what you did. Sets are filled in from your last time, and you set the date, time and weights on the next screen. It counts for points and shares to Friends like any workout.</p>
+    <button class="card recrow" data-a="pastPick" data-id="">${ic('plus')}<span class="minw"><b>Empty workout</b><span class="muted small">Add the exercises yourself</span></span>${ic('chev','sm')}</button>
+    ${Object.entries(byF).map(([f,list])=>`<h2 class="sec">${ic('folder','sm')} ${esc(f||'Routines')}</h2>${list.map(r=>`<button class="card recrow" data-a="pastPick" data-id="${esc(r.id)}"><span class="minw"><b>${esc(r.name)}</b><span class="muted small">${r.exercises.length} exercises · ~${estMin(r)} min</span></span>${ic('chev','sm')}</button>`).join('')}`).join('')}
+  </section>`};
+};
 PAGES.gym=function(){
   const miss=new Set(missingGear()); const cnt=allEx().reduce((m,e)=>(m[e.equipment||'Other']=(m[e.equipment||'Other']||0)+1,m),{});
   const preset=GYM_PRESETS.find(([,,have])=>EQUIP.every(q=>have.includes(q)!==miss.has(q)||q==='Bodyweight'));
@@ -6486,7 +6518,7 @@ setInterval(()=>{ if(document.visibilityState==='visible'&&typeof Social!=='unde
 
 </script>
 <script>
-window.WH_BUILD='202611261211';
+window.WH_BUILD='202611261219';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
