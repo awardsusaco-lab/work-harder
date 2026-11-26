@@ -5517,10 +5517,10 @@ function onField(ev,commit){
     case 'pickRt': p.rt=!!v; return;
     case 'setChk': st.settings[el.dataset.k]=!!v; Store.saveSettings(); render(); return;
     case 'setNum': if(!commit) return; st.settings[el.dataset.k]= v===''? '' : (num(v)??''); Store.saveSettings(); return;
-    case 'fq': if(commit) return; ui.fq=v; clearTimeout(ui._fqT); ui._fqT=setTimeout(()=>{ const n0=$('#fq'); const pos=n0?n0.selectionStart:0; render(); const n=$('#fq'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} } },120); return;
-    case 'nutNum': if(!commit) return; fuel().nut[el.dataset.k]= v===''? '' : num(v); Store.saveBody(); setTimeout(render,0); return;
-    case 'nutHt': if(!commit) return; { const N=fuel().nut; const ft=el.dataset.k==='ft'? num(v)||0 : Math.floor((N.heightIn||0)/12); const inch=el.dataset.k==='in'? num(v)||0 : (N.heightIn||0)%12; N.heightIn=ft*12+inch||''; Store.saveBody(); setTimeout(render,0); } return;
-    case 'nutW': if(!commit) return; { const w=num(v); if(w){ const t=Date.now(); const today=startOfDay(t); st.body.entries=(st.body.entries||[]).filter(e=>startOfDay(e.t)!==today); st.body.entries.push({t,w,u:st.settings.unit}); st.settings.bodyW=w; Store.saveSettings(); Store.saveBody(); setTimeout(render,0); } } return;
+    case 'fq': if(commit) return; ui.fq=v; { const box=document.getElementById('fqres'); if(box) box.innerHTML=foodResultsHTML(); } return;
+    case 'nutNum': fuel().nut[el.dataset.k]= v===''? '' : num(v); if(commit) Store.saveBody(); refreshNutTargets(); return;
+    case 'nutHt': { const N=fuel().nut; const box=el.closest('.ht'); const ft=num(box.querySelector('[data-k=ft]').value)||0, inch=num(box.querySelector('[data-k=in]').value)||0; N.heightIn=(ft*12+inch)||''; if(commit) Store.saveBody(); refreshNutTargets(); } return;
+    case 'nutW': { const w=num(v); if(w&&commit){ const t=Date.now(); const today=startOfDay(t); st.body.entries=(st.body.entries||[]).filter(e=>startOfDay(e.t)!==today); st.body.entries.push({t,w,u:st.settings.unit}); st.settings.bodyW=w; Store.saveSettings(); Store.saveBody(); refreshNutTargets(); } } return;
     case 'gymEq': { const m=new Set(missingGear()); const q=el.dataset.v; v? m.delete(q) : m.add(q); st.settings.noEquip=EQUIP.filter(x=>m.has(x)); Store.saveSettings(); render(); return; }
     case 'rname': p.obj.name=v; return; case 'rfolder': p.obj.folder=v.trim(); return; case 'rnotes': p.obj.notes=v; return;
     case 'ename': p.obj.name=v; return; case 'enotes': p.obj.notes=v; return;
@@ -6305,6 +6305,8 @@ TABS.fuel=function(){
   }
   return {hdr:hdr('Fuel',{right:`<button class="iconbtn" data-a="fuelSetup" aria-label="Nutrition settings">${ic('gear')}</button>`}),body:`<section class="gut stack">${seg}${body}<p class="muted small center">General guidance, not medical advice. Talk to a doctor or dietitian about big changes.</p></section>`};
 };
+function nutTargetsHTML(){ return (()=>{ const T=fuelTargets(); return T?`<div class="card"><b>Your daily targets</b><p class="small"><b>${T.kcal} kcal</b> and <b>${T.protein} g protein</b> on a rest day, plus whatever your workout burns on training days.</p><p class="muted small">Resting burn (Mifflin–St Jeor): ${T.bmr} kcal. With daily activity: ${Math.round(T.tdee-T.train)} kcal. Protein: ${(T.protein/T.kg).toFixed(1)} g per kg of body weight, the range research supports for keeping muscle while lifting.</p></div>`:'<p class="muted small">Fill in age, height and weight to see your targets.</p>'; })(); }
+function refreshNutTargets(){ const box=document.getElementById('nuttargets'); if(box) box.innerHTML=nutTargetsHTML(); }
 PAGES.fuelSetup=function(){
   const N=fuel().nut; const u=st.settings.unit; const lb=latestWeightLb();
   const opt=(k,v,l)=>`<button class="chip ${String(N[k])===String(v)?'on':''}" data-a="nutSet" data-k="${k}" data-v="${v}">${l}</button>`;
@@ -6316,26 +6318,29 @@ PAGES.fuelSetup=function(){
       <div class="field"><label>Goal weight (${u})</label><input type="number" inputmode="decimal" data-f="nutNum" data-k="goalW" value="${esc(N.goalW||'')}"></div></div>
     <div class="field"><label>Day-to-day activity (outside workouts)</label><div class="chips">${opt('life','low','Mostly sitting')}${opt('life','mid','On my feet some')}${opt('life','high','Physical job')}</div></div>
     ${['lean','define'].includes(goalKey())?`<div class="field"><label>Weight-loss pace</label><div class="chips">${opt('rate',0.5,'0.5 lb/wk')}${opt('rate',1,'1 lb/wk')}${opt('rate',1.5,'1.5 lb/wk')}</div><p class="muted small">1 lb a week (about 500 kcal/day under) is a solid pace that keeps your strength up.</p></div>`:`<p class="muted small">Your goal is <b>${esc(GOALS[goalKey()].label)}</b>. Change it in Coach to switch to a weight-loss target.</p>`}</div>
-    ${(()=>{ const T=fuelTargets(); return T?`<div class="card"><b>Your daily targets</b><p class="small"><b>${T.kcal} kcal</b> and <b>${T.protein} g protein</b> on a rest day, plus whatever your workout burns on training days.</p><p class="muted small">Resting burn (Mifflin–St Jeor): ${T.bmr} kcal. With daily activity: ${Math.round(T.tdee-T.train)} kcal. Protein: ${(T.protein/T.kg).toFixed(1)} g per kg of body weight, the range research supports for keeping muscle while lifting.</p></div>`:'<p class="muted small">Fill in age, height and weight to see your targets.</p>'; })()}
+    <div id="nuttargets">${nutTargetsHTML()}</div>
     <button class="btn primary wide" data-a="back">Done</button>
   </section>`};
 };
 PAGES.foodAdd=function(p){
-  const q=(ui.fq||'').toLowerCase(); const F=fuel(); const recent=(F.recent||[]).map(foodById).filter(Boolean);
-  const mine=Object.values(F.myFoods); const all=[...mine,...FOODS.map(f=>FOODMAP[f[0]])];
-  const list= q? all.filter(f=>f.name.toLowerCase().includes(q)).slice(0,30) : null;
-  const row=f=>`<li><button class="qfood" data-a="fuelQuick" data-id="${esc(f.id)}"><span class="minw"><b>${esc(f.name)}</b><span class="muted small">${esc(f.srv||'1 serving')} · ${f.kcal} kcal · ${f.p} g protein</span></span>${ic('plus','sm')}</button></li>`;
   return {hdr:hdr('Add food',{left:backBtn}),body:`<section class="gut stack">
     <input id="fq" type="search" data-f="fq" placeholder="Search foods (chicken, rice, shake…)" value="${esc(ui.fq||'')}" autocomplete="off">
-    ${list? (list.length?`<ul class="card qlist">${list.map(row).join('')}</ul>`:'<p class="muted small">No match. Add it as a custom food below.</p>')
-      : `${recent.length?`<h2 class="sec">Recent</h2><ul class="card qlist">${recent.slice(0,8).map(row).join('')}</ul>`:''}
-         <h2 class="sec">High-protein staples</h2><ul class="card qlist">${FOODS.filter(f=>f[5].includes('protein')).slice(0,12).map(f=>row(FOODMAP[f[0]])).join('')}</ul>`}
+    <div id="fqres">${foodResultsHTML()}</div>
     <div class="card stack"><b>${ic('plus','sm')} Quick add / custom food</b>
       <input id="cfn" placeholder="Name (e.g. Mom's lasagna)"><div class="row2"><input id="cfk" type="number" inputmode="numeric" placeholder="Calories"><input id="cfp" type="number" inputmode="numeric" placeholder="Protein (g)"></div>
       <label class="toggle"><input id="cfs" type="checkbox" checked><span>Save to my foods</span></label>
       <button class="btn primary" data-a="fuelCustom">Log it</button></div>
   </section>`};
 };
+function foodResultsHTML(){
+  const q=(ui.fq||'').toLowerCase().trim(); const F=fuel(); const recent=(F.recent||[]).map(foodById).filter(Boolean);
+  const mine=Object.values(F.myFoods); const all=[...mine,...FOODS.map(f=>FOODMAP[f[0]])];
+  const list= q? all.filter(f=>f.name.toLowerCase().includes(q)).slice(0,30) : null;
+  const row=f=>`<li><button class="qfood" data-a="fuelQuick" data-id="${esc(f.id)}"><span class="minw"><b>${esc(f.name)}</b><span class="muted small">${esc(f.srv||'1 serving')} · ${f.kcal} kcal · ${f.p} g protein</span></span>${ic('plus','sm')}</button></li>`;
+  return `${list? (list.length?`<ul class="card qlist">${list.map(row).join('')}</ul>`:'<p class="muted small">No match. Add it as a custom food below.</p>')
+      : `${recent.length?`<h2 class="sec">Recent</h2><ul class="card qlist">${recent.slice(0,8).map(row).join('')}</ul>`:''}
+         <h2 class="sec">High-protein staples</h2><ul class="card qlist">${FOODS.filter(f=>f[5].includes('protein')).slice(0,12).map(f=>row(FOODMAP[f[0]])).join('')}</ul>`}`;
+}
 PAGES.recipe=function(p){
   const r=RECIPES.find(x=>x.id===p.id); if(!r) return PAGES.missing();
   return {hdr:hdr('Recipe',{left:backBtn}),body:`<section class="gut stack">
@@ -6441,7 +6446,7 @@ Object.assign(A,{
 
 </script>
 <script>
-window.WH_BUILD='202611260813';
+window.WH_BUILD='202611260819';
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));
   let reloading=false;
